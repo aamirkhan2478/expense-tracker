@@ -23,6 +23,7 @@
     "moment": "^2.29.4",
     "mongoose": "^8.0.0",
     "next": "14.0.1",
+    "next-auth": "^4.24.4",
     "react": "^18",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18",

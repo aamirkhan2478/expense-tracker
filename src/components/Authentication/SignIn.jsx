@@ -12,16 +12,73 @@ import {
   Stack,
   Text,
   useColorMode,
+  useToast,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect } from "react";
 import { FiEye, FiEyeOff, FiMoon, FiSun } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
 const SignIn = () => {
   const router = useRouter();
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
+  const toast = useToast();
   const { colorMode, toggleColorMode } = useColorMode();
+  const [user, setUser] = useState({
+    email: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const { status } = useSession();
+  const changeHandler = (e) => {
+    const { name, value } = e.target;
+    setUser((preData) => {
+      return {
+        ...preData,
+        [name]: value,
+      };
+    });
+  };
+  const submitHandler = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await signIn("credentials", {
+        ...user,
+        redirect: false,
+      });
+
+      const { error } = response;
+      if (error === "CredentialsSignin") {
+        toast({
+          title: "Invalid Credentials",
+          status: "error",
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Invalid Credentials",
+        status: "error",
+        isClosable: true,
+      });
+      console.log(`Error occurred during sign-in: ${error}`);
+      toast({
+        title: `Error occurred during sign-in: ${error}`,
+        status: "error",
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/dashboard");
+    }
+  }, [status, router]);
   return (
     <Stack spacing={8} mx={"auto"} maxW={"lg"} py={12} px={6}>
       <Box
@@ -33,12 +90,22 @@ const SignIn = () => {
         <Stack spacing={4}>
           <FormControl id="email">
             <FormLabel>Email address</FormLabel>
-            <Input type="email" />
+            <Input
+              type="email"
+              onChange={changeHandler}
+              value={user.email}
+              name="email"
+            />
           </FormControl>
           <FormControl id="password">
             <FormLabel>Password</FormLabel>
             <InputGroup>
-              <Input type={show ? "text" : "password"} />
+              <Input
+                type={show ? "text" : "password"}
+                onChange={changeHandler}
+                value={user.password}
+                name="password"
+              />
               <InputRightElement
                 width="4.5rem"
                 height="2.3rem"
@@ -63,7 +130,8 @@ const SignIn = () => {
               _hover={{
                 bg: "blue.500",
               }}
-              onClick={() => router.push("/dashboard")}
+              onClick={submitHandler}
+              isLoading={loading}
             >
               Sign In
             </Button>

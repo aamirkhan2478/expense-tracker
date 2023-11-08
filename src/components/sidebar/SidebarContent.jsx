@@ -10,7 +10,8 @@ import {
 } from "@chakra-ui/react";
 import NavItem from "./NavItem";
 import { FiCompass, FiHome, FiMoon, FiSun, FiTrendingUp } from "react-icons/fi";
-
+import { MdLogout } from "react-icons/md";
+import { signOut } from "next-auth/react";
 const SidebarContent = ({ onClose, ...rest }) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const LinkItems = [
@@ -21,6 +22,11 @@ const SidebarContent = ({ onClose, ...rest }) => {
       name: colorMode === "dark" ? "Light Mode" : "Dark Mode",
       icon: colorMode === "dark" ? FiSun : FiMoon,
       onClick: () => toggleColorMode(),
+    },
+    {
+      name: "Logout",
+      icon: MdLogout,
+      onClick: () => signOut(),
     },
   ];
   return (
