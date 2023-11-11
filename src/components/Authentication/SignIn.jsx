@@ -105,6 +105,11 @@ const SignIn = () => {
                 onChange={changeHandler}
                 value={user.password}
                 name="password"
+                onKeyUp={(e) => {
+                  if (e.key === "Enter") {
+                    submitHandler(e);
+                  }
+                }}
               />
               <InputRightElement
                 width="4.5rem"
@@ -132,6 +137,7 @@ const SignIn = () => {
               }}
               onClick={submitHandler}
               isLoading={loading}
+              
             >
               Sign In
             </Button>

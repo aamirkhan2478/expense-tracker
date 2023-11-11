@@ -1,4 +1,4 @@
-import axiosInstance from "@/utils/axiosInstence";
+import axiosInstance from "@/utils/axiosInstance";
 import { useMutation } from "react-query";
 
 const signup = (values) => {

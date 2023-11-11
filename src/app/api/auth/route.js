@@ -37,7 +37,7 @@ export async function POST(req) {
     return res.json(
       {
         success: false,
-        msg: error.details[0].message,
+        error: error.details[0].message,
       },
       {
         status: 400,
@@ -80,6 +80,6 @@ export async function POST(req) {
     }
   } catch (err) {
     console.log(err.message);
-    return res.json({ error: "Server Error", status: 500 });
+    return res.json({ error: "Server Error" }, { status: 500 });
   }
 }

@@ -100,8 +100,8 @@ const SignUp = () => {
               handleBlur,
               handleChange,
               handleSubmit,
-              handleReset,
-              resetForm,
+              isValid,
+              dirty,
             }) => (
               <Form>
                 <FormControl id="name" isRequired>
@@ -119,7 +119,7 @@ const SignUp = () => {
                     {Boolean(touched.name) && errors.name}
                   </FormHelperText>
                 </FormControl>
-                <FormControl id="email" isRequired>
+                <FormControl id="email-address" isRequired>
                   <FormLabel>Email address</FormLabel>
                   <Field
                     as={Input}
@@ -134,7 +134,7 @@ const SignUp = () => {
                     {Boolean(touched.email) && errors.email}
                   </FormHelperText>
                 </FormControl>
-                <FormControl id="password">
+                <FormControl id="pass" isRequired>
                   <FormLabel>Password</FormLabel>
                   <InputGroup>
                     <Field
@@ -201,6 +201,7 @@ const SignUp = () => {
                     type="submit"
                     isLoading={isLoading}
                     onClick={handleSubmit}
+                    isDisabled={!isValid || !dirty}
                   >
                     Sign Up
                   </Button>
