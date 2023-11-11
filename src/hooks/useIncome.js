@@ -38,12 +38,12 @@ const incomes = ({ queryKey }) => {
     },
   };
   return axiosInstance.get(
-    `/api/income/?user=${user}&limit=${limit}&page=${page}&incomeDate=${incomeDate}`,
+    `/api/income?user=${user}&limit=${limit}&page=${page}&incomeDate=${incomeDate}`,
     config
   );
 };
 
-export const useShowIncome = (user, limit, page, incomeDate) => {
+export const useShowIncome = (user, limit = "", page = "", incomeDate = "") => {
   return useQuery(["show-incomes", user, limit, page, incomeDate], incomes, {
     staleTime: 60000,
     refetchOnWindowFocus: false,

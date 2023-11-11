@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Flex, Button, Text, Box } from '@chakra-ui/react';
+"use client"
+import { useState } from "react";
+import { Flex, Button, Text, useColorModeValue} from "@chakra-ui/react";
 
-const Pagination = ({ totalPages, currentPage, onPageChange }) => {
+const Pagination = ({ totalPages, currentPage, onPageChange, ...rest }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(currentPage - 1);
 
   const goToPreviousPage = () => {
@@ -24,8 +25,13 @@ const Pagination = ({ totalPages, currentPage, onPageChange }) => {
       justifyContent="center"
       alignItems="center"
       marginBottom={10}
-      backgroundColor="white"
-      borderRadius="20px"
+      backgroundColor={useColorModeValue("white","gray")}
+      borderRadius="10px"
+      paddingX={5}
+      boxShadow="lg"
+      width="98%"
+      maxWidth="3xl"
+      {...rest}
     >
       <Button
         variant="outline"
@@ -33,7 +39,7 @@ const Pagination = ({ totalPages, currentPage, onPageChange }) => {
         onClick={goToPreviousPage}
         isDisabled={currentPageIndex === 0}
       >
-        {'<'}
+        {"<"}
       </Button>
       <Text fontSize="20px" marginX="10px">
         Page {currentPage} of {totalPages}
@@ -44,7 +50,7 @@ const Pagination = ({ totalPages, currentPage, onPageChange }) => {
         onClick={goToNextPage}
         isDisabled={currentPageIndex === totalPages - 1}
       >
-        {'>'}
+        {">"}
       </Button>
     </Flex>
   );

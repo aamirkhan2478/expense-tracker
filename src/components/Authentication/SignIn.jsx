@@ -85,6 +85,7 @@ const SignIn = () => {
         rounded={"lg"}
         bg={useColorModeValue("white", "gray.700")}
         boxShadow={"lg"}
+        shadow={'dark-lg'}
         p={8}
       >
         <Stack spacing={4}>

@@ -10,10 +10,12 @@ import {
   Legend,
   ArcElement,
 } from "chart.js";
-
 import { Line } from "react-chartjs-2";
 import dateFormat from "@/utils/dateFormat";
 import { Box, useColorModeValue } from "@chakra-ui/react";
+import { useShowExpense } from "@/hooks/useExpense";
+import { useSession } from "next-auth/react";
+import { useShowIncome } from "@/hooks/useIncome";
 
 ChartJs.register(
   CategoryScale,
@@ -27,63 +29,33 @@ ChartJs.register(
 );
 
 function Chart() {
-  const expenses = [
-    {
-      title: "Part Time Job",
-      amount: "30000",
-      date: "07/11/2023",
-    },
-    {
-      title: "Full Time Job",
-      amount: "50000",
-      date: "06/11/2023",
-    },
-  ];
+  const { data: session } = useSession();
+  const id = session?.user?.id;
+  const { data: expenses, isFetching: expenseFetching } = useShowExpense(id);
+  const { data: incomes, isFetching: incomeFetching } = useShowIncome(id);
 
-  const incomes = [
-    {
-      title: "Part Time Job",
-      amount: "30000",
-      companyName: "Microverse",
-      date: "07/11/2023",
-    },
-    {
-      title: "Full Time Job",
-      amount: "50000",
-      companyName: "The Cloud Services",
-      date: "06/11/2023",
-    },
-  ];
+  // Check if incomes and expenses are defined before accessing their properties
+  const incomeLabels = incomes?.data?.data?.map((inc) =>
+    dateFormat(inc.incomeDate)
+  );
+  const incomeData = incomes?.data?.data?.map((income) => income.amount);
+  const expenseData = expenses?.data?.data?.map((expense) => expense.amount);
+
   const data = {
-    labels: incomes.map((inc) => {
-      const { date } = inc;
-      return dateFormat(date);
-    }),
+    labels: incomeLabels,
     datasets: [
       {
-        label: "Income",
-        backgroundColor: "#84a9f4",
-        borderColor: "#84a9f4",
-        data: [
-          ...incomes.map((income) => {
-            const { amount } = income;
-            return amount;
-          }),
-        ],
-        borderColor: "rgb(53, 162, 235)",
+        label: "Incomes",
         backgroundColor: "rgba(53, 162, 235, 0.5)",
+        borderColor: "rgb(53, 162, 235)",
+        data: incomeData,
         tension: 0.2,
       },
       {
         label: "Expenses",
-        data: [
-          ...expenses.map((expense) => {
-            const { amount } = expense;
-            return amount;
-          }),
-        ],
-        borderColor: "rgb(255, 99, 132)",
         backgroundColor: "rgba(255, 99, 132, 0.5)",
+        borderColor: "rgb(255, 99, 132)",
+        data: expenseData,
         tension: 0.2,
       },
     ],
@@ -96,8 +68,8 @@ function Chart() {
       boxShadow={"0px 1px 15px rgba(0, 0, 0, 0.06)"}
       p="1rem"
       borderRadius={"20px"}
-      h={{ base: "150px", sm:"250px" }}
-      w={{ base: "250px", sm:"500px" }}
+      h={{ base: "150px", sm: "200px", md:"250px" }}
+      w={{ base: "250px", sm: "400px", md:"500px" }}
     >
       <Line data={data} style={{ height: "450px" }} />
     </Box>

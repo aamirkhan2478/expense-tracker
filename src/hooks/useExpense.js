@@ -38,12 +38,17 @@ const expenses = ({ queryKey }) => {
     },
   };
   return axiosInstance.get(
-    `/api/expense/?user=${user}&limit=${limit}&page=${page}&expenseDate=${expenseDate}`,
+    `/api/expense?user=${user}&limit=${limit}&page=${page}&expenseDate=${expenseDate}`,
     config
   );
 };
 
-export const useShowExpense = (user, limit, page, expenseDate) => {
+export const useShowExpense = (
+  user,
+  limit = "",
+  page = "",
+  expenseDate = ""
+) => {
   return useQuery(["show-expenses", user, limit, page, expenseDate], expenses, {
     staleTime: 60000,
     refetchOnWindowFocus: false,

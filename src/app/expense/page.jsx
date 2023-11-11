@@ -140,13 +140,22 @@ const Expense = () => {
           bg={bgCard}
           display={"flex"}
           justifyContent={"center"}
+          alignItems={"center"}
         >
-          <Skeleton isLoaded={!isFetching}>
+          <Skeleton
+            isLoaded={!isFetching}
+            display={"flex"}
+            justifyContent={"center"}
+            alignItems={"center"}
+            overflow="hidden"
+            borderRadius={10}
+          >
             <Text
               fontFamily={"monospace"}
-              fontSize={"3xl"}
+              fontSize={{ base: "xl", sm: "1xl", md: "3xl" }}
               fontWeight={"bold"}
-              p="20px"
+              textAlign={"center"}
+              overflow="hidden"
             >
               Total Expense:
               <Text as={"span"} textColor={"green.400"}>
@@ -272,7 +281,7 @@ const Expense = () => {
           </Box>
           <Box w={{ base: "97%", md: "50%" }}>
             {isFetching &&
-              [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((_data, index) => (
+              [1, 2, 3, 4, 5].map((_data, index) => (
                 <Skeleton
                   key={index}
                   borderWidth="1px"
@@ -322,6 +331,18 @@ const Expense = () => {
                   </Box>
                 </Skeleton>
               ))}
+            <Flex
+              justifyContent={"center"}
+              display={isFetching ? "none" : "flex"}
+            >
+              <Input
+                type="date"
+                onChange={(e) => setExpenseDate(e.target.value)}
+                mt={5}
+                outlineColor={"gray"}
+                width={{ base: 200, sm: 300 }}
+              />
+            </Flex>
             {data?.data?.data?.length === 0 && (
               <Box
                 borderWidth="1px"
@@ -343,15 +364,6 @@ const Expense = () => {
                 </Text>
               </Box>
             )}
-            <Flex justifyContent={"center"}>
-              <Input
-                type="date"
-                onChange={(e) => setExpenseDate(e.target.value)}
-                mt={5}
-                outlineColor={"gray"}
-                width={{ base: 200, sm: 300 }}
-              />
-            </Flex>
             {data?.data?.data?.map((item) => (
               <Box
                 key={item._id}
@@ -361,13 +373,13 @@ const Expense = () => {
                 m="10px"
                 shadow={"lg"}
               >
-                <Flex p="10px" flexDirection={{ base: "column", sm: "row" }}>
+                <Flex p="10px">
                   <Box w={"50%"}>
                     <Text
                       fontFamily={"monospace"}
                       fontSize={{ base: "md", md: "xl" }}
                       fontWeight={"bold"}
-                      width={{ base: "200px", md: "220px" }}
+                      w={{base:"60px",sm:"500px"}}
                       mb={{ base: "5px", md: "0" }}
                     >
                       {item.title}
@@ -404,6 +416,9 @@ const Expense = () => {
               currentPage={currentPage}
               onPageChange={handlePageChange}
               totalPages={totalPages}
+              display={
+                data?.data?.totalExpenses <= 5 || isFetching ? "none" : "flex"
+              }
             />
           </Box>
         </Flex>

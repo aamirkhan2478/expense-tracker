@@ -16,8 +16,8 @@ export const calculateIncome = (incomes) => {
   return totalIncome;
 };
 
-export const totalBalance = () => {
-  return calculateIncome() - calculateExpense();
+export const totalBalance = (totalIncomes, totalExpenses) => {
+  return totalIncomes - totalExpenses;
 };
 
 export const transactionHistory = (incomes, expenses) => {

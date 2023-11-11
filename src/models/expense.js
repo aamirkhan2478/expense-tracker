@@ -14,6 +14,11 @@ const ExpenseSchema = new Schema(
       type: Date,
       require: [true, "Expense Date is required"],
     },
+    type: {
+      type: String,
+      require: [true, "Type is required"],
+      default: "expense",
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",

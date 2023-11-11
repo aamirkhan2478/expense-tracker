@@ -6,7 +6,7 @@ const IncomeSchema = new Schema(
       type: String,
       require: [true, "Title is required"],
     },
-     title: {
+    title: {
       type: String,
       require: [true, "Title is required"],
     },
@@ -17,6 +17,11 @@ const IncomeSchema = new Schema(
     incomeDate: {
       type: Date,
       require: [true, "Income Date is required"],
+    },
+    type: {
+      type: String,
+      require: [true, "Type is required"],
+      default: "income",
     },
     user: {
       type: Schema.Types.ObjectId,
