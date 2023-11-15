@@ -3,6 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Income from "@/models/income";
 import Joi from "joi";
 import User from "@/models/user";
+import mongoose from "mongoose";
 
 export async function POST(req) {
   const body = await req.json();
@@ -27,7 +28,7 @@ export async function POST(req) {
     );
   }
 
-  const {companyName, title, amount, incomeDate, user } = body;
+  const { companyName, title, amount, incomeDate, user } = body;
 
   try {
     await connectToDB();
@@ -76,6 +77,30 @@ export async function GET(req) {
     let dateFilter = {};
     if (incomeDate) {
       dateFilter.incomeDate = new Date(incomeDate);
+    }
+
+    if (!user) {
+      return res.json(
+        {
+          success: false,
+          error: "User not found",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(user)) {
+      return res.json(
+        {
+          success: false,
+          error: "Invalid user id",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
     const result = await Income.find({

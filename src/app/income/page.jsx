@@ -39,7 +39,7 @@ const Income = () => {
   const id = session?.user?.id;
   const [currentPage, setCurrentPage] = useState(1);
   const [incomeDate, setIncomeDate] = useState("");
-  const { data, isFetching } = useShowIncome(id, 5, currentPage, incomeDate);
+  const { data, isFetching } = useShowIncome(id || "", 5, currentPage, incomeDate);
   const { mutate, isSuccess, isLoading } = useAddIncome(onSuccess, onError);
   const { mutate: deleteIncome, isLoading: deleteLoading } = useDeleteIncome(
     onErrorDelete,

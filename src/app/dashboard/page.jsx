@@ -17,9 +17,11 @@ import { useSession } from "next-auth/react";
 
 const Dashboard = () => {
   const { data: session } = useSession();
-  const id = session?.user?.id;
-  const { data: expenses, isFetching: expenseFetching } = useShowExpense(id);
-  const { data: incomes, isFetching: incomeFetching } = useShowIncome(id);
+  const id = session?.user.id;
+
+  const { data: expenses, isLoading: expenseFetching } = useShowExpense(id);
+  const { data: incomes, isLoading: incomeFetching } = useShowIncome(id);
+
   const [...history] = transactionHistory(
     incomes?.data?.data || [],
     expenses?.data?.data || []
@@ -29,7 +31,6 @@ const Dashboard = () => {
   const expenseAmount = expenses?.data?.data || [];
   const bgColor = useColorModeValue("#FCF6F9", "black");
 
-  console.log(expenseAmount);
   return (
     <Layout>
       <CustomBox>

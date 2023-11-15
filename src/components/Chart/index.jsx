@@ -31,8 +31,8 @@ ChartJs.register(
 function Chart() {
   const { data: session } = useSession();
   const id = session?.user?.id;
-  const { data: expenses, isFetching: expenseFetching } = useShowExpense(id);
-  const { data: incomes, isFetching: incomeFetching } = useShowIncome(id);
+  const { data: expenses } = useShowExpense(id || "");
+  const { data: incomes } = useShowIncome(id || "");
 
   // Check if incomes and expenses are defined before accessing their properties
   const incomeLabels = incomes?.data?.data?.map((inc) =>
@@ -68,8 +68,8 @@ function Chart() {
       boxShadow={"0px 1px 15px rgba(0, 0, 0, 0.06)"}
       p="1rem"
       borderRadius={"20px"}
-      h={{ base: "150px", sm: "200px", md:"250px" }}
-      w={{ base: "250px", sm: "400px", md:"500px" }}
+      h={{ base: "150px", sm: "200px", md: "250px" }}
+      w={{ base: "250px", sm: "400px", md: "500px" }}
     >
       <Line data={data} style={{ height: "450px" }} />
     </Box>

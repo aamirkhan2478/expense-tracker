@@ -3,6 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Expense from "@/models/expense";
 import Joi from "joi";
 import User from "@/models/user";
+import mongoose from "mongoose";
 
 export async function POST(req) {
   const body = await req.json();
@@ -58,7 +59,7 @@ export async function POST(req) {
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const user = searchParams.get("user");
+  let user = searchParams.get("user");
   const expensePage = searchParams.get("page");
   const expenseLimit = searchParams.get("limit");
   const expenseDate = searchParams.get("expenseDate");
@@ -74,6 +75,30 @@ export async function GET(req) {
     let dateFilter = {};
     if (expenseDate) {
       dateFilter.expenseDate = new Date(expenseDate);
+    }
+
+    if (!user) {
+      return res.json(
+        {
+          success: false,
+          error: "User not found",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(user)) {
+      return res.json(
+        {
+          success: false,
+          error: "Invalid user id",
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
     const result = await Expense.find({

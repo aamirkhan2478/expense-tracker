@@ -39,7 +39,7 @@ const Expense = () => {
   const id = session?.user?.id;
   const [currentPage, setCurrentPage] = useState(1);
   const [expenseDate, setExpenseDate] = useState("");
-  const { data, isFetching } = useShowExpense(id, 5, currentPage, expenseDate);
+  const { data, isFetching } = useShowExpense(id || "", 5, currentPage, expenseDate);
   const { mutate, isSuccess, isLoading } = useAddExpense(onSuccess, onError);
   const { mutate: deleteExpense, isLoading: deleteLoading } = useDeleteExpense(
     onErrorDelete,
