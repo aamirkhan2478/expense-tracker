@@ -10,7 +10,7 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import NavItem from "./NavItem";
-import { FiCompass, FiHome, FiMoon, FiSun, FiTrendingUp } from "react-icons/fi";
+import { FiActivity, FiCompass, FiHome, FiMoon, FiSun, FiTrendingUp } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import { signOut } from "next-auth/react";
 import Alert from "../Alert";
@@ -24,6 +24,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
   const LinkItems = [
     { name: "Home", icon: FiHome, path: "/dashboard" },
     { name: "Income", icon: FiCompass, path: "/income" },
+    { name: "Category", icon: FiActivity, path: "/category" },
     { name: "Expense", icon: FiTrendingUp, path: "/expense" },
     {
       name: colorMode === "dark" ? "Light Mode" : "Dark Mode",

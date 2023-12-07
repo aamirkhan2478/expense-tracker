@@ -1,9 +1,9 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
+import mongoose from "mongoose";
+import User from "@/models/user";
 import Expense from "@/models/expense";
 import Joi from "joi";
-import User from "@/models/user";
-import mongoose from "mongoose";
 
 export async function POST(req) {
   const body = await req.json();
@@ -11,6 +11,7 @@ export async function POST(req) {
     title: Joi.string().required(),
     amount: Joi.number().required(),
     expenseDate: Joi.date().required(),
+    category: Joi.string().required(),
     user: Joi.string().required(),
   });
 
@@ -27,7 +28,7 @@ export async function POST(req) {
     );
   }
 
-  const { title, amount, expenseDate, user } = body;
+  const { title, amount, expenseDate,category, user } = body;
 
   try {
     await connectToDB();
@@ -47,6 +48,7 @@ export async function POST(req) {
       title,
       amount,
       expenseDate,
+      category,
       user,
     });
     await expense.save();
@@ -58,11 +60,14 @@ export async function POST(req) {
 }
 
 export async function GET(req) {
+  // Get query params
   const { searchParams } = new URL(req.url);
-  let user = searchParams.get("user");
+  const user = searchParams.get("user");
   const expensePage = searchParams.get("page");
   const expenseLimit = searchParams.get("limit");
-  const expenseDate = searchParams.get("expenseDate");
+  const category = searchParams.get("category") || "";
+  const startDate = searchParams.get("startDate") || "";
+  const endDate = searchParams.get("endDate") || "";
 
   // Pagination Logic
   const page = Number(expensePage) || 1;
@@ -70,11 +75,21 @@ export async function GET(req) {
   const startIndex = (page - 1) * limit;
 
   try {
-    await connectToDB();
+    await connectToDB(); 
 
-    let dateFilter = {};
-    if (expenseDate) {
-      dateFilter.expenseDate = new Date(expenseDate);
+    let filter = {};
+
+    // Add category filter
+    if (category) {
+      filter.category = category;
+    }
+
+    // Add startDate and endDate filters
+    if (startDate && endDate) {
+      filter.expenseDate = {
+        $gte: startDate,
+        $lte: endDate,
+      };
     }
 
     if (!user) {
@@ -103,15 +118,16 @@ export async function GET(req) {
 
     const result = await Expense.find({
       user,
-      ...dateFilter,
+      ...filter,
     })
       .sort("-createdAt")
       .skip(startIndex)
-      .limit(limit);
+      .limit(limit)
+      .populate("category", "name icon");
 
     const totalExpenses = await Expense.countDocuments({
       user,
-      ...dateFilter,
+      ...filter,
     });
 
     const endIndex = Math.min(startIndex + limit, totalExpenses);
@@ -133,9 +149,9 @@ export async function GET(req) {
     }
 
     // Calculate the total expense amount
-    const expenses = await Expense.find({ user });
+    const filteredExpenses = await Expense.find({ user, ...filter });
     let totalAmount = 0;
-    expenses.forEach((expense) => {
+    filteredExpenses.forEach((expense) => {
       totalAmount += expense.amount;
     });
 

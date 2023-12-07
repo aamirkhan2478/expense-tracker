@@ -31,14 +31,16 @@ const expenses = ({ queryKey }) => {
   const user = queryKey[1];
   const limit = queryKey[2];
   const page = queryKey[3];
-  const expenseDate = queryKey[4];
+  const startDate = queryKey[4];
+  const endDate = queryKey[5];
+  const category = queryKey[6];
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
   };
   return axiosInstance.get(
-    `/api/expense?user=${user}&limit=${limit}&page=${page}&expenseDate=${expenseDate}`,
+    `/api/expense?user=${user}&limit=${limit}&page=${page}&category=${category}&startDate=${startDate}&endDate=${endDate}`,
     config
   );
 };
@@ -47,10 +49,16 @@ export const useShowExpense = (
   user,
   limit = "",
   page = "",
-  expenseDate = ""
+  startDate = "",
+  endDate = "",
+  category = ""
 ) => {
-  return useQuery(["show-expenses", user, limit, page, expenseDate], expenses, {
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
-  });
+  return useQuery(
+    ["show-expenses", user, limit, page, startDate, endDate, category],
+    expenses,
+    {
+      staleTime: 60000,
+      refetchOnWindowFocus: false,
+    }
+  );
 };

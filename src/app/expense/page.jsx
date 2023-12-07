@@ -3,16 +3,17 @@ import Alert from "@/components/Alert";
 import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
 import Pagination from "@/components/Pagination";
+import { useShowCategory } from "@/hooks/useCategory";
 import {
   useAddExpense,
   useDeleteExpense,
   useShowExpense,
 } from "@/hooks/useExpense";
-import { calculateExpense } from "@/logic/calculations";
 import dateFormat from "@/utils/dateFormat";
 import {
   Box,
   Button,
+  Container,
   Flex,
   FormControl,
   FormHelperText,
@@ -20,6 +21,7 @@ import {
   Heading,
   IconButton,
   Input,
+  Select,
   Skeleton,
   Text,
   useColorModeValue,
@@ -28,8 +30,10 @@ import {
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { FiPlus, FiTrash } from "react-icons/fi";
+import { FiPlus, FiSearch, FiTrash } from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
@@ -38,9 +42,36 @@ const Expense = () => {
   const { data: session } = useSession();
   const id = session?.user?.id;
   const [currentPage, setCurrentPage] = useState(1);
-  const [expenseDate, setExpenseDate] = useState("");
-  const { data, isFetching } = useShowExpense(id || "", 5, currentPage, expenseDate);
-  const { mutate, isSuccess, isLoading } = useAddExpense(onSuccess, onError);
+  // const [startDate, setStartDate] = useState("");
+  // const [endDate, setEndDate] = useState("");
+  // const [category, setCategory] = useState("");
+  const [dateData, setDateData] = useState({
+    startDate: "",
+    endDate: "",
+  });
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // const [category, setCategory] = useState(searchParams.get("category") || "");
+  // const [startDate, setStartDate] = useState(searchParams.get("startDate") || "");
+  // const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
+  const category = searchParams.get("category") || "";
+  const startDate = searchParams.get("startDate") || "";
+  const endDate = searchParams.get("endDate") || "";
+
+  const { data, isLoading } = useShowExpense(
+    id || "",
+    5,
+    currentPage,
+    startDate,
+    endDate,
+    category
+  );
+  const { data: categories } = useShowCategory(id || "");
+  const {
+    mutate,
+    isSuccess,
+    isLoading: expenseLoading,
+  } = useAddExpense(onSuccess, onError);
   const { mutate: deleteExpense, isLoading: deleteLoading } = useDeleteExpense(
     onErrorDelete,
     onSuccessDelete
@@ -55,6 +86,7 @@ const Expense = () => {
     title: "",
     amount: "",
     expenseDate: "",
+    category: "",
   };
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
   const handlePageChange = (page) => {
@@ -65,6 +97,7 @@ const Expense = () => {
       title: values.title,
       amount: values.amount,
       expenseDate: values.expenseDate,
+      category: values.category,
       user: id,
     };
     mutate(newData);
@@ -113,6 +146,20 @@ const Expense = () => {
       isClosable: true,
     });
   }
+
+  const dateHandler = (e) => {
+    setDateData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const submitDateHandler = () => {
+    router.push(
+      `?category=${category}&startDate=${dateData.startDate}&endDate=${dateData.endDate}`
+    );
+  };
+
   return (
     <Layout>
       <Alert
@@ -143,7 +190,7 @@ const Expense = () => {
           alignItems={"center"}
         >
           <Skeleton
-            isLoaded={!isFetching}
+            isLoaded={!isLoading}
             display={"flex"}
             justifyContent={"center"}
             alignItems={"center"}
@@ -159,15 +206,16 @@ const Expense = () => {
             >
               Total Expense:
               <Text as={"span"} textColor={"green.400"}>
-                {!expenseDate
-                  ? data?.data?.totalAmount
-                  : calculateExpense(data?.data?.data)}
-                RS
+                {data?.data?.totalAmount}RS
               </Text>
             </Text>
           </Skeleton>
         </Box>
-        <Flex flexDirection={{ base: "column", md: "row" }}>
+        <Flex
+          flexDirection={{ base: "column", lg: "row" }}
+          justifyContent={{ base: "center", lg: "normal" }}
+          alignItems={{ base: "center", lg: "normal" }}
+        >
           <Box w={{ base: "97%", md: "50%" }} my={"2"} p={"10px"}>
             <Formik
               initialValues={initialValues}
@@ -188,6 +236,7 @@ const Expense = () => {
                   .required("Amount is required field!")
                   .integer("Please enter only integers!"),
                 expenseDate: date().required("Date is required field!"),
+                category: string().required("Category is required field!"),
               })}
             >
               {({
@@ -259,6 +308,37 @@ const Expense = () => {
                       {Boolean(touched.expenseDate) && errors.expenseDate}
                     </FormHelperText>
                   </FormControl>
+                  <FormControl id="category" mb="20px" isRequired>
+                    <FormLabel mt={3}>Select Category</FormLabel>
+                    <Select
+                      placeholder="Select Category"
+                      outlineColor={"gray"}
+                      isInvalid={
+                        Boolean(errors.category) && Boolean(touched.category)
+                      }
+                      onBlur={handleBlur}
+                      onChange={handleChange("category")}
+                      value={values.category || ""}
+                    >
+                      {categories?.data?.categories?.map((item) => (
+                        <option key={item._id} value={item._id}>
+                          <Box display="flex" alignItems="center">
+                            <Text>{item.name}</Text>
+                            <Image
+                              src={item.icon} // Replace with the actual field name where the image URL is stored
+                              alt={`icon-${item._id}`}
+                              width={30}
+                              height={30}
+                              style={{ marginRight: "8px" }}
+                            />
+                          </Box>
+                        </option>
+                      ))}
+                    </Select>
+                    <FormHelperText color="red">
+                      {Boolean(touched.category) && errors.category}
+                    </FormHelperText>
+                  </FormControl>
                   <Button
                     leftIcon={<FiPlus />}
                     bg={"blue.400"}
@@ -270,7 +350,7 @@ const Expense = () => {
                     isDisabled={!isValid || !dirty}
                     type="submit"
                     onClick={handleSubmit}
-                    isLoading={isLoading}
+                    isLoading={expenseLoading}
                     spinner={<BeatLoader size={8} color="white" />}
                   >
                     Add Expense
@@ -280,7 +360,7 @@ const Expense = () => {
             </Formik>
           </Box>
           <Box w={{ base: "97%", md: "50%" }}>
-            {isFetching &&
+            {isLoading &&
               [1, 2, 3, 4, 5].map((_data, index) => (
                 <Skeleton
                   key={index}
@@ -331,18 +411,75 @@ const Expense = () => {
                   </Box>
                 </Skeleton>
               ))}
-            <Flex
-              justifyContent={"center"}
-              display={isFetching ? "none" : "flex"}
-            >
-              <Input
-                type="date"
-                onChange={(e) => setExpenseDate(e.target.value)}
-                mt={5}
-                outlineColor={"gray"}
-                width={{ base: 200, sm: 300 }}
-              />
-            </Flex>
+            <Container display={isLoading && "none"}>
+              <Heading>Search By</Heading>
+              <Flex
+                flexDirection={"column"}
+                justifyContent={"center"}
+                alignItems={"center"}
+              >
+                <FormLabel my={3}>Select Category</FormLabel>
+                <Select
+                  value={category}
+                  placeholder="Select Category"
+                  onChange={(e) =>
+                    router.push(
+                      `?category=${e.target.value}&startDate=${startDate}&endDate=${endDate}`
+                    )
+                  }
+                  outlineColor={"gray"}
+                >
+                  {categories?.data?.categories?.map((item) => (
+                    <option key={item._id} value={item._id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex
+                flexDirection={{ base: "column", sm: "row" }}
+                justifyContent={"center"}
+                alignItems={"center"}
+                gap={2}
+                flexWrap={"wrap"}
+                my={3}
+              >
+                <FormControl>
+                  <FormLabel>Start Date</FormLabel>
+                  <Input
+                    type="date"
+                    onChange={dateHandler}
+                    value={dateData.startDate || startDate}
+                    name="startDate"
+                    outlineColor={"gray"}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>End Date</FormLabel>
+                  <Input
+                    type="date"
+                    onChange={dateHandler}
+                    value={dateData.endDate || endDate}
+                    name="endDate"
+                    outlineColor={"gray"}
+                  />
+                </FormControl>
+                <Button
+                  leftIcon={<FiSearch />}
+                  bg={"blue.400"}
+                  color={"white"}
+                  _hover={{
+                    bg: "blue.500",
+                  }}
+                  _active={{ bg: "blue.400" }}
+                  onClick={submitDateHandler}
+                  mt={3}
+                >
+                  Search By Date
+                </Button>
+              </Flex>
+            </Container>
+
             {data?.data?.data?.length === 0 && (
               <Box
                 borderWidth="1px"
@@ -364,7 +501,7 @@ const Expense = () => {
                 </Text>
               </Box>
             )}
-            {data?.data?.data?.map((item) => (
+            {data?.data?.data?.map((item, index) => (
               <Box
                 key={item._id}
                 borderWidth="1px"
@@ -375,11 +512,16 @@ const Expense = () => {
               >
                 <Flex p="10px">
                   <Box w={"50%"}>
+                    <Image
+                      src={item?.category?.icon}
+                      alt={`icon-${index}`}
+                      width={40}
+                      height={40}
+                    />
                     <Text
                       fontFamily={"monospace"}
                       fontSize={{ base: "md", md: "xl" }}
                       fontWeight={"bold"}
-                      w={{base:"60px",sm:"500px"}}
                       mb={{ base: "5px", md: "0" }}
                     >
                       {item.title}
@@ -417,7 +559,7 @@ const Expense = () => {
               onPageChange={handlePageChange}
               totalPages={totalPages}
               display={
-                data?.data?.totalExpenses <= 5 || isFetching ? "none" : "flex"
+                data?.data?.totalExpenses <= 5 || isLoading ? "none" : "flex"
               }
             />
           </Box>
