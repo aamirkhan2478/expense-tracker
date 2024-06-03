@@ -49,3 +49,25 @@ export const useShowIncome = (user, limit = "", page = "", incomeDate = "") => {
     refetchOnWindowFocus: false,
   });
 };
+
+const updateIncome = (values) => {
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  return axiosInstance.patch(
+    `/api/income/${values.id}/update`,
+    {
+      title: values.title,
+      amount: values.amount,
+      incomeDate: values.incomeDate,
+      companyName: values.companyName,
+    },
+    config
+  );
+};
+
+export const useUpdateIncome = (onSuccess, onError) => {
+  return useMutation(updateIncome, { onError, onSuccess });
+};

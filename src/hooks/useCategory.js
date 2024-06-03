@@ -34,17 +34,29 @@ const categories = ({ queryKey }) => {
       "Content-Type": "application/json",
     },
   };
-  return axiosInstance.get(
-    `/api/category?user=${user}`,
-    config
-  );
+  return axiosInstance.get(`/api/category?user=${user}`, config);
 };
 
-export const useShowCategory = (
-  user,
-) => {
+export const useShowCategory = (user) => {
   return useQuery(["show-categories", user], categories, {
     staleTime: 60000,
     refetchOnWindowFocus: false,
   });
+};
+
+const updateCategory = (values) => {
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  return axiosInstance.patch(
+    `/api/category/${values.id}/update`,
+    { name: values.name, icon: values.icon },
+    config
+  );
+};
+
+export const useUpdateCategory = (onSuccess, onError) => {
+  return useMutation(updateCategory, { onError, onSuccess });
 };

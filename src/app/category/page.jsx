@@ -1,17 +1,19 @@
 "use client";
 import Alert from "@/components/Alert";
 import CustomBox from "@/components/CustomBox";
+import Dialog from "@/components/Dialog";
 import Layout from "@/components/Layout";
-import Pagination from "@/components/Pagination";
 import {
   useAddCategory,
   useDeleteCategory,
   useShowCategory,
+  useUpdateCategory,
 } from "@/hooks/useCategory";
 import dateFormat from "@/utils/dateFormat";
 import {
   Box,
   Button,
+  Divider,
   Flex,
   FormControl,
   FormHelperText,
@@ -29,7 +31,7 @@ import { Field, Form, Formik } from "formik";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useState } from "react";
-import { FiPlus, FiTrash } from "react-icons/fi";
+import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { object, string } from "yup";
@@ -42,6 +44,10 @@ const Category = () => {
     onSuccess,
     onError
   );
+  const { mutate: updateCategory, isLoading: updateLoading } = useUpdateCategory(
+    onSuccess,
+    onError
+  );
   const { mutate: deleteCategory, isLoading: deleteLoading } =
     useDeleteCategory(onErrorDelete, onSuccessDelete);
   const toast = useToast();
@@ -50,13 +56,16 @@ const Category = () => {
   const inputOutlineColor = useColorModeValue("gray.400", "");
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [categoryId, setCategoryId] = useState("");
+  const {
+    isOpen: isOpenDialog,
+    onOpen: onOpenDialog,
+    onClose: onCloseDialog,
+  } = useDisclosure();
+
+  const category = data?.data?.categories?.find((item) => item._id === categoryId);
   const initialValues = {
-    name: "",
-    icon: "",
-  };
-  const totalPages = Math.ceil(data?.data?.totalCategories / 5);
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+    name: category?.name || "",
+    icon: category?.icon || "",
   };
   const clickHandler = (values) => {
     const newData = {
@@ -93,6 +102,25 @@ const Category = () => {
     deleteCategory(categoryId);
   };
 
+  const confirmUpdateDialog = (id) => {
+    setCategoryId(id);
+    onOpenDialog();
+  };
+
+  const updateHandler = (values) => {
+    const newData = {
+      id: categoryId,
+      name: values.name,
+      icon: values.icon,
+    };
+
+    updateCategory(newData, {
+      onSuccess: () => {
+        onCloseDialog();
+      },
+    });
+  };
+
   function onSuccessDelete(data) {
     onClose();
     queryClient.invalidateQueries(["show-categories", id]);
@@ -123,11 +151,109 @@ const Category = () => {
         confirmButtonText={"Yes"}
         isLoading={deleteLoading}
       />
+      <Dialog
+        isOpen={isOpenDialog}
+        onClose={onCloseDialog}
+        title={"Update Category"}
+        body={
+          <Box>
+            <Formik
+              initialValues={initialValues}
+              onSubmit={updateHandler}
+              validationSchema={object({
+                name: string()
+                  .matches(
+                    /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                  )
+                  .required("Title is required field!"),
+                icon: string()
+                  .url("Icon should be a valid url!")
+                  .required("Icon is required field!"),
+              })}
+            >
+              {({
+                errors,
+                values,
+                dirty,
+                isValid,
+                touched,
+                handleChange,
+                handleBlur,
+                handleSubmit,
+              }) => (
+                <Form>
+                  <FormControl id="category-name" mb="20px" isRequired>
+                    <FormLabel>Category Name</FormLabel>
+                    <Field
+                      as={Input}
+                      type="text"
+                      placeholder="Category Name"
+                      outlineColor={inputOutlineColor}
+                      name="name"
+                      isInvalid={Boolean(errors.name) && Boolean(touched.name)}
+                      onBlur={handleBlur}
+                      onChange={handleChange("name")}
+                      value={values.name || ""}
+                    />
+                    <FormHelperText color="red">
+                      {Boolean(touched.name) && errors.name}
+                    </FormHelperText>
+                  </FormControl>
+                  <FormControl id="category-icon" mb="20px" isRequired>
+                    <FormLabel>Category Icon</FormLabel>
+                    <Field
+                      as={Input}
+                      type="text"
+                      placeholder="Category Icon"
+                      outlineColor={inputOutlineColor}
+                      name="icon"
+                      isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}
+                      onBlur={handleBlur}
+                      onChange={handleChange("icon")}
+                      value={values.icon || ""}
+                    />
+                    <FormHelperText color="red">
+                      {Boolean(touched.icon) && errors.icon}
+                    </FormHelperText>
+                  </FormControl>
+                  <Divider my={2} />
+                  <Box display={"flex"} gap={2}>
+                    <Button onClick={onCloseDialog} colorScheme="red">
+                      Cancel
+                    </Button>
+                    <Button
+                      leftIcon={<FiEdit />}
+                      bg={"blue.400"}
+                      color={"white"}
+                      _hover={{
+                        bg: "blue.500",
+                      }}
+                      _active={{ bg: "blue.400" }}
+                      isDisabled={!isValid || !dirty}
+                      type="submit"
+                      onClick={handleSubmit}
+                      isLoading={updateLoading}
+                      spinner={<BeatLoader size={8} color="white" />}
+                    >
+                      Update Category
+                    </Button>
+                  </Box>
+                </Form>
+              )}
+            </Formik>
+          </Box>
+        }
+      />
       <CustomBox>
         <Heading p="4" fontFamily={"monospace"}>
           Category
         </Heading>
-        <Flex flexDirection={{ base: "column", md: "row" }}>
+        <Flex
+          flexDirection={{ base: "column", lg: "row" }}
+          justifyContent={{ base: "center", lg: "normal" }}
+          alignItems={{ base: "center", lg: "normal" }}
+        >
           <Box w={{ base: "97%", md: "50%" }} my={"2"} p={"10px"}>
             <Formik
               initialValues={initialValues}
@@ -311,11 +437,16 @@ const Category = () => {
                       {item.name}
                     </Text>
                   </Box>
-                  <Box w={"20%"}>
+                  <Box w={"20%"} display={"flex"} gap={2}>
                     <IconButton
                       icon={<FiTrash color="red" />}
                       backgroundColor={"gray.200"}
                       onClick={() => confirmDialog(item._id)}
+                    />
+                    <IconButton
+                      icon={<FiEdit color="blue" />}
+                      backgroundColor={"gray.200"}
+                      onClick={() => confirmUpdateDialog(item._id)}
                     />
                   </Box>
                 </Flex>

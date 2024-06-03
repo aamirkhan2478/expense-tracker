@@ -1,6 +1,7 @@
 "use client";
 import Alert from "@/components/Alert";
 import CustomBox from "@/components/CustomBox";
+import Dialog from "@/components/Dialog";
 import Layout from "@/components/Layout";
 import Pagination from "@/components/Pagination";
 import { useShowCategory } from "@/hooks/useCategory";
@@ -8,12 +9,14 @@ import {
   useAddExpense,
   useDeleteExpense,
   useShowExpense,
+  useUpdateExpense,
 } from "@/hooks/useExpense";
 import dateFormat from "@/utils/dateFormat";
 import {
   Box,
   Button,
   Container,
+  Divider,
   Flex,
   FormControl,
   FormHelperText,
@@ -33,7 +36,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { FiPlus, FiSearch, FiTrash } from "react-icons/fi";
+import { FiEdit, FiPlus, FiSearch, FiTrash } from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
@@ -41,22 +44,18 @@ import { date, number, object, string } from "yup";
 const Expense = () => {
   const { data: session } = useSession();
   const id = session?.user?.id;
-  const [currentPage, setCurrentPage] = useState(1);
-  // const [startDate, setStartDate] = useState("");
-  // const [endDate, setEndDate] = useState("");
-  // const [category, setCategory] = useState("");
-  const [dateData, setDateData] = useState({
+  const [filterData, setFilterData] = useState({
+    category: "",
     startDate: "",
     endDate: "",
   });
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  // const [category, setCategory] = useState(searchParams.get("category") || "");
-  // const [startDate, setStartDate] = useState(searchParams.get("startDate") || "");
-  // const [endDate, setEndDate] = useState(searchParams.get("endDate") || "");
   const category = searchParams.get("category") || "";
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
+  const currentPage = searchParams.get("page") || 1;
 
   const { data, isLoading } = useShowExpense(
     id || "",
@@ -67,32 +66,45 @@ const Expense = () => {
     category
   );
   const { data: categories } = useShowCategory(id || "");
-  const {
-    mutate,
-    isSuccess,
-    isLoading: expenseLoading,
-  } = useAddExpense(onSuccess, onError);
+  const { mutate, isLoading: expenseLoading } = useAddExpense(
+    onSuccess,
+    onError
+  );
   const { mutate: deleteExpense, isLoading: deleteLoading } = useDeleteExpense(
     onErrorDelete,
     onSuccessDelete
+  );
+  const { mutate: updateExpense, isLoading: updateLoading } = useUpdateExpense(
+    onSuccess,
+    onError
   );
   const toast = useToast();
   const queryClient = useQueryClient();
   const bgCard = useColorModeValue("white", "dark");
   const inputOutlineColor = useColorModeValue("gray.400", "");
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isOpenDialog,
+    onOpen: onOpenDialog,
+    onClose: onCloseDialog,
+  } = useDisclosure();
+
   const [expenseId, setExpenseId] = useState("");
+  const expense = data?.data?.data?.find((item) => item._id === expenseId);
+
   const initialValues = {
-    title: "",
-    amount: "",
-    expenseDate: "",
-    category: "",
+    title: expense?.title || "",
+    amount: expense?.amount || "",
+    expenseDate: dateFormat(expense?.expenseDate, "YYYY-MM-DD") || "",
+    category: expense?.category?._id || "",
   };
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    router.push(
+      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${page}`
+    );
   };
-  const clickHandler = (values) => {
+  const clickHandler = (values, { resetForm }) => {
     const newData = {
       title: values.title,
       amount: values.amount,
@@ -100,7 +112,11 @@ const Expense = () => {
       category: values.category,
       user: id,
     };
-    mutate(newData);
+    mutate(newData, {
+      onSuccess: () => {
+        resetForm();
+      },
+    });
   };
 
   function onSuccess(data) {
@@ -129,6 +145,27 @@ const Expense = () => {
     deleteExpense(expenseId);
   };
 
+  const confirmUpdateDialog = (id) => {
+    setExpenseId(id);
+    onOpenDialog();
+  };
+
+  const updateHandler = (values) => {
+    const newData = {
+      id: expenseId,
+      title: values.title,
+      amount: values.amount,
+      expenseDate: values.expenseDate,
+      category: values.category,
+    };
+
+    updateExpense(newData, {
+      onSuccess: () => {
+        onCloseDialog();
+      },
+    });
+  };
+
   function onSuccessDelete(data) {
     onClose();
     queryClient.invalidateQueries(["show-expenses", id]);
@@ -147,21 +184,174 @@ const Expense = () => {
     });
   }
 
-  const dateHandler = (e) => {
-    setDateData((prev) => ({
+  const changeHandler = (e) => {
+    setFilterData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
   };
 
-  const submitDateHandler = () => {
+  const submitHandler = () => {
     router.push(
-      `?category=${category}&startDate=${dateData.startDate}&endDate=${dateData.endDate}`
+      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${currentPage}`
     );
   };
 
   return (
     <Layout>
+      <Dialog
+        title={"Update Expense"}
+        isOpen={isOpenDialog}
+        onClose={onCloseDialog}
+        body={
+          <Box>
+            <Formik
+              initialValues={initialValues}
+              onSubmit={updateHandler}
+              validationSchema={object({
+                title: string()
+                  .matches(
+                    /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                  )
+                  .required("Title is required field!"),
+                amount: number("Amount must be a number!")
+                  .typeError("That doesn't look like a number")
+                  .positive("Amount must be a positive number!")
+                  .required("Amount is required field!")
+                  .integer("Please enter only integers!"),
+                expenseDate: date().required("Date is required field!"),
+                category: string().required("Category is required field!"),
+              })}
+            >
+              {({
+                errors,
+                values,
+                dirty,
+                isValid,
+                touched,
+                handleChange,
+                handleBlur,
+                handleSubmit,
+              }) => (
+                <Form>
+                  <FormControl id="expense-title" mb="20px" isRequired>
+                    <FormLabel>Expense Title</FormLabel>
+                    <Field
+                      as={Input}
+                      type="text"
+                      placeholder="Expense Title"
+                      outlineColor={inputOutlineColor}
+                      name="title"
+                      isInvalid={
+                        Boolean(errors.title) && Boolean(touched.title)
+                      }
+                      onBlur={handleBlur}
+                      onChange={handleChange("title")}
+                      value={values.title || ""}
+                    />
+                    <FormHelperText color="red">
+                      {Boolean(touched.title) && errors.title}
+                    </FormHelperText>
+                  </FormControl>
+                  <FormControl id="expense-amount" mb="20px" isRequired>
+                    <FormLabel>Expense Amount</FormLabel>
+                    <Field
+                      as={Input}
+                      type="text"
+                      placeholder="Expense Amount"
+                      outlineColor={inputOutlineColor}
+                      name="amount"
+                      isInvalid={
+                        Boolean(errors.amount) && Boolean(touched.amount)
+                      }
+                      onBlur={handleBlur}
+                      onChange={handleChange("amount")}
+                      value={values.amount || ""}
+                    />
+                    <FormHelperText color="red">
+                      {Boolean(touched.amount) && errors.amount}
+                    </FormHelperText>
+                  </FormControl>
+                  <FormControl id="date-picker" mb="20px" isRequired>
+                    <FormLabel>Expense Date</FormLabel>
+                    <Field
+                      as={Input}
+                      type="date"
+                      placeholder="Expense Date"
+                      outlineColor={inputOutlineColor}
+                      name="expenseDate"
+                      isInvalid={
+                        Boolean(errors.expenseDate) &&
+                        Boolean(touched.expenseDate)
+                      }
+                      onBlur={handleBlur}
+                      onChange={handleChange("expenseDate")}
+                      value={values.expenseDate || ""}
+                    />
+                    <FormHelperText color="red">
+                      {Boolean(touched.expenseDate) && errors.expenseDate}
+                    </FormHelperText>
+                  </FormControl>
+                  <FormControl id="category" mb="20px" isRequired>
+                    <FormLabel mt={3}>Select Category</FormLabel>
+                    <Select
+                      placeholder="Select Category"
+                      outlineColor={"gray"}
+                      isInvalid={
+                        Boolean(errors.category) && Boolean(touched.category)
+                      }
+                      onBlur={handleBlur}
+                      onChange={handleChange("category")}
+                      value={values.category || ""}
+                    >
+                      {categories?.data?.categories?.map((item) => (
+                        <option key={item._id} value={item._id}>
+                          <Box display="flex" alignItems="center">
+                            <Text>{item.name}</Text>
+                            <Image
+                              src={item.icon} // Replace with the actual field name where the image URL is stored
+                              alt={`icon-${item._id}`}
+                              width={30}
+                              height={30}
+                              style={{ marginRight: "8px" }}
+                            />
+                          </Box>
+                        </option>
+                      ))}
+                    </Select>
+                    <FormHelperText color="red">
+                      {Boolean(touched.category) && errors.category}
+                    </FormHelperText>
+                  </FormControl>
+                  <Divider my={2} />
+                  <Box display={"flex"} gap={2}>
+                    <Button onClick={onCloseDialog} colorScheme="red">
+                      Cancel
+                    </Button>
+                    <Button
+                      leftIcon={<FiEdit />}
+                      bg={"blue.400"}
+                      color={"white"}
+                      _hover={{
+                        bg: "blue.500",
+                      }}
+                      _active={{ bg: "blue.400" }}
+                      isDisabled={!isValid || !dirty}
+                      type="submit"
+                      onClick={handleSubmit}
+                      isLoading={updateLoading}
+                      spinner={<BeatLoader size={8} color="white" />}
+                    >
+                      Update Expense
+                    </Button>
+                  </Box>
+                </Form>
+              )}
+            </Formik>
+          </Box>
+        }
+      />
       <Alert
         isOpen={isOpen}
         onClose={onClose}
@@ -219,14 +409,11 @@ const Expense = () => {
           <Box w={{ base: "97%", md: "50%" }} my={"2"} p={"10px"}>
             <Formik
               initialValues={initialValues}
-              onSubmit={async (values, { resetForm }) => {
-                await clickHandler(values);
-                if (isSuccess) resetForm();
-              }}
+              onSubmit={clickHandler}
               validationSchema={object({
                 title: string()
                   .matches(
-                    /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                    /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
                     "Title should have at least 3 characters, should not any number and start with capital letter!"
                   )
                   .required("Title is required field!"),
@@ -420,14 +607,12 @@ const Expense = () => {
               >
                 <FormLabel my={3}>Select Category</FormLabel>
                 <Select
-                  value={category}
+                  defaultValue={filterData.category || category}
+                  value={filterData.category || category}
                   placeholder="Select Category"
-                  onChange={(e) =>
-                    router.push(
-                      `?category=${e.target.value}&startDate=${startDate}&endDate=${endDate}`
-                    )
-                  }
+                  onChange={changeHandler}
                   outlineColor={"gray"}
+                  name="category"
                 >
                   {categories?.data?.categories?.map((item) => (
                     <option key={item._id} value={item._id}>
@@ -448,8 +633,9 @@ const Expense = () => {
                   <FormLabel>Start Date</FormLabel>
                   <Input
                     type="date"
-                    onChange={dateHandler}
-                    value={dateData.startDate || startDate}
+                    onChange={changeHandler}
+                    defaultValue={filterData.startDate || startDate}
+                    value={filterData.startDate || startDate}
                     name="startDate"
                     outlineColor={"gray"}
                   />
@@ -458,8 +644,9 @@ const Expense = () => {
                   <FormLabel>End Date</FormLabel>
                   <Input
                     type="date"
-                    onChange={dateHandler}
-                    value={dateData.endDate || endDate}
+                    onChange={changeHandler}
+                    defaultValue={filterData.endDate || endDate}
+                    value={filterData.endDate || endDate}
                     name="endDate"
                     outlineColor={"gray"}
                   />
@@ -472,10 +659,10 @@ const Expense = () => {
                     bg: "blue.500",
                   }}
                   _active={{ bg: "blue.400" }}
-                  onClick={submitDateHandler}
+                  onClick={submitHandler}
                   mt={3}
                 >
-                  Search By Date
+                  Search
                 </Button>
               </Flex>
             </Container>
@@ -544,11 +731,16 @@ const Expense = () => {
                       {dateFormat(item.expenseDate)}
                     </Text>
                   </Box>
-                  <Box w={"20%"}>
+                  <Box w={"20%"} display={"flex"} gap={2}>
                     <IconButton
                       icon={<FiTrash color="red" />}
                       backgroundColor={"gray.200"}
                       onClick={() => confirmDialog(item._id)}
+                    />
+                    <IconButton
+                      icon={<FiEdit color="blue" />}
+                      backgroundColor={"gray.200"}
+                      onClick={() => confirmUpdateDialog(item._id)}
                     />
                   </Box>
                 </Flex>

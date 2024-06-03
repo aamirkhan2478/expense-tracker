@@ -28,7 +28,7 @@ export async function POST(req) {
     );
   }
 
-  const { title, amount, expenseDate,category, user } = body;
+  const { title, amount, expenseDate, category, user } = body;
 
   try {
     await connectToDB();
@@ -75,7 +75,7 @@ export async function GET(req) {
   const startIndex = (page - 1) * limit;
 
   try {
-    await connectToDB(); 
+    await connectToDB();
 
     let filter = {};
 

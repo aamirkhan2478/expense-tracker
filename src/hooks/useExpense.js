@@ -62,3 +62,25 @@ export const useShowExpense = (
     }
   );
 };
+
+const updateExpense = (values) => {
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  return axiosInstance.patch(
+    `/api/expense/${values.id}/update`,
+    {
+      title: values.title,
+      amount: values.amount,
+      expenseDate: values.expenseDate,
+      category: values.category,
+    },
+    config
+  );
+};
+
+export const useUpdateExpense = (onSuccess, onError) => {
+  return useMutation(updateExpense, { onError, onSuccess });
+};
