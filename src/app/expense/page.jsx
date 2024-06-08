@@ -7,6 +7,7 @@ import Pagination from "@/components/Pagination";
 import { useShowCategory } from "@/hooks/useCategory";
 import {
   useAddExpense,
+  useAddManyExpense,
   useDeleteExpense,
   useShowExpense,
   useUpdateExpense,
@@ -35,11 +36,13 @@ import { Field, Form, Formik } from "formik";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FiEdit, FiPlus, FiSearch, FiTrash } from "react-icons/fi";
+import { MdDownload, MdImportExport } from "react-icons/md";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
+import Papa from "papaparse";
 
 const Expense = () => {
   const { data: session } = useSession();
@@ -70,6 +73,8 @@ const Expense = () => {
     onSuccess,
     onError
   );
+  const { mutate: addManyExpense, isLoading: expenseManyLoading } =
+    useAddManyExpense(onSuccess, onError);
   const { mutate: deleteExpense, isLoading: deleteLoading } = useDeleteExpense(
     onErrorDelete,
     onSuccessDelete
@@ -195,6 +200,96 @@ const Expense = () => {
     router.push(
       `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${currentPage}`
     );
+  };
+
+  const fileRef = useRef(null);
+
+  const acceptableCSVFileTypes =
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, .csv";
+
+  const fileHandler = (e) => {
+    const file = e.target.files[0];
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        const data = result.data.map((item) => {
+          // validate data
+          if (
+            !item.title ||
+            !item.amount ||
+            !item.expenseDate ||
+            !item.category
+          ) {
+            toast({
+              title: "Invalid data",
+              status: "error",
+              isClosable: true,
+            });
+          }
+
+          let category = categories?.data?.categories?.find(
+            (category) => category.name === item.category
+          );
+
+          if (!category) {
+            toast({
+              title: `Category ${item.category} not found!`,
+              status: "error",
+              isClosable: true,
+            });
+            return;
+          }
+
+          if (category?._id === undefined) {
+            toast({
+              title: "Invalid category",
+              status: "error",
+              isClosable: true,
+            });
+            return;
+          }
+
+          return {
+            title: item.title,
+            amount: item.amount,
+            expenseDate: new Date(item.expenseDate).toISOString(),
+            category: category?._id,
+            user: id,
+          };
+        });
+
+        addManyExpense(data, {
+          onSuccess: (data) => {
+            toast({
+              title: data?.data?.msg,
+              status: "success",
+              isClosable: true,
+            });
+          },
+        });
+      },
+    });
+  };
+
+  const downloadSample = () => {
+    const csv = Papa.unparse([
+      {
+        title: "Title",
+        amount: "100",
+        expenseDate: "2022-12-31",
+        category: "Category Name",
+      },
+    ]);
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sample.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -413,7 +508,7 @@ const Expense = () => {
               validationSchema={object({
                 title: string()
                   .matches(
-                    /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                    /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z0-9 ]+(?<![_.])$/,
                     "Title should have at least 3 characters, should not any number and start with capital letter!"
                   )
                   .required("Title is required field!"),
@@ -651,19 +746,56 @@ const Expense = () => {
                     outlineColor={"gray"}
                   />
                 </FormControl>
-                <Button
-                  leftIcon={<FiSearch />}
-                  bg={"blue.400"}
-                  color={"white"}
-                  _hover={{
-                    bg: "blue.500",
-                  }}
-                  _active={{ bg: "blue.400" }}
-                  onClick={submitHandler}
-                  mt={3}
-                >
-                  Search
-                </Button>
+                <Flex gap={2} flexDirection={"column"}>
+                  <Button
+                    leftIcon={<FiSearch />}
+                    bg={"blue.400"}
+                    color={"white"}
+                    _hover={{
+                      bg: "blue.500",
+                    }}
+                    _active={{ bg: "blue.400" }}
+                    onClick={submitHandler}
+                    mt={3}
+                  >
+                    Search
+                  </Button>
+                  <Button
+                    leftIcon={<MdImportExport />}
+                    bg={"blue.400"}
+                    color={"white"}
+                    _hover={{
+                      bg: "blue.500",
+                    }}
+                    _active={{ bg: "blue.400" }}
+                    onClick={() => {
+                      fileRef.current.click();
+                    }}
+                    mt={3}
+                  >
+                    Import
+                  </Button>
+                  <Button
+                    leftIcon={<MdDownload />}
+                    bg={"blue.400"}
+                    color={"white"}
+                    _hover={{
+                      bg: "blue.500",
+                    }}
+                    _active={{ bg: "blue.400" }}
+                    onClick={downloadSample}
+                    mt={3}
+                  >
+                    Download Sample
+                  </Button>
+                  <input
+                    type="file"
+                    hidden
+                    ref={fileRef}
+                    accept={acceptableCSVFileTypes}
+                    onChange={fileHandler}
+                  />
+                </Flex>
               </Flex>
             </Container>
 
@@ -731,7 +863,12 @@ const Expense = () => {
                       {dateFormat(item.expenseDate)}
                     </Text>
                   </Box>
-                  <Box w={"20%"} display={"flex"} gap={2}>
+                  <Box
+                    w={"20%"}
+                    display={"flex"}
+                    gap={2}
+                    flexDirection={"column"}
+                  >
                     <IconButton
                       icon={<FiTrash color="red" />}
                       backgroundColor={"gray.200"}

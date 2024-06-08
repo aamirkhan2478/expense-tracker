@@ -14,6 +14,19 @@ export const useAddExpense = (onSuccess, onError) => {
   return useMutation(addExpense, { onError, onSuccess });
 };
 
+const addManyExpense = (values) => {
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  return axiosInstance.post("/api/expense/import", values, config);
+};
+
+export const useAddManyExpense = (onSuccess, onError) => {
+  return useMutation(addManyExpense, { onError, onSuccess });
+};
+
 const deleteExpense = (id) => {
   const config = {
     headers: {

@@ -44,10 +44,8 @@ const Category = () => {
     onSuccess,
     onError
   );
-  const { mutate: updateCategory, isLoading: updateLoading } = useUpdateCategory(
-    onSuccess,
-    onError
-  );
+  const { mutate: updateCategory, isLoading: updateLoading } =
+    useUpdateCategory(onSuccess, onError);
   const { mutate: deleteCategory, isLoading: deleteLoading } =
     useDeleteCategory(onErrorDelete, onSuccessDelete);
   const toast = useToast();
@@ -62,7 +60,9 @@ const Category = () => {
     onClose: onCloseDialog,
   } = useDisclosure();
 
-  const category = data?.data?.categories?.find((item) => item._id === categoryId);
+  const category = data?.data?.categories?.find(
+    (item) => item._id === categoryId
+  );
   const initialValues = {
     name: category?.name || "",
     icon: category?.icon || "",
@@ -437,7 +437,12 @@ const Category = () => {
                       {item.name}
                     </Text>
                   </Box>
-                  <Box w={"20%"} display={"flex"} gap={2}>
+                  <Box
+                    w={"20%"}
+                    display={"flex"}
+                    gap={2}
+                    flexDirection={"column"}
+                  >
                     <IconButton
                       icon={<FiTrash color="red" />}
                       backgroundColor={"gray.200"}
