@@ -598,7 +598,6 @@ const Income = () => {
                       fontFamily={"monospace"}
                       fontSize={{ base: "md", md: "xl" }}
                       fontWeight={"bold"}
-                      w={{ base: "60px", sm: "500px" }}
                       mb={{ base: "5px", md: "0" }}
                     >
                       {item.companyName}

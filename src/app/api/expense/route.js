@@ -93,6 +93,7 @@ export async function GET(req) {
       };
     }
 
+    // Add search query filter
     if (searchQuery){
       filter.title = new RegExp(searchQuery, "i");
     }
@@ -125,7 +126,7 @@ export async function GET(req) {
       user,
       ...filter,
     })
-      .sort("-createdAt expenseDate")
+      .sort("-expenseDate")
       .skip(startIndex)
       .limit(limit)
       .populate("category", "name icon");
