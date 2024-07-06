@@ -51,6 +51,7 @@ const Expense = () => {
     category: "",
     startDate: "",
     endDate: "",
+    searchQuery: "",
   });
 
   const router = useRouter();
@@ -59,6 +60,7 @@ const Expense = () => {
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
   const currentPage = searchParams.get("page") || 1;
+  const searchQuery = searchParams.get("searchQuery") || "";
 
   const { data, isLoading } = useShowExpense(
     id || "",
@@ -66,7 +68,8 @@ const Expense = () => {
     currentPage,
     startDate,
     endDate,
-    category
+    category,
+    searchQuery
   );
   const { data: categories } = useShowCategory(id || "");
   const { mutate, isLoading: expenseLoading } = useAddExpense(
@@ -106,7 +109,7 @@ const Expense = () => {
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
   const handlePageChange = (page) => {
     router.push(
-      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${page}`
+      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${page}&searchQuery=${filterData.searchQuery}`
     );
   };
   const clickHandler = (values, { resetForm }) => {
@@ -196,16 +199,25 @@ const Expense = () => {
     }));
   };
 
-  const submitHandler = () => {
+  const filterHandler = () => {
+    // Set the default page to 1 when filtering data
+    const newFilterData = {
+      ...filterData,
+      page: 1,
+    };
+
+    // Update the router with the new filter values and page number
     router.push(
-      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${currentPage}`
+      `?category=${newFilterData.category}&startDate=${newFilterData.startDate}&endDate=${newFilterData.endDate}&page=${newFilterData.page}&searchQuery=${newFilterData.searchQuery}`
     );
+
+    // Update the state with the new filter data
+    setFilterData(newFilterData);
   };
 
   const fileRef = useRef(null);
 
-  const acceptableCSVFileTypes =
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, .csv";
+  const acceptableCSVFileTypes = ".csv";
 
   const fileHandler = (e) => {
     const file = e.target.files[0];
@@ -703,7 +715,7 @@ const Expense = () => {
                 <FormLabel my={3}>Select Category</FormLabel>
                 <Select
                   defaultValue={filterData.category || category}
-                  value={filterData.category || category}
+                  value={filterData.category}
                   placeholder="Select Category"
                   onChange={changeHandler}
                   outlineColor={"gray"}
@@ -746,6 +758,17 @@ const Expense = () => {
                     outlineColor={"gray"}
                   />
                 </FormControl>
+                <FormControl>
+                  <FormLabel>Search by Title</FormLabel>
+                  <Input
+                    type="text"
+                    onChange={changeHandler}
+                    defaultValue={filterData.searchQuery || searchQuery}
+                    value={filterData.searchQuery}
+                    name="searchQuery"
+                    outlineColor={"gray"}
+                  />
+                </FormControl>
                 <Flex gap={2} flexDirection={"column"}>
                   <Button
                     leftIcon={<FiSearch />}
@@ -755,7 +778,7 @@ const Expense = () => {
                       bg: "blue.500",
                     }}
                     _active={{ bg: "blue.400" }}
-                    onClick={submitHandler}
+                    onClick={filterHandler}
                     mt={3}
                   >
                     Search
@@ -772,6 +795,7 @@ const Expense = () => {
                       fileRef.current.click();
                     }}
                     mt={3}
+                    isLoading={expenseManyLoading}
                   >
                     Import
                   </Button>
@@ -884,9 +908,9 @@ const Expense = () => {
               </Box>
             ))}
             <Pagination
-              currentPage={currentPage}
-              onPageChange={handlePageChange}
+              currentPage={parseInt(currentPage)}
               totalPages={totalPages}
+              onPageChange={handlePageChange}
               display={
                 data?.data?.totalExpenses <= 5 || isLoading ? "none" : "flex"
               }

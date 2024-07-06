@@ -76,7 +76,16 @@ export async function GET(req) {
 
     let dateFilter = {};
     if (incomeDate) {
-      dateFilter.incomeDate = new Date(incomeDate);
+      // filter by month
+      const startDate = new Date(incomeDate);
+      const endDate = new Date(incomeDate);
+      endDate.setMonth(endDate.getMonth() + 1);
+      dateFilter = {
+        incomeDate: {
+          $gte: startDate,
+          $lt: endDate,
+        },
+      };
     }
 
     if (!user) {

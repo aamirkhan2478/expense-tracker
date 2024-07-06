@@ -1,21 +1,27 @@
-"use client"
-import { useState } from "react";
-import { Flex, Button, Text, useColorModeValue} from "@chakra-ui/react";
+"use client";
+import { useState, useEffect } from "react";
+import { Flex, Button, Text, useColorModeValue } from "@chakra-ui/react";
 
 const Pagination = ({ totalPages, currentPage, onPageChange, ...rest }) => {
   const [currentPageIndex, setCurrentPageIndex] = useState(currentPage - 1);
 
+  useEffect(() => {
+    setCurrentPageIndex(currentPage - 1);
+  }, [currentPage]);
+
   const goToPreviousPage = () => {
     if (currentPageIndex > 0) {
-      setCurrentPageIndex(currentPageIndex - 1);
-      onPageChange(currentPageIndex);
+      const newPageIndex = currentPageIndex - 1;
+      setCurrentPageIndex(newPageIndex);
+      onPageChange(newPageIndex + 1);
     }
   };
 
   const goToNextPage = () => {
     if (currentPageIndex < totalPages - 1) {
-      setCurrentPageIndex(currentPageIndex + 1);
-      onPageChange(currentPageIndex + 2);
+      const newPageIndex = currentPageIndex + 1;
+      setCurrentPageIndex(newPageIndex);
+      onPageChange(newPageIndex + 1);
     }
   };
 
@@ -25,7 +31,7 @@ const Pagination = ({ totalPages, currentPage, onPageChange, ...rest }) => {
       justifyContent="center"
       alignItems="center"
       marginBottom={10}
-      backgroundColor={useColorModeValue("white","gray")}
+      backgroundColor={useColorModeValue("white", "gray")}
       borderRadius="10px"
       paddingX={5}
       boxShadow="lg"

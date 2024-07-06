@@ -554,7 +554,7 @@ const Income = () => {
               display={isFetching ? "none" : "flex"}
             >
               <Input
-                type="date"
+                type="month"
                 onChange={(e) => setIncomeDate(e.target.value)}
                 mt={5}
                 outlineColor={"gray"}

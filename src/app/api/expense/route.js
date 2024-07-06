@@ -68,7 +68,8 @@ export async function GET(req) {
   const category = searchParams.get("category") || "";
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
-
+  const searchQuery = searchParams.get("searchQuery") || "" 
+  
   // Pagination Logic
   const page = Number(expensePage) || 1;
   const limit = Number(expenseLimit) || 5;
@@ -90,6 +91,10 @@ export async function GET(req) {
         $gte: startDate,
         $lte: endDate,
       };
+    }
+
+    if (searchQuery){
+      filter.title = new RegExp(searchQuery, "i");
     }
 
     if (!user) {
@@ -120,7 +125,7 @@ export async function GET(req) {
       user,
       ...filter,
     })
-      .sort("-createdAt")
+      .sort("-createdAt expenseDate")
       .skip(startIndex)
       .limit(limit)
       .populate("category", "name icon");
