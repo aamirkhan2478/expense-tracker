@@ -68,10 +68,20 @@ export async function POST(req) {
         password,
       });
       await user.save();
+
+      const token = user.generateToken();
+
+      const userData = {
+        name: user.name,
+        email: user.email,
+      };
+
       return res.json(
         {
           success: true,
           msg: "User Registered Successfully",
+          user: userData,
+          token,
         },
         {
           status: 201,
@@ -80,6 +90,6 @@ export async function POST(req) {
     }
   } catch (err) {
     console.log(err.message);
-    return res.json({ error: "Server Error" }, { status: 500 });
+    return res.json({ error: "Server Error:" + err.message }, { status: 500 });
   }
 }
