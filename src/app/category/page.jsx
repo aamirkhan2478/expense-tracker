@@ -28,7 +28,6 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useState } from "react";
 import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
@@ -37,12 +36,16 @@ import { BeatLoader } from "react-spinners";
 import { object, string } from "yup";
 
 const Category = () => {
-  const { data: session } = useSession();
-  const id = session?.user?.id;
+  let id = "";
+  if (typeof window !== "undefined") {
+    const user = JSON.parse(localStorage.getItem("user"));
+    id = user?.id || "";
+  }
+
   const { data, isLoading } = useShowCategory(id || "");
   const { mutate, isLoading: categoryLoading } = useAddCategory(
     onSuccess,
-    onError
+    onError,
   );
   const { mutate: updateCategory, isLoading: updateLoading } =
     useUpdateCategory(onSuccess, onError);
@@ -61,7 +64,7 @@ const Category = () => {
   } = useDisclosure();
 
   const category = data?.data?.categories?.find(
-    (item) => item._id === categoryId
+    (item) => item._id === categoryId,
   );
   const initialValues = {
     name: category?.name || "",
@@ -164,7 +167,7 @@ const Category = () => {
                 name: string()
                   .matches(
                     /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                    "Title should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 icon: string()
@@ -265,7 +268,7 @@ const Category = () => {
                 name: string()
                   .matches(
                     /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                    "Title should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 icon: string()

@@ -20,7 +20,7 @@ export async function POST(req) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -34,13 +34,14 @@ export async function POST(req) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
     const token = user.generateToken();
 
     const userData = {
+      id: user._id,
       name: user.name,
       email: user.email,
     };
@@ -54,7 +55,7 @@ export async function POST(req) {
       },
       {
         status: 201,
-      }
+      },
     );
   } catch (err) {
     console.log(err.message);

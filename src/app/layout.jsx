@@ -4,7 +4,6 @@ import ChakraUIProvider from "@/components/providers/ChakraUIProvider";
 import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import { ColorModeScript } from "@chakra-ui/react";
 import theme from "@/constants/theme";
-import SessionProvider from "@/components/providers/SessionProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,13 +14,11 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <ReactQueryProvider>
-          <SessionProvider>
-            <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-            <ChakraUIProvider>{children}</ChakraUIProvider>
-          </SessionProvider>
+          <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+          <ChakraUIProvider>{children}</ChakraUIProvider>
         </ReactQueryProvider>
       </body>
     </html>

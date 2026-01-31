@@ -10,16 +10,27 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import NavItem from "./NavItem";
-import { FiActivity, FiCompass, FiHome, FiMoon, FiSun, FiTrendingUp } from "react-icons/fi";
+import {
+  FiActivity,
+  FiCompass,
+  FiHome,
+  FiMoon,
+  FiSun,
+  FiTrendingUp,
+} from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
-import { signOut } from "next-auth/react";
 import Alert from "../Alert";
+import { useRouter } from "next/navigation";
 const SidebarContent = ({ onClose, ...rest }) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { onClose: closeAlert, isOpen, onOpen } = useDisclosure();
+  const router = useRouter();
   const confirmHandler = () => {
-    signOut();
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    document.cookie = "token=; path=/; max-age=0; SameSite=Strict";
     closeAlert();
+    router.push("/");
   };
   const LinkItems = [
     { name: "Home", icon: FiHome, path: "/dashboard" },

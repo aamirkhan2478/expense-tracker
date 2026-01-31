@@ -1,3 +1,4 @@
+"use client";
 import SignUp from "@/components/Authentication/SignUp";
 import Login from "@/components/Authentication/SignIn";
 import {
@@ -8,11 +9,24 @@ import {
   TabPanels,
   TabPanel,
 } from "@chakra-ui/react";
+import { useState } from "react";
+
 export default function SignIn() {
+  const [tabIndex, setTabIndex] = useState(0);
+
+  const handleTabsChange = (index) => {
+    setTabIndex(index);
+  };
+
   return (
     <>
       <Flex justifyContent={"center"} alignItems={"center"} mt={"20px"}>
-        <Tabs variant="soft-rounded" colorScheme="green">
+        <Tabs
+          variant="soft-rounded"
+          colorScheme="green"
+          index={tabIndex}
+          onChange={handleTabsChange}
+        >
           <TabList>
             <Tab>Sign In</Tab>
             <Tab>Sign Up</Tab>
@@ -22,7 +36,7 @@ export default function SignIn() {
               <Login />
             </TabPanel>
             <TabPanel>
-              <SignUp />
+              <SignUp onRegisterSuccess={() => setTabIndex(0)} />
             </TabPanel>
           </TabPanels>
         </Tabs>

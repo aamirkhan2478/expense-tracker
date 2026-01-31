@@ -20,7 +20,7 @@ import { useState } from "react";
 import { Field, Form, Formik, useFormik } from "formik";
 import { object, ref, string } from "yup";
 import { useSignUpUser } from "@/hooks/useAuth";
-const SignUp = () => {
+const SignUp = ({ onRegisterSuccess }) => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
   const { colorMode, toggleColorMode } = useColorMode();
@@ -39,7 +39,13 @@ const SignUp = () => {
       email: values.email,
       password: values.password,
     };
-    mutate(data);
+    mutate(data, {
+      onSuccess: () => {
+        if (onRegisterSuccess) {
+          onRegisterSuccess();
+        }
+      },
+    });
   };
 
   function onSuccess(data) {
@@ -77,7 +83,7 @@ const SignUp = () => {
               name: string()
                 .matches(
                   /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                  "Name should have at least 3 characters and should not any number!"
+                  "Name should have at least 3 characters and should not any number!",
                 )
                 .required("Name is required!"),
               email: string()
@@ -87,7 +93,7 @@ const SignUp = () => {
                 .required("Password is required!")
                 .matches(
                   /^(?=.*[0-9])(?=.*[A-Z ])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&* ]{8,20}$/,
-                  "Password must contain at least 8 characters, 1 number, 1 upper, 1 lowercase and 1 special character!"
+                  "Password must contain at least 8 characters, 1 number, 1 upper, 1 lowercase and 1 special character!",
                 ),
               cpassword: string()
                 .oneOf([ref("password"), null], "Password not match!")

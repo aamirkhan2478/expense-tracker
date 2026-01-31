@@ -29,7 +29,6 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
-import { useSession } from "next-auth/react";
 import { useState } from "react";
 import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
 import { useQueryClient } from "react-query";
@@ -37,24 +36,28 @@ import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
 
 const Income = () => {
-  const { data: session } = useSession();
-  const id = session?.user?.id;
+  let id = "";
+  if (typeof window !== "undefined") {
+    const user = JSON.parse(localStorage.getItem("user"));
+    id = user?.id || "";
+  }
+
   const [currentPage, setCurrentPage] = useState(1);
   const [incomeDate, setIncomeDate] = useState("");
   const { data, isFetching } = useShowIncome(
     id || "",
     5,
     currentPage,
-    incomeDate
+    incomeDate,
   );
-  const { mutate, isSuccess, isLoading } = useAddIncome(onSuccess, onError);
+  const { mutate, isLoading } = useAddIncome(onSuccess, onError);
   const { mutate: updateIncome, isLoading: updateLoading } = useUpdateIncome(
     onSuccess,
-    onError
+    onError,
   );
   const { mutate: deleteIncome, isLoading: deleteLoading } = useDeleteIncome(
     onErrorDelete,
-    onSuccessDelete
+    onSuccessDelete,
   );
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -183,13 +186,13 @@ const Income = () => {
                 companyName: string()
                   .matches(
                     /^(?=.{3,30}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z0-9 ]+(?<![_.])$/,
-                    "Company Name should have at least 3 characters, should not any number and start with capital letter!"
+                    "Company Name should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 title: string()
                   .matches(
                     /^(?=.{3,30}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z0-9 ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                    "Title should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 amount: number("Amount must be a number!")
@@ -371,13 +374,13 @@ const Income = () => {
                 companyName: string()
                   .matches(
                     /^(?=.{3,30}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Company Name should have at least 3 characters, should not any number and start with capital letter!"
+                    "Company Name should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 title: string()
                   .matches(
                     /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                    "Title should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 amount: number("Amount must be a number!")

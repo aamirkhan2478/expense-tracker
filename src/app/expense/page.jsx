@@ -33,7 +33,6 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
@@ -45,8 +44,12 @@ import { date, number, object, string } from "yup";
 import Papa from "papaparse";
 
 const Expense = () => {
-  const { data: session } = useSession();
-  const id = session?.user?.id;
+  let id = "";
+  if (typeof window !== "undefined") {
+    const user = JSON.parse(localStorage.getItem("user"));
+    id = user?.id || "";
+  }
+
   const [filterData, setFilterData] = useState({
     category: "",
     startDate: "",
@@ -69,22 +72,22 @@ const Expense = () => {
     startDate,
     endDate,
     category,
-    searchQuery
+    searchQuery,
   );
   const { data: categories } = useShowCategory(id || "");
   const { mutate, isLoading: expenseLoading } = useAddExpense(
     onSuccess,
-    onError
+    onError,
   );
   const { mutate: addManyExpense, isLoading: expenseManyLoading } =
     useAddManyExpense(onSuccess, onError);
   const { mutate: deleteExpense, isLoading: deleteLoading } = useDeleteExpense(
     onErrorDelete,
-    onSuccessDelete
+    onSuccessDelete,
   );
   const { mutate: updateExpense, isLoading: updateLoading } = useUpdateExpense(
     onSuccess,
-    onError
+    onError,
   );
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -109,7 +112,7 @@ const Expense = () => {
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
   const handlePageChange = (page) => {
     router.push(
-      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${page}&searchQuery=${filterData.searchQuery}`
+      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${page}&searchQuery=${filterData.searchQuery}`,
     );
   };
   const clickHandler = (values, { resetForm }) => {
@@ -208,7 +211,7 @@ const Expense = () => {
 
     // Update the router with the new filter values and page number
     router.push(
-      `?category=${newFilterData.category}&startDate=${newFilterData.startDate}&endDate=${newFilterData.endDate}&page=${newFilterData.page}&searchQuery=${newFilterData.searchQuery}`
+      `?category=${newFilterData.category}&startDate=${newFilterData.startDate}&endDate=${newFilterData.endDate}&page=${newFilterData.page}&searchQuery=${newFilterData.searchQuery}`,
     );
 
     // Update the state with the new filter data
@@ -242,7 +245,7 @@ const Expense = () => {
           }
 
           let category = categories?.data?.categories?.find(
-            (category) => category.name === item.category
+            (category) => category.name === item.category,
           );
 
           if (!category) {
@@ -319,7 +322,7 @@ const Expense = () => {
                 title: string()
                   .matches(
                     /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                    "Title should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 amount: number("Amount must be a number!")
@@ -521,7 +524,7 @@ const Expense = () => {
                 title: string()
                   .matches(
                     /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z0-9 ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!"
+                    "Title should have at least 3 characters, should not any number and start with capital letter!",
                   )
                   .required("Title is required field!"),
                 amount: number("Amount must be a number!")

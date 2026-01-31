@@ -9,12 +9,12 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  Filler,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import dateFormat from "@/utils/dateFormat";
 import { Box, useColorModeValue } from "@chakra-ui/react";
 import { useShowExpense } from "@/hooks/useExpense";
-import { useSession } from "next-auth/react";
 import { useShowIncome } from "@/hooks/useIncome";
 
 ChartJs.register(
@@ -25,18 +25,21 @@ ChartJs.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Filler,
 );
 
 function Chart() {
-  const { data: session } = useSession();
-  const id = session?.user?.id;
+  let id = "";
+  if (typeof window !== "undefined") {
+    const user = JSON.parse(localStorage.getItem("user"));
+    id = user?.id || "";
+  }
   const { data: expenses } = useShowExpense(id || "");
   const { data: incomes } = useShowIncome(id || "");
 
-  // Check if incomes and expenses are defined before accessing their properties
   const incomeLabels = incomes?.data?.data?.map((inc) =>
-    dateFormat(inc.incomeDate)
+    dateFormat(inc.incomeDate),
   );
   const incomeData = incomes?.data?.data?.map((income) => income.amount);
   const expenseData = expenses?.data?.data?.map((expense) => expense.amount);
@@ -46,32 +49,102 @@ function Chart() {
     datasets: [
       {
         label: "Incomes",
-        backgroundColor: "rgba(53, 162, 235, 0.5)",
-        borderColor: "rgb(53, 162, 235)",
         data: incomeData,
-        tension: 0.2,
+        backgroundColor: "rgba(72, 187, 120, 0.2)",
+        borderColor: "rgba(72, 187, 120, 1)",
+        pointBackgroundColor: "rgba(72, 187, 120, 1)",
+        pointBorderColor: "#fff",
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: "rgba(72, 187, 120, 1)",
+        fill: true,
+        tension: 0.4,
       },
       {
         label: "Expenses",
-        backgroundColor: "rgba(255, 99, 132, 0.5)",
-        borderColor: "rgb(255, 99, 132)",
         data: expenseData,
-        tension: 0.2,
+        backgroundColor: "rgba(245, 101, 101, 0.2)",
+        borderColor: "rgba(245, 101, 101, 1)",
+        pointBackgroundColor: "rgba(245, 101, 101, 1)",
+        pointBorderColor: "#fff",
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: "rgba(245, 101, 101, 1)",
+        fill: true,
+        tension: 0.4,
       },
     ],
   };
 
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top",
+        labels: {
+          usePointStyle: true,
+          font: {
+            size: 14,
+            family: "'Inter', sans-serif",
+          },
+        },
+      },
+      tooltip: {
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        titleFont: {
+          family: "'Inter', sans-serif",
+          size: 14,
+        },
+        bodyFont: {
+          family: "'Inter', sans-serif",
+          size: 13,
+        },
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: true,
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            family: "'Inter', sans-serif",
+          },
+        },
+      },
+      y: {
+        grid: {
+          borderDash: [5, 5],
+          color: "rgba(0, 0, 0, 0.05)",
+        },
+        ticks: {
+          font: {
+            family: "'Inter', sans-serif",
+          },
+        },
+      },
+    },
+  };
+
+  const bg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.100", "gray.700");
+
   return (
     <Box
-      background={useColorModeValue("#FCF6F9", "green.100")}
-      border="2px solid #FFFFFF"
-      boxShadow={"0px 1px 15px rgba(0, 0, 0, 0.06)"}
+      background={bg}
+      border="1px solid"
+      borderColor={borderColor}
+      boxShadow="sm"
       p="1rem"
+      h="100%"
+      sx={{
+        width: "calc(100% - 20px)",
+      }}
       borderRadius={"20px"}
-      h={{ base: "150px", sm: "200px", md: "250px" }}
-      w={{ base: "250px", sm: "400px", md: "500px" }}
     >
-      <Line data={data} style={{ height: "450px" }} />
+      <Line data={data} options={options} height="100%" width="100%" />
     </Box>
   );
 }
