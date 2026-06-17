@@ -1,36 +1,67 @@
 "use client";
 import {
   Box,
-  useColorModeValue,
   Button,
   FormControl,
   FormLabel,
-  IconButton,
   Input,
   InputGroup,
   InputRightElement,
   Stack,
-  useColorMode,
-  FormHelperText,
+  Text,
   useToast,
+  Checkbox,
+  Flex,
+  Icon,
+  InputLeftElement,
+  FormErrorMessage,
+  Progress,
 } from "@chakra-ui/react";
 import React from "react";
-import { FiEye, FiEyeOff, FiMoon, FiSun } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiMail, FiLock, FiUser } from "react-icons/fi";
 import { useState } from "react";
-import { Field, Form, Formik, useFormik } from "formik";
+import { Field, Form, Formik } from "formik";
 import { object, ref, string } from "yup";
+import { motion } from "framer-motion";
 import { useSignUpUser } from "@/hooks/useAuth";
-const SignUp = ({ onRegisterSuccess }) => {
+
+const MotionStack = motion(Stack);
+
+const getPasswordStrength = (password) => {
+  let strength = 0;
+  if (password.length >= 8) strength += 25;
+  if (/[A-Z]/.test(password)) strength += 25;
+  if (/[0-9]/.test(password)) strength += 25;
+  if (/[!@#$%^&*]/.test(password)) strength += 25;
+  return strength;
+};
+
+const strengthColor = (strength) => {
+  if (strength <= 25) return "red";
+  if (strength <= 50) return "orange";
+  if (strength <= 75) return "yellow";
+  return "green";
+};
+
+const strengthLabel = (strength) => {
+  if (strength <= 25) return "Weak";
+  if (strength <= 50) return "Fair";
+  if (strength <= 75) return "Good";
+  return "Strong";
+};
+
+const SignUp = ({ onRegisterSuccess, onSwitch }) => {
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
-  const { colorMode, toggleColorMode } = useColorMode();
   const toast = useToast();
   const { mutate, isLoading, isSuccess } = useSignUpUser(onSuccess, onError);
+
   const initialValues = {
     name: "",
     email: "",
     password: "",
     cpassword: "",
+    agree: false,
   };
 
   const clickHandler = (values) => {
@@ -58,123 +89,213 @@ const SignUp = ({ onRegisterSuccess }) => {
 
   function onError(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Registration failed",
       status: "error",
       isClosable: true,
     });
   }
+
   return (
-    <Stack spacing={8} mx={"auto"} maxW={"lg"} py={12} px={6}>
-      <Box
-        rounded={"lg"}
-        bg={useColorModeValue("white", "gray.700")}
-        boxShadow={"lg"}
-        shadow={"dark-lg"}
-        p={8}
+    <MotionStack
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      spacing={5}
+      w="full"
+      maxW="md"
+      mx="auto"
+    >
+      <Box textAlign="center" mb={2}>
+        <Text fontSize="2xl" fontWeight="bold" mb={1}>
+          Create Account
+        </Text>
+        <Text fontSize="sm" color="gray.500">
+          Get started with your free account today
+        </Text>
+      </Box>
+
+      <Formik
+        initialValues={initialValues}
+        onSubmit={async (values, { resetForm }) => {
+          await clickHandler(values);
+          if (isSuccess) resetForm();
+        }}
+        validationSchema={object({
+          name: string()
+            .matches(
+              /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+              "Name should have at least 3 characters and should not contain numbers!",
+            )
+            .required("Name is required!"),
+          email: string()
+            .required("Email is required!")
+            .email("Invalid Email!"),
+          password: string()
+            .required("Password is required!")
+            .matches(
+              /^(?=.*[0-9])(?=.*[A-Z ])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&* ]{8,20}$/,
+              "Password must contain at least 8 characters, 1 number, 1 upper, 1 lowercase and 1 special character!",
+            ),
+          cpassword: string()
+            .oneOf([ref("password"), null], "Passwords do not match!")
+            .required("Confirm Password is required!"),
+          agree: string().oneOf(["true"], "You must agree to the terms!"),
+        })}
       >
-        <Stack spacing={4}>
-          <Formik
-            initialValues={initialValues}
-            onSubmit={async (values, { resetForm }) => {
-              await clickHandler(values);
-              if (isSuccess) resetForm();
-            }}
-            validationSchema={object({
-              name: string()
-                .matches(
-                  /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                  "Name should have at least 3 characters and should not any number!",
-                )
-                .required("Name is required!"),
-              email: string()
-                .required("Email is required!")
-                .email("Invalid Email!"),
-              password: string()
-                .required("Password is required!")
-                .matches(
-                  /^(?=.*[0-9])(?=.*[A-Z ])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&* ]{8,20}$/,
-                  "Password must contain at least 8 characters, 1 number, 1 upper, 1 lowercase and 1 special character!",
-                ),
-              cpassword: string()
-                .oneOf([ref("password"), null], "Password not match!")
-                .required("Confirm Password is required!"),
-            })}
-          >
-            {({
-              errors,
-              touched,
-              values,
-              handleBlur,
-              handleChange,
-              handleSubmit,
-              isValid,
-              dirty,
-            }) => (
-              <Form>
-                <FormControl id="name" isRequired>
-                  <FormLabel>Name</FormLabel>
-                  <Field
-                    as={Input}
-                    type="text"
-                    name="name"
-                    isInvalid={Boolean(errors.name) && Boolean(touched.name)}
-                    onBlur={handleBlur}
-                    onChange={handleChange("name")}
-                    value={values.name || ""}
-                  />
-                  <FormHelperText color="red">
+        {({
+          errors,
+          touched,
+          values,
+          handleBlur,
+          handleChange,
+          handleSubmit,
+          isValid,
+          dirty,
+          setFieldValue,
+        }) => {
+          const passwordStrength = getPasswordStrength(values.password);
+
+          return (
+            <Form>
+              <Stack spacing={4}>
+                <FormControl
+                  isInvalid={Boolean(errors.name) && Boolean(touched.name)}
+                >
+                  <FormLabel fontSize="sm" fontWeight="medium">
+                    Full Name
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftElement pointerEvents="none" h="full">
+                      <Icon as={FiUser} color="gray.400" />
+                    </InputLeftElement>
+                    <Field
+                      as={Input}
+                      type="text"
+                      name="name"
+                      placeholder="John Doe"
+                      borderRadius="xl"
+                      focusBorderColor="teal.400"
+                      isInvalid={Boolean(errors.name) && Boolean(touched.name)}
+                      onBlur={handleBlur}
+                      onChange={handleChange("name")}
+                      value={values.name || ""}
+                    />
+                  </InputGroup>
+                  <FormErrorMessage>
                     {Boolean(touched.name) && errors.name}
-                  </FormHelperText>
+                  </FormErrorMessage>
                 </FormControl>
-                <FormControl id="email-address" isRequired>
-                  <FormLabel>Email address</FormLabel>
-                  <Field
-                    as={Input}
-                    type="email"
-                    name="email"
-                    isInvalid={Boolean(errors.email) && Boolean(touched.email)}
-                    onBlur={handleBlur}
-                    onChange={handleChange("email")}
-                    value={values.email || ""}
-                  />
-                  <FormHelperText color="red">
+
+                <FormControl
+                  isInvalid={Boolean(errors.email) && Boolean(touched.email)}
+                >
+                  <FormLabel fontSize="sm" fontWeight="medium">
+                    Email Address
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftElement pointerEvents="none" h="full">
+                      <Icon as={FiMail} color="gray.400" />
+                    </InputLeftElement>
+                    <Field
+                      as={Input}
+                      type="email"
+                      name="email"
+                      placeholder="you@example.com"
+                      borderRadius="xl"
+                      focusBorderColor="teal.400"
+                      isInvalid={Boolean(errors.email) && Boolean(touched.email)}
+                      onBlur={handleBlur}
+                      onChange={handleChange("email")}
+                      value={values.email || ""}
+                    />
+                  </InputGroup>
+                  <FormErrorMessage>
                     {Boolean(touched.email) && errors.email}
-                  </FormHelperText>
+                  </FormErrorMessage>
                 </FormControl>
-                <FormControl id="pass" isRequired>
-                  <FormLabel>Password</FormLabel>
-                  <InputGroup>
+
+                <FormControl
+                  isInvalid={Boolean(errors.password) && Boolean(touched.password)}
+                >
+                  <FormLabel fontSize="sm" fontWeight="medium">
+                    Password
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftElement pointerEvents="none" h="full">
+                      <Icon as={FiLock} color="gray.400" />
+                    </InputLeftElement>
                     <Field
                       as={Input}
                       type={show ? "text" : "password"}
                       name="password"
+                      placeholder="Create a strong password"
+                      borderRadius="xl"
+                      focusBorderColor="teal.400"
                       isInvalid={
                         Boolean(errors.password) && Boolean(touched.password)
                       }
                       onBlur={handleBlur}
-                      onChange={handleChange("password")}
+                      onChange={(e) => {
+                        handleChange("password")(e);
+                      }}
                       value={values.password || ""}
                     />
-                    <InputRightElement
-                      width="4.5rem"
-                      height="2.3rem"
-                      onClick={handleClick}
-                      cursor={"pointer"}
-                    >
-                      {show ? <FiEyeOff /> : <FiEye />}
+                    <InputRightElement h="full" pr={1}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClick}
+                        tabIndex={-1}
+                      >
+                        <Icon as={show ? FiEyeOff : FiEye} color="gray.400" />
+                      </Button>
                     </InputRightElement>
                   </InputGroup>
-                  <FormHelperText color="red">
+                  {values.password && (
+                    <Box mt={2}>
+                      <Flex justify="space-between" align="center" mb={1}>
+                        <Text fontSize="xs" color="gray.500">
+                          Password strength
+                        </Text>
+                        <Text
+                          fontSize="xs"
+                          fontWeight="bold"
+                          color={`${strengthColor(passwordStrength)}.500`}
+                        >
+                          {strengthLabel(passwordStrength)}
+                        </Text>
+                      </Flex>
+                      <Progress
+                        value={passwordStrength}
+                        size="xs"
+                        colorScheme={strengthColor(passwordStrength)}
+                        borderRadius="full"
+                        bg="gray.100"
+                      />
+                    </Box>
+                  )}
+                  <FormErrorMessage>
                     {Boolean(touched.password) && errors.password}
-                  </FormHelperText>
+                  </FormErrorMessage>
                 </FormControl>
-                <FormControl id="cpassword" isRequired>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <InputGroup size="md">
+
+                <FormControl
+                  isInvalid={Boolean(errors.cpassword) && Boolean(touched.cpassword)}
+                >
+                  <FormLabel fontSize="sm" fontWeight="medium">
+                    Confirm Password
+                  </FormLabel>
+                  <InputGroup size="lg">
+                    <InputLeftElement pointerEvents="none" h="full">
+                      <Icon as={FiLock} color="gray.400" />
+                    </InputLeftElement>
                     <Field
                       as={Input}
                       type={show ? "text" : "password"}
                       name="cpassword"
+                      placeholder="Confirm your password"
+                      borderRadius="xl"
+                      focusBorderColor="teal.400"
                       isInvalid={
                         Boolean(errors.cpassword) && Boolean(touched.cpassword)
                       }
@@ -182,47 +303,83 @@ const SignUp = ({ onRegisterSuccess }) => {
                       onChange={handleChange("cpassword")}
                       value={values.cpassword || ""}
                     />
-                    <InputRightElement
-                      width="4.5rem"
-                      height="2.3rem"
-                      onClick={handleClick}
-                      cursor={"pointer"}
-                    >
-                      {show ? <FiEyeOff /> : <FiEye />}
-                    </InputRightElement>
                   </InputGroup>
-                  <FormHelperText color="red">
+                  <FormErrorMessage>
                     {Boolean(touched.cpassword) && errors.cpassword}
-                  </FormHelperText>
+                  </FormErrorMessage>
                 </FormControl>
-                <Stack spacing={10}>
-                  <Button
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{
-                      bg: "blue.300",
-                    }}
-                    type="submit"
-                    isLoading={isLoading}
-                    onClick={handleSubmit}
-                    isDisabled={!isValid || !dirty}
+
+                <FormControl
+                  isInvalid={Boolean(errors.agree) && Boolean(touched.agree)}
+                >
+                  <Checkbox
+                    name="agree"
+                    isChecked={values.agree === "true" || values.agree === true}
+                    onChange={(e) =>
+                      setFieldValue("agree", e.target.checked ? "true" : "")
+                    }
+                    colorScheme="teal"
+                    size="sm"
                   >
-                    Sign Up
-                  </Button>
-                  <IconButton
-                    icon={colorMode === "dark" ? <FiSun /> : <FiMoon />}
-                    onClick={() => toggleColorMode()}
-                  />
-                </Stack>
-              </Form>
-            )}
-          </Formik>
-        </Stack>
-      </Box>
-    </Stack>
+                    <Text fontSize="sm" color="gray.500">
+                      I agree to the{" "}
+                      <Text as="span" color="teal.500" fontWeight="medium">
+                        Terms of Service
+                      </Text>{" "}
+                      and{" "}
+                      <Text as="span" color="teal.500" fontWeight="medium">
+                        Privacy Policy
+                      </Text>
+                    </Text>
+                  </Checkbox>
+                  <FormErrorMessage>{errors.agree}</FormErrorMessage>
+                </FormControl>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  borderRadius="xl"
+                  bg="teal.500"
+                  color="white"
+                  fontWeight="bold"
+                  _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
+                  _active={{ bg: "teal.600" }}
+                  transition="all 0.2s"
+                  isLoading={isLoading}
+                  onClick={handleSubmit}
+                  isDisabled={!isValid || !dirty}
+                  boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
+                >
+                  Create Account
+                </Button>
+              </Stack>
+            </Form>
+          );
+        }}
+      </Formik>
+
+      <Flex align="center" gap={4} pt={2}>
+        <Box flex={1} h="1px" bg="gray.200" />
+        <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+          or
+        </Text>
+        <Box flex={1} h="1px" bg="gray.200" />
+      </Flex>
+
+      <Text textAlign="center" fontSize="sm" color="gray.500">
+        Already have an account?{" "}
+        <Text
+          as="span"
+          color="teal.500"
+          fontWeight="semibold"
+          cursor="pointer"
+          _hover={{ textDecoration: "underline" }}
+          onClick={onSwitch}
+        >
+          Sign in instead
+        </Text>
+      </Text>
+    </MotionStack>
   );
 };
 

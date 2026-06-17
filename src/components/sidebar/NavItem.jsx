@@ -1,3 +1,5 @@
+"use client";
+
 import { Box, Flex, Icon } from "@chakra-ui/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,41 +14,55 @@ const NavItem = ({
   ...rest
 }) => {
   const pathname = usePathname();
+  const isActive = pathname === path;
+
   return (
     <Link
-      as={Box}
-      href={path ? path : ""}
+      href={path ? path : "#"}
       style={{ textDecoration: "none" }}
-      _focus={{ boxShadow: "none" }}
       onClick={onClick || undefined}
     >
       <Flex
         align="center"
-        p="4"
+        p="3"
         mx="4"
         my="1"
-        borderRadius="lg"
+        borderRadius="xl"
         role="group"
         cursor="pointer"
-        bg={pathname === path ? "cyan.400" : isBackground ? background : ""}
-        color={pathname === path || isBackground ? "white" : ""}
+        transition="all 0.2s ease"
+        bg={isActive ? "teal.500" : isBackground ? background : "transparent"}
+        color={isActive || isBackground ? "white" : undefined}
+        boxShadow={isActive ? "md" : "none"}
         _hover={{
-          bg: isBackground ? "red.400" : "cyan.400",
-          color: "white",
+          bg: isBackground ? "red.400" : "teal.50",
+          color: isBackground ? "white" : "teal.600",
+          transform: "translateX(4px)",
         }}
         {...rest}
       >
         {icon && (
-          <Icon
-            mr="4"
-            fontSize="16"
+          <Flex
+            w={8}
+            h={8}
+            align="center"
+            justify="center"
+            borderRadius="lg"
+            mr={3}
+            bg={isActive ? "whiteAlpha.200" : isBackground ? "whiteAlpha.200" : "gray.100"}
+            color={isActive || isBackground ? "white" : "gray.500"}
             _groupHover={{
-              color: "white",
+              bg: isBackground ? "whiteAlpha.300" : "teal.100",
+              color: isBackground ? "white" : "teal.600",
             }}
-            as={icon}
-          />
+            transition="all 0.2s ease"
+          >
+            <Icon fontSize="14" as={icon} />
+          </Flex>
         )}
-        {children}
+        <Box fontSize="sm" fontWeight="medium">
+          {children}
+        </Box>
       </Flex>
     </Link>
   );

@@ -8,23 +8,43 @@ import {
   useColorModeValue,
   useColorMode,
   useDisclosure,
+  Avatar,
+  Stack,
+  Divider,
 } from "@chakra-ui/react";
 import NavItem from "./NavItem";
 import {
   FiActivity,
-  FiCompass,
   FiHome,
   FiMoon,
   FiSun,
   FiTrendingUp,
+  FiPieChart,
+  FiLogOut,
 } from "react-icons/fi";
-import { MdLogout } from "react-icons/md";
 import Alert from "../Alert";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
 const SidebarContent = ({ onClose, ...rest }) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { onClose: closeAlert, isOpen, onOpen } = useDisclosure();
   const router = useRouter();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch (e) {
+          setUser(null);
+        }
+      }
+    }
+  }, []);
+
   const confirmHandler = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
@@ -32,11 +52,15 @@ const SidebarContent = ({ onClose, ...rest }) => {
     closeAlert();
     router.push("/");
   };
+
   const LinkItems = [
-    { name: "Home", icon: FiHome, path: "/dashboard" },
-    { name: "Income", icon: FiCompass, path: "/income" },
+    { name: "Dashboard", icon: FiHome, path: "/dashboard" },
+    { name: "Income", icon: FiTrendingUp, path: "/income" },
+    { name: "Expense", icon: FiPieChart, path: "/expense" },
     { name: "Category", icon: FiActivity, path: "/category" },
-    { name: "Expense", icon: FiTrendingUp, path: "/expense" },
+  ];
+
+  const bottomItems = [
     {
       name: colorMode === "dark" ? "Light Mode" : "Dark Mode",
       icon: colorMode === "dark" ? FiSun : FiMoon,
@@ -44,12 +68,13 @@ const SidebarContent = ({ onClose, ...rest }) => {
     },
     {
       name: "Logout",
-      icon: MdLogout,
+      icon: FiLogOut,
       onClick: () => onOpen(),
       background: "red.500",
       isBackground: true,
     },
   ];
+
   return (
     <>
       <Alert
@@ -62,35 +87,115 @@ const SidebarContent = ({ onClose, ...rest }) => {
         colorScheme={"red"}
       />
       <Box
-        bg={useColorModeValue("#F7EEF1", "dark")}
+        bg={useColorModeValue("white", "gray.900")}
         borderRight="1px"
-        borderRightColor={useColorModeValue("gray.200", "gray.700")}
-        w={{ base: "full", md: 60 }}
+        borderRightColor={useColorModeValue("gray.100", "gray.800")}
+        w={{ base: "full", md: 64 }}
         pos="fixed"
         h="full"
+        display="flex"
+        flexDirection="column"
         {...rest}
       >
-        <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-          <Text fontSize="lg" fontFamily="monospace" fontWeight="bold">
-            Expense Tracker
-          </Text>
+        {/* Header */}
+        <Flex
+          h="20"
+          alignItems="center"
+          mx="6"
+          justifyContent="space-between"
+        >
+          <Flex align="center" gap={2}>
+            <Box
+              w={8}
+              h={8}
+              borderRadius="lg"
+              bg="teal.500"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <FiPieChart color="white" size={18} />
+            </Box>
+            <Text fontSize="lg" fontWeight="bold" letterSpacing="tight">
+              SpendWise
+            </Text>
+          </Flex>
           <CloseButton
             display={{ base: "flex", md: "none" }}
             onClick={onClose}
           />
         </Flex>
-        {LinkItems.map((link) => (
-          <NavItem
-            key={link.name}
-            icon={link.icon}
-            path={link.path}
-            onClick={link.onClick}
-            background={link.background}
-            isBackground={link.isBackground}
+
+        {/* User Profile */}
+        <Box px={6} pb={4}>
+          <Flex
+            align="center"
+            gap={3}
+            p={3}
+            borderRadius="xl"
+            bg={useColorModeValue("gray.50", "gray.800")}
+            border="1px solid"
+            borderColor={useColorModeValue("gray.100", "gray.700")}
           >
-            {link.name}
-          </NavItem>
-        ))}
+            <Avatar
+              size="sm"
+              name={user?.name || "User"}
+              bg="teal.500"
+              color="white"
+            />
+            <Stack spacing={0} overflow="hidden">
+              <Text fontSize="sm" fontWeight="semibold" isTruncated>
+                {user?.name || "User"}
+              </Text>
+              <Text fontSize="xs" color="gray.500" isTruncated>
+                {user?.email || ""}
+              </Text>
+            </Stack>
+          </Flex>
+        </Box>
+
+        <Divider mx={6} w="auto" borderColor={useColorModeValue("gray.100", "gray.700")} />
+
+        {/* Main Nav */}
+        <Box flex={1} py={4}>
+          <Text
+            px={8}
+            pb={2}
+            fontSize="xs"
+            fontWeight="bold"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            color="gray.400"
+          >
+            Menu
+          </Text>
+          {LinkItems.map((link) => (
+            <NavItem
+              key={link.name}
+              icon={link.icon}
+              path={link.path}
+            >
+              {link.name}
+            </NavItem>
+          ))}
+        </Box>
+
+        {/* Bottom Actions */}
+        <Box pb={6}>
+          <Divider mx={6} w="auto" mb={4} borderColor={useColorModeValue("gray.100", "gray.700")} />
+          {bottomItems.map((link) => (
+            <NavItem
+              key={link.name}
+              icon={link.icon}
+              path={link.path}
+              onClick={link.onClick}
+              background={link.background}
+              isBackground={link.isBackground}
+            >
+              {link.name}
+            </NavItem>
+          ))}
+        </Box>
       </Box>
     </>
   );

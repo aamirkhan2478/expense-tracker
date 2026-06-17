@@ -13,14 +13,10 @@ import Navbar from "../sidebar/Navbar";
 const Layout = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   return (
-    <Box minH="100vh" bg={useColorModeValue("gray.100", "gray.900")}>
+    <Box minH="100vh" bg={useColorModeValue("gray.50", "gray.950")}>
       <SidebarContent
-        onClose={() => onClose}
-        display={{ base: "none", md: "block" }}
-        borderRadius="10px"
-        my='10px'
-        ml='5px'
-        shadow='md'
+        onClose={onClose}
+        display={{ base: "none", md: "flex" }}
       />
       <Drawer
         isOpen={isOpen}
@@ -28,15 +24,14 @@ const Layout = ({ children }) => {
         onClose={onClose}
         returnFocusOnClose={false}
         onOverlayClick={onClose}
-        size="full"
+        size="xs"
       >
-        <DrawerContent>
+        <DrawerContent bg={useColorModeValue("white", "gray.900")}>
           <SidebarContent onClose={onClose} />
         </DrawerContent>
       </Drawer>
-      {/* mobilenav */}
       <Navbar display={{ base: "flex", md: "none" }} onOpen={onOpen} />
-      <Box ml={{ base: 0, md: 60 }} p="3">
+      <Box ml={{ base: 0, md: 64 }} p={{ base: 3, md: 6 }}>
         {children}
       </Box>
     </Box>
