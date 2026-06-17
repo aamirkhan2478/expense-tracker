@@ -35,7 +35,7 @@ import {
 import { Field, Form, Formik } from "formik";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, Suspense } from "react";
 import { FiEdit, FiPlus, FiSearch, FiTrash } from "react-icons/fi";
 import { MdDownload, MdImportExport } from "react-icons/md";
 import { useQueryClient } from "react-query";
@@ -43,7 +43,7 @@ import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
 import Papa from "papaparse";
 
-const Expense = () => {
+const ExpenseContent = () => {
   let id = "";
   if (typeof window !== "undefined") {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -922,6 +922,14 @@ const Expense = () => {
         </Flex>
       </CustomBox>
     </Layout>
+  );
+};
+
+const Expense = () => {
+  return (
+    <Suspense>
+      <ExpenseContent />
+    </Suspense>
   );
 };
 
