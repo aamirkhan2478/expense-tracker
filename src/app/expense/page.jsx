@@ -12,36 +12,56 @@ import {
   useShowExpense,
   useUpdateExpense,
 } from "@/hooks/useExpense";
+import { useSettings, formatMoney } from "@/hooks/useSettings";
 import dateFormat from "@/utils/dateFormat";
 import {
   Box,
   Button,
-  Container,
-  Divider,
   Flex,
   FormControl,
-  FormHelperText,
+  FormErrorMessage,
   FormLabel,
+  Grid,
+  GridItem,
   Heading,
+  Icon,
   IconButton,
   Input,
+  InputGroup,
+  InputLeftElement,
   Select,
   Skeleton,
+  Stack,
   Text,
   useColorModeValue,
   useDisclosure,
   useToast,
+  Badge,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, Suspense } from "react";
-import { FiEdit, FiPlus, FiSearch, FiTrash } from "react-icons/fi";
-import { MdDownload, MdImportExport } from "react-icons/md";
+import {
+  FiEdit2,
+  FiPlus,
+  FiSearch,
+  FiTrash2,
+  FiCalendar,
+  FiDollarSign,
+  FiTag,
+  FiFilter,
+  FiTrendingDown,
+  FiDownload,
+  FiUpload,
+} from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
 import Papa from "papaparse";
+
+const MotionBox = motion(Box);
 
 const ExpenseContent = () => {
   let id = "";
@@ -50,6 +70,7 @@ const ExpenseContent = () => {
     id = user?.id || "";
   }
 
+  const { settings } = useSettings();
   const [filterData, setFilterData] = useState({
     category: "",
     startDate: "",
@@ -91,8 +112,11 @@ const ExpenseContent = () => {
   );
   const toast = useToast();
   const queryClient = useQueryClient();
-  const bgCard = useColorModeValue("white", "dark");
-  const inputOutlineColor = useColorModeValue("gray.400", "");
+
+  const bgCard = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.100", "gray.700");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isOpenDialog,
@@ -141,7 +165,7 @@ const ExpenseContent = () => {
 
   function onError(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Something went wrong",
       status: "error",
       isClosable: true,
     });
@@ -189,7 +213,7 @@ const ExpenseContent = () => {
 
   function onErrorDelete(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Delete failed",
       status: "error",
       isClosable: true,
     });
@@ -203,23 +227,14 @@ const ExpenseContent = () => {
   };
 
   const filterHandler = () => {
-    // Set the default page to 1 when filtering data
-    const newFilterData = {
-      ...filterData,
-      page: 1,
-    };
-
-    // Update the router with the new filter values and page number
+    const newFilterData = { ...filterData, page: 1 };
     router.push(
       `?category=${newFilterData.category}&startDate=${newFilterData.startDate}&endDate=${newFilterData.endDate}&page=${newFilterData.page}&searchQuery=${newFilterData.searchQuery}`,
     );
-
-    // Update the state with the new filter data
     setFilterData(newFilterData);
   };
 
   const fileRef = useRef(null);
-
   const acceptableCSVFileTypes = ".csv";
 
   const fileHandler = (e) => {
@@ -230,58 +245,32 @@ const ExpenseContent = () => {
       skipEmptyLines: true,
       complete: (result) => {
         const data = result.data.map((item) => {
-          // validate data
-          if (
-            !item.title ||
-            !item.amount ||
-            !item.expenseDate ||
-            !item.category
-          ) {
-            toast({
-              title: "Invalid data",
-              status: "error",
-              isClosable: true,
-            });
+          if (!item.title || !item.amount || !item.expenseDate || !item.category) {
+            toast({ title: "Invalid data", status: "error", isClosable: true });
           }
-
-          let category = categories?.data?.categories?.find(
+          let cat = categories?.data?.categories?.find(
             (category) => category.name === item.category,
           );
-
-          if (!category) {
-            toast({
-              title: `Category ${item.category} not found!`,
-              status: "error",
-              isClosable: true,
-            });
+          if (!cat) {
+            toast({ title: `Category ${item.category} not found!`, status: "error", isClosable: true });
             return;
           }
-
-          if (category?._id === undefined) {
-            toast({
-              title: "Invalid category",
-              status: "error",
-              isClosable: true,
-            });
+          if (cat?._id === undefined) {
+            toast({ title: "Invalid category", status: "error", isClosable: true });
             return;
           }
-
           return {
             title: item.title,
             amount: item.amount,
             expenseDate: new Date(item.expenseDate).toISOString(),
-            category: category?._id,
+            category: cat?._id,
             user: id,
           };
         });
 
         addManyExpense(data, {
           onSuccess: (data) => {
-            toast({
-              title: data?.data?.msg,
-              status: "success",
-              isClosable: true,
-            });
+            toast({ title: data?.data?.msg, status: "success", isClosable: true });
           },
         });
       },
@@ -290,14 +279,8 @@ const ExpenseContent = () => {
 
   const downloadSample = () => {
     const csv = Papa.unparse([
-      {
-        title: "Title",
-        amount: "100",
-        expenseDate: "2022-12-31",
-        category: "Category Name",
-      },
+      { title: "Title", amount: "100", expenseDate: "2022-12-31", category: "Category Name" },
     ]);
-
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -345,581 +328,550 @@ const ExpenseContent = () => {
                 handleSubmit,
               }) => (
                 <Form>
-                  <FormControl id="expense-title" mb="20px" isRequired>
-                    <FormLabel>Expense Title</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Expense Title"
-                      outlineColor={inputOutlineColor}
-                      name="title"
-                      isInvalid={
-                        Boolean(errors.title) && Boolean(touched.title)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("title")}
-                      value={values.title || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.title) && errors.title}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="expense-amount" mb="20px" isRequired>
-                    <FormLabel>Expense Amount</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Expense Amount"
-                      outlineColor={inputOutlineColor}
-                      name="amount"
-                      isInvalid={
-                        Boolean(errors.amount) && Boolean(touched.amount)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("amount")}
-                      value={values.amount || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.amount) && errors.amount}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="date-picker" mb="20px" isRequired>
-                    <FormLabel>Expense Date</FormLabel>
-                    <Field
-                      as={Input}
-                      type="date"
-                      placeholder="Expense Date"
-                      outlineColor={inputOutlineColor}
-                      name="expenseDate"
-                      isInvalid={
-                        Boolean(errors.expenseDate) &&
-                        Boolean(touched.expenseDate)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("expenseDate")}
-                      value={values.expenseDate || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.expenseDate) && errors.expenseDate}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="category" mb="20px" isRequired>
-                    <FormLabel mt={3}>Select Category</FormLabel>
-                    <Select
-                      placeholder="Select Category"
-                      outlineColor={"gray"}
-                      isInvalid={
-                        Boolean(errors.category) && Boolean(touched.category)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("category")}
-                      value={values.category || ""}
-                    >
-                      {categories?.data?.categories?.map((item) => (
-                        <option key={item._id} value={item._id}>
-                          <Box display="flex" alignItems="center">
-                            <Text>{item.name}</Text>
-                            <Image
-                              src={item.icon} // Replace with the actual field name where the image URL is stored
-                              alt={`icon-${item._id}`}
-                              width={30}
-                              height={30}
-                              style={{ marginRight: "8px" }}
-                            />
-                          </Box>
-                        </option>
-                      ))}
-                    </Select>
-                    <FormHelperText color="red">
-                      {Boolean(touched.category) && errors.category}
-                    </FormHelperText>
-                  </FormControl>
-                  <Divider my={2} />
-                  <Box display={"flex"} gap={2}>
-                    <Button onClick={onCloseDialog} colorScheme="red">
-                      Cancel
-                    </Button>
-                    <Button
-                      leftIcon={<FiEdit />}
-                      bg={"blue.400"}
-                      color={"white"}
-                      _hover={{
-                        bg: "blue.500",
-                      }}
-                      _active={{ bg: "blue.400" }}
-                      isDisabled={!isValid || !dirty}
-                      type="submit"
-                      onClick={handleSubmit}
-                      isLoading={updateLoading}
-                      spinner={<BeatLoader size={8} color="white" />}
-                    >
-                      Update Expense
-                    </Button>
-                  </Box>
+                  <Stack spacing={4}>
+                    <FormControl isInvalid={Boolean(errors.title) && Boolean(touched.title)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Expense Title</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="Expense Title"
+                          name="title"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.title) && Boolean(touched.title)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("title")}
+                          value={values.title || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.title}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Amount</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="Amount"
+                          name="amount"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("amount")}
+                          value={values.amount || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.amount}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Date</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiCalendar} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="date"
+                          name="expenseDate"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("expenseDate")}
+                          value={values.expenseDate || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.expenseDate}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.category) && Boolean(touched.category)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Category</FormLabel>
+                      <Select
+                        placeholder="Select Category"
+                        borderRadius="xl"
+                        focusBorderColor="teal.400"
+                        isInvalid={Boolean(errors.category) && Boolean(touched.category)}
+                        onBlur={handleBlur}
+                        onChange={handleChange("category")}
+                        value={values.category || ""}
+                      >
+                        {categories?.data?.categories?.map((item) => (
+                          <option key={item._id} value={item._id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </Select>
+                      <FormErrorMessage>{errors.category}</FormErrorMessage>
+                    </FormControl>
+
+                    <Flex gap={3} pt={2}>
+                      <Button onClick={onCloseDialog} variant="ghost" flex={1} borderRadius="xl">
+                        Cancel
+                      </Button>
+                      <Button
+                        leftIcon={<FiEdit2 />}
+                        bg="teal.500"
+                        color="white"
+                        _hover={{ bg: "teal.400" }}
+                        _active={{ bg: "teal.600" }}
+                        isDisabled={!isValid || !dirty}
+                        type="submit"
+                        onClick={handleSubmit}
+                        isLoading={updateLoading}
+                        spinner={<BeatLoader size={8} color="white" />}
+                        flex={1}
+                        borderRadius="xl"
+                      >
+                        Update
+                      </Button>
+                    </Flex>
+                  </Stack>
                 </Form>
               )}
             </Formik>
           </Box>
         }
       />
+
       <Alert
         isOpen={isOpen}
         onClose={onClose}
         onClick={deleteHandler}
         colorScheme={"red"}
         alertHeader={"Delete Expense"}
-        alertBody={"Are you sure you want to delete this expense?"}
-        confirmButtonText={"Yes"}
+        alertBody={"Are you sure you want to delete this expense? This action cannot be undone."}
+        confirmButtonText={"Delete"}
         isLoading={deleteLoading}
       />
-      <CustomBox>
-        <Heading p="4" fontFamily={"monospace"}>
-          Expense
-        </Heading>
-        <Box
-          ml="10px"
-          mr={"10px"}
-          borderWidth="1px"
-          borderRadius="lg"
-          overflow="hidden"
-          textAlign={"center"}
-          shadow={"lg"}
-          bg={bgCard}
-          display={"flex"}
-          justifyContent={"center"}
-          alignItems={"center"}
-        >
-          <Skeleton
-            isLoaded={!isLoading}
-            display={"flex"}
-            justifyContent={"center"}
-            alignItems={"center"}
-            overflow="hidden"
-            borderRadius={10}
-          >
-            <Text
-              fontFamily={"monospace"}
-              fontSize={{ base: "xl", sm: "1xl", md: "3xl" }}
-              fontWeight={"bold"}
-              textAlign={"center"}
-              overflow="hidden"
-            >
-              Total Expense:
-              <Text as={"span"} textColor={"green.400"}>
-                {data?.data?.totalAmount}RS
-              </Text>
-            </Text>
-          </Skeleton>
-        </Box>
-        <Flex
-          flexDirection={{ base: "column", lg: "row" }}
-          justifyContent={{ base: "center", lg: "normal" }}
-          alignItems={{ base: "center", lg: "normal" }}
-        >
-          <Box w={{ base: "97%", md: "50%" }} my={"2"} p={"10px"}>
-            <Formik
-              initialValues={initialValues}
-              onSubmit={clickHandler}
-              validationSchema={object({
-                title: string()
-                  .matches(
-                    /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z0-9 ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!",
-                  )
-                  .required("Title is required field!"),
-                amount: number("Amount must be a number!")
-                  .typeError("That doesn't look like a number")
-                  .positive("Amount must be a positive number!")
-                  .required("Amount is required field!")
-                  .integer("Please enter only integers!"),
-                expenseDate: date().required("Date is required field!"),
-                category: string().required("Category is required field!"),
-              })}
-            >
-              {({
-                errors,
-                values,
-                dirty,
-                isValid,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-              }) => (
-                <Form>
-                  <FormControl id="expense-title" mb="20px" isRequired>
-                    <FormLabel>Expense Title</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Expense Title"
-                      outlineColor={inputOutlineColor}
-                      name="title"
-                      isInvalid={
-                        Boolean(errors.title) && Boolean(touched.title)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("title")}
-                      value={values.title || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.title) && errors.title}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="expense-amount" mb="20px" isRequired>
-                    <FormLabel>Expense Amount</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Expense Amount"
-                      outlineColor={inputOutlineColor}
-                      name="amount"
-                      isInvalid={
-                        Boolean(errors.amount) && Boolean(touched.amount)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("amount")}
-                      value={values.amount || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.amount) && errors.amount}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="date-picker" mb="20px" isRequired>
-                    <FormLabel>Expense Date</FormLabel>
-                    <Field
-                      as={Input}
-                      type="date"
-                      placeholder="Expense Date"
-                      outlineColor={inputOutlineColor}
-                      name="expenseDate"
-                      isInvalid={
-                        Boolean(errors.expenseDate) &&
-                        Boolean(touched.expenseDate)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("expenseDate")}
-                      value={values.expenseDate || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.expenseDate) && errors.expenseDate}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="category" mb="20px" isRequired>
-                    <FormLabel mt={3}>Select Category</FormLabel>
-                    <Select
-                      placeholder="Select Category"
-                      outlineColor={"gray"}
-                      isInvalid={
-                        Boolean(errors.category) && Boolean(touched.category)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("category")}
-                      value={values.category || ""}
-                    >
-                      {categories?.data?.categories?.map((item) => (
-                        <option key={item._id} value={item._id}>
-                          <Box display="flex" alignItems="center">
-                            <Text>{item.name}</Text>
-                            <Image
-                              src={item.icon} // Replace with the actual field name where the image URL is stored
-                              alt={`icon-${item._id}`}
-                              width={30}
-                              height={30}
-                              style={{ marginRight: "8px" }}
-                            />
-                          </Box>
-                        </option>
-                      ))}
-                    </Select>
-                    <FormHelperText color="red">
-                      {Boolean(touched.category) && errors.category}
-                    </FormHelperText>
-                  </FormControl>
-                  <Button
-                    leftIcon={<FiPlus />}
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{ bg: "blue.400" }}
-                    isDisabled={!isValid || !dirty}
-                    type="submit"
-                    onClick={handleSubmit}
-                    isLoading={expenseLoading}
-                    spinner={<BeatLoader size={8} color="white" />}
-                  >
-                    Add Expense
-                  </Button>
-                </Form>
-              )}
-            </Formik>
-          </Box>
-          <Box w={{ base: "97%", md: "50%" }}>
-            {isLoading &&
-              [1, 2, 3, 4, 5].map((_data, index) => (
-                <Skeleton
-                  key={index}
-                  borderWidth="1px"
-                  borderRadius={"10px"}
-                  m="10px"
-                >
-                  <Box
-                    borderWidth="1px"
-                    borderRadius={"10px"}
-                    bg={bgCard}
-                    m="10px"
-                    shadow={"lg"}
-                  >
-                    <Flex
-                      p="10px"
-                      flexDirection={{ base: "column", sm: "row" }}
-                    >
-                      <Box w={"50%"}>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={{ base: "md", md: "xl" }}
-                          fontWeight={"bold"}
-                          width={{ base: "200px", md: "220px" }}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                      </Box>
-                      <Box w={"50%"}>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={{ base: "md", md: "xl" }}
-                          fontWeight={"bold"}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={"md"}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                      </Box>
-                      <Box w={"20%"}>
-                        <IconButton
-                          icon={<FiTrash color="red" />}
-                          backgroundColor={"gray.200"}
-                        />
-                      </Box>
-                    </Flex>
-                  </Box>
-                </Skeleton>
-              ))}
-            <Container display={isLoading && "none"}>
-              <Heading>Search By</Heading>
-              <Flex
-                flexDirection={"column"}
-                justifyContent={"center"}
-                alignItems={"center"}
-              >
-                <FormLabel my={3}>Select Category</FormLabel>
-                <Select
-                  defaultValue={filterData.category || category}
-                  value={filterData.category}
-                  placeholder="Select Category"
-                  onChange={changeHandler}
-                  outlineColor={"gray"}
-                  name="category"
-                >
-                  {categories?.data?.categories?.map((item) => (
-                    <option key={item._id} value={item._id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </Select>
-              </Flex>
-              <Flex
-                flexDirection={{ base: "column", sm: "row" }}
-                justifyContent={"center"}
-                alignItems={"center"}
-                gap={2}
-                flexWrap={"wrap"}
-                my={3}
-              >
-                <FormControl>
-                  <FormLabel>Start Date</FormLabel>
-                  <Input
-                    type="date"
-                    onChange={changeHandler}
-                    defaultValue={filterData.startDate || startDate}
-                    value={filterData.startDate || startDate}
-                    name="startDate"
-                    outlineColor={"gray"}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>End Date</FormLabel>
-                  <Input
-                    type="date"
-                    onChange={changeHandler}
-                    defaultValue={filterData.endDate || endDate}
-                    value={filterData.endDate || endDate}
-                    name="endDate"
-                    outlineColor={"gray"}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Search by Title</FormLabel>
-                  <Input
-                    type="text"
-                    onChange={changeHandler}
-                    defaultValue={filterData.searchQuery || searchQuery}
-                    value={filterData.searchQuery}
-                    name="searchQuery"
-                    outlineColor={"gray"}
-                  />
-                </FormControl>
-                <Flex gap={2} flexDirection={"column"}>
-                  <Button
-                    leftIcon={<FiSearch />}
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{ bg: "blue.400" }}
-                    onClick={filterHandler}
-                    mt={3}
-                  >
-                    Search
-                  </Button>
-                  <Button
-                    leftIcon={<MdImportExport />}
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{ bg: "blue.400" }}
-                    onClick={() => {
-                      fileRef.current.click();
-                    }}
-                    mt={3}
-                    isLoading={expenseManyLoading}
-                  >
-                    Import
-                  </Button>
-                  <Button
-                    leftIcon={<MdDownload />}
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{ bg: "blue.400" }}
-                    onClick={downloadSample}
-                    mt={3}
-                  >
-                    Download Sample
-                  </Button>
-                  <input
-                    type="file"
-                    hidden
-                    ref={fileRef}
-                    accept={acceptableCSVFileTypes}
-                    onChange={fileHandler}
-                  />
-                </Flex>
-              </Flex>
-            </Container>
 
-            {data?.data?.data?.length === 0 && (
-              <Box
-                borderWidth="1px"
-                borderRadius={"10px"}
+      <CustomBox>
+        <Stack spacing={8}>
+          {/* Header */}
+          <Flex justify="space-between" align={{ base: "start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+            <Box>
+              <Heading size="lg" fontWeight="bold" mb={1}>
+                Expenses
+              </Heading>
+              <Text fontSize="sm" color={mutedText}>
+                Manage and track your spending
+              </Text>
+            </Box>
+            <Badge
+              colorScheme="red"
+              variant="subtle"
+              px={4}
+              py={2}
+              borderRadius="xl"
+              fontSize="md"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <Icon as={FiTrendingDown} />
+              <Skeleton isLoaded={!isLoading}>
+                <Text fontWeight="bold">{formatMoney(data?.data?.totalAmount || 0, settings)}</Text>
+              </Skeleton>
+            </Badge>
+          </Flex>
+
+          <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={{ base: 6, md: 8 }}>
+            {/* Form */}
+            <GridItem>
+              <MotionBox
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
                 bg={bgCard}
-                m="10px"
-                shadow={"lg"}
-                p={10}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                p={6}
+                boxShadow="sm"
               >
-                <Text
-                  fontFamily={"monospace"}
-                  fontSize={{ base: "md", md: "xl" }}
-                  fontWeight={"bold"}
-                  width={{ base: "200px", md: "220px" }}
-                  mb={{ base: "5px", md: "0" }}
-                  color={"red.400"}
-                >
-                  No Expenses found
+                <Text fontSize="lg" fontWeight="bold" mb={5}>
+                  Add New Expense
                 </Text>
-              </Box>
-            )}
-            {data?.data?.data?.map((item, index) => (
-              <Box
-                key={item._id}
-                borderWidth="1px"
-                borderRadius={"10px"}
-                bg={bgCard}
-                m="10px"
-                shadow={"lg"}
-              >
-                <Flex p="10px">
-                  <Box w={"50%"}>
-                    <Image
-                      src={item?.category?.icon}
-                      alt={`icon-${index}`}
-                      width={40}
-                      height={40}
-                    />
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={{ base: "md", md: "xl" }}
-                      fontWeight={"bold"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {item.title}
+                <Formik
+                  initialValues={{ title: "", amount: "", expenseDate: "", category: "" }}
+                  onSubmit={clickHandler}
+                  validationSchema={object({
+                    title: string()
+                      .matches(
+                        /^(?=.{3,50}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                        "Title should have at least 3 characters, should not any number and start with capital letter!",
+                      )
+                      .required("Title is required field!"),
+                    amount: number("Amount must be a number!")
+                      .typeError("That doesn't look like a number")
+                      .positive("Amount must be a positive number!")
+                      .required("Amount is required field!")
+                      .integer("Please enter only integers!"),
+                    expenseDate: date().required("Date is required field!"),
+                    category: string().required("Category is required field!"),
+                  })}
+                >
+                  {({
+                    errors,
+                    values,
+                    dirty,
+                    isValid,
+                    touched,
+                    handleChange,
+                    handleBlur,
+                    handleSubmit,
+                  }) => (
+                    <Form>
+                      <Stack spacing={4}>
+                        <FormControl isInvalid={Boolean(errors.title) && Boolean(touched.title)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Title</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="Expense Title"
+                              name="title"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.title) && Boolean(touched.title)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("title")}
+                              value={values.title || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.title}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Amount</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="Amount"
+                              name="amount"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("amount")}
+                              value={values.amount || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.amount}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Date</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiCalendar} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="date"
+                              name="expenseDate"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("expenseDate")}
+                              value={values.expenseDate || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.expenseDate}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.category) && Boolean(touched.category)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Category</FormLabel>
+                          <Select
+                            placeholder="Select Category"
+                            borderRadius="xl"
+                            focusBorderColor="teal.400"
+                            isInvalid={Boolean(errors.category) && Boolean(touched.category)}
+                            onBlur={handleBlur}
+                            onChange={handleChange("category")}
+                            value={values.category || ""}
+                          >
+                            {categories?.data?.categories?.map((item) => (
+                              <option key={item._id} value={item._id}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </Select>
+                          <FormErrorMessage>{errors.category}</FormErrorMessage>
+                        </FormControl>
+
+                        <Button
+                          leftIcon={<FiPlus />}
+                          size="lg"
+                          bg="teal.500"
+                          color="white"
+                          _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
+                          _active={{ bg: "teal.600" }}
+                          isDisabled={!isValid || !dirty}
+                          type="submit"
+                          onClick={handleSubmit}
+                          isLoading={expenseLoading}
+                          spinner={<BeatLoader size={8} color="white" />}
+                          borderRadius="xl"
+                          boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
+                        >
+                          Add Expense
+                        </Button>
+                      </Stack>
+                    </Form>
+                  )}
+                </Formik>
+              </MotionBox>
+            </GridItem>
+
+            {/* List + Filters */}
+            <GridItem>
+              <Stack spacing={4}>
+                {/* Filters */}
+                <Box
+                  bg={bgCard}
+                  border="1px solid"
+                  borderColor={borderColor}
+                  borderRadius="2xl"
+                  p={5}
+                  boxShadow="sm"
+                >
+                  <Flex align="center" gap={2} mb={4}>
+                    <Icon as={FiFilter} color="teal.500" />
+                    <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
+                      Filters
                     </Text>
-                  </Box>
-                  <Box w={"50%"}>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={{ base: "md", md: "xl" }}
-                      fontWeight={"bold"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {item.amount}RS
-                    </Text>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={"md"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {dateFormat(item.expenseDate)}
-                    </Text>
-                  </Box>
+                  </Flex>
+                  <Stack spacing={3}>
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">Category</FormLabel>
+                      <Select
+                        placeholder="All Categories"
+                        borderRadius="xl"
+                        focusBorderColor="teal.400"
+                        name="category"
+                        value={filterData.category}
+                        onChange={changeHandler}
+                      >
+                        {categories?.data?.categories?.map((item) => (
+                          <option key={item._id} value={item._id}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <Flex gap={3}>
+                      <FormControl>
+                        <FormLabel fontSize="sm" fontWeight="medium">Start Date</FormLabel>
+                        <Input
+                          type="date"
+                          name="startDate"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          value={filterData.startDate || startDate}
+                          onChange={changeHandler}
+                        />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="sm" fontWeight="medium">End Date</FormLabel>
+                        <Input
+                          type="date"
+                          name="endDate"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          value={filterData.endDate || endDate}
+                          onChange={changeHandler}
+                        />
+                      </FormControl>
+                    </Flex>
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">Search by Title</FormLabel>
+                      <InputGroup>
+                        <InputLeftElement pointerEvents="none"><Icon as={FiSearch} color="gray.400" /></InputLeftElement>
+                        <Input
+                          type="text"
+                          name="searchQuery"
+                          placeholder="Search..."
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          value={filterData.searchQuery}
+                          onChange={changeHandler}
+                        />
+                      </InputGroup>
+                    </FormControl>
+                    <Flex gap={2} wrap="wrap">
+                      <Button
+                        leftIcon={<FiSearch />}
+                        bg="teal.500"
+                        color="white"
+                        _hover={{ bg: "teal.400" }}
+                        size="sm"
+                        borderRadius="xl"
+                        onClick={filterHandler}
+                        flex={1}
+                      >
+                        Search
+                      </Button>
+                      <Button
+                        leftIcon={<FiUpload />}
+                        variant="outline"
+                        colorScheme="teal"
+                        size="sm"
+                        borderRadius="xl"
+                        onClick={() => fileRef.current.click()}
+                        isLoading={expenseManyLoading}
+                      >
+                        Import
+                      </Button>
+                      <Button
+                        leftIcon={<FiDownload />}
+                        variant="ghost"
+                        colorScheme="teal"
+                        size="sm"
+                        borderRadius="xl"
+                        onClick={downloadSample}
+                      >
+                        Sample
+                      </Button>
+                      <input
+                        type="file"
+                        hidden
+                        ref={fileRef}
+                        accept={acceptableCSVFileTypes}
+                        onChange={fileHandler}
+                      />
+                    </Flex>
+                  </Stack>
+                </Box>
+
+                {/* List */}
+                <Text fontSize="lg" fontWeight="bold">
+                  Recent Expenses
+                </Text>
+
+                {isLoading &&
+                  [1, 2, 3].map((i) => (
+                    <Skeleton key={i} height="80px" borderRadius="xl" />
+                  ))}
+
+                {!isLoading && data?.data?.data?.length === 0 && (
                   <Box
-                    w={"20%"}
-                    display={"flex"}
-                    gap={2}
-                    flexDirection={"column"}
+                    p={8}
+                    textAlign="center"
+                    borderRadius="2xl"
+                    border="1px dashed"
+                    borderColor={borderColor}
                   >
-                    <IconButton
-                      icon={<FiTrash color="red" />}
-                      backgroundColor={"gray.200"}
-                      onClick={() => confirmDialog(item._id)}
-                    />
-                    <IconButton
-                      icon={<FiEdit color="blue" />}
-                      backgroundColor={"gray.200"}
-                      onClick={() => confirmUpdateDialog(item._id)}
-                    />
+                    <Icon as={FiTrendingDown} boxSize={8} color="gray.300" mb={3} />
+                    <Text fontWeight="medium" color={mutedText}>
+                      No expenses found
+                    </Text>
+                    <Text fontSize="sm" color={mutedText}>
+                      Add your first expense to get started
+                    </Text>
                   </Box>
-                </Flex>
-              </Box>
-            ))}
-            <Pagination
-              currentPage={parseInt(currentPage)}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              display={
-                data?.data?.totalExpenses <= 5 || isLoading ? "none" : "flex"
-              }
-            />
-          </Box>
-        </Flex>
+                )}
+
+                {!isLoading &&
+                  data?.data?.data?.map((item) => (
+                    <MotionBox
+                      key={item._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      bg={bgCard}
+                      border="1px solid"
+                      borderColor={borderColor}
+                      borderRadius="xl"
+                      p={4}
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", borderColor: "red.200" }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Flex justify="space-between" align="center">
+                        <Flex align="center" gap={3}>
+                          <Flex
+                            w={10}
+                            h={10}
+                            borderRadius="xl"
+                            bg="red.50"
+                            align="center"
+                            justify="center"
+                            overflow="hidden"
+                          >
+                            {item?.category?.icon ? (
+                              <Image
+                                src={item.category.icon}
+                                alt={item.category.name}
+                                width={24}
+                                height={24}
+                              />
+                            ) : (
+                              <Icon as={FiTrendingDown} color="red.500" />
+                            )}
+                          </Flex>
+                          <Stack spacing={0}>
+                            <Text fontWeight="semibold" fontSize="sm">
+                              {item.title}
+                            </Text>
+                            <Text fontSize="xs" color={mutedText}>
+                              {item.category?.name || "Uncategorized"}
+                            </Text>
+                          </Stack>
+                        </Flex>
+                        <Stack spacing={0} align="end">
+                          <Text fontWeight="bold" fontSize="md" color="red.500">
+                            -{formatMoney(item.amount, settings)}
+                          </Text>
+                          <Text fontSize="xs" color={mutedText}>
+                            {dateFormat(item.expenseDate)}
+                          </Text>
+                        </Stack>
+                        <Flex gap={2} ml={2}>
+                          <IconButton
+                            icon={<FiEdit2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="teal"
+                            borderRadius="lg"
+                            aria-label="Edit"
+                            onClick={() => confirmUpdateDialog(item._id)}
+                          />
+                          <IconButton
+                            icon={<FiTrash2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            borderRadius="lg"
+                            aria-label="Delete"
+                            onClick={() => confirmDialog(item._id)}
+                          />
+                        </Flex>
+                      </Flex>
+                    </MotionBox>
+                  ))}
+
+                <Pagination
+                  currentPage={parseInt(currentPage)}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  display={data?.data?.totalExpenses <= 5 || isLoading ? "none" : "flex"}
+                />
+              </Stack>
+            </GridItem>
+          </Grid>
+        </Stack>
       </CustomBox>
     </Layout>
   );

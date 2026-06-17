@@ -13,6 +13,7 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import dateFormat from "@/utils/dateFormat";
+import { useSettings } from "@/hooks/useSettings";
 import { Box, useColorModeValue, Text, Flex } from "@chakra-ui/react";
 import { useShowExpense } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
@@ -44,6 +45,8 @@ function Chart() {
   const gridColor = useColorModeValue("rgba(0,0,0,0.05)", "rgba(255,255,255,0.05)");
   const tooltipBg = useColorModeValue("rgba(255,255,255,0.95)", "rgba(26,32,44,0.95)");
   const tooltipText = useColorModeValue("#1A202C", "#F7FAFC");
+
+  const { settings } = useSettings();
 
   const incomeLabels = incomes?.data?.data?.map((inc) =>
     dateFormat(inc.incomeDate),
@@ -163,7 +166,7 @@ function Chart() {
           color: textColor,
           padding: 8,
           callback: function (value) {
-            return "$" + value;
+            return (settings?.currency || "$") + value;
           },
         },
         border: {

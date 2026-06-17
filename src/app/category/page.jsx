@@ -9,19 +9,23 @@ import {
   useShowCategory,
   useUpdateCategory,
 } from "@/hooks/useCategory";
-import dateFormat from "@/utils/dateFormat";
 import {
   Box,
   Button,
-  Divider,
   Flex,
   FormControl,
-  FormHelperText,
+  FormErrorMessage,
   FormLabel,
+  Grid,
+  GridItem,
   Heading,
+  Icon,
   IconButton,
   Input,
+  InputGroup,
+  InputLeftElement,
   Skeleton,
+  Stack,
   Text,
   useColorModeValue,
   useDisclosure,
@@ -29,11 +33,21 @@ import {
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { useState } from "react";
-import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
+import {
+  FiEdit2,
+  FiPlus,
+  FiTrash2,
+  FiTag,
+  FiImage,
+  FiGrid,
+} from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { object, string } from "yup";
+
+const MotionBox = motion(Box);
 
 const Category = () => {
   let id = "";
@@ -53,8 +67,11 @@ const Category = () => {
     useDeleteCategory(onErrorDelete, onSuccessDelete);
   const toast = useToast();
   const queryClient = useQueryClient();
-  const bgCard = useColorModeValue("white", "dark");
-  const inputOutlineColor = useColorModeValue("gray.400", "");
+
+  const bgCard = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.100", "gray.700");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [categoryId, setCategoryId] = useState("");
   const {
@@ -90,7 +107,7 @@ const Category = () => {
 
   function onError(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Something went wrong",
       status: "error",
       isClosable: true,
     });
@@ -136,7 +153,7 @@ const Category = () => {
 
   function onErrorDelete(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Delete failed",
       status: "error",
       isClosable: true,
     });
@@ -150,8 +167,8 @@ const Category = () => {
         onClick={deleteHandler}
         colorScheme={"red"}
         alertHeader={"Delete Category"}
-        alertBody={"Are you sure you want to delete this category?"}
-        confirmButtonText={"Yes"}
+        alertBody={"Are you sure you want to delete this category? This action cannot be undone."}
+        confirmButtonText={"Delete"}
         isLoading={deleteLoading}
       />
       <Dialog
@@ -186,282 +203,354 @@ const Category = () => {
                 handleSubmit,
               }) => (
                 <Form>
-                  <FormControl id="category-name" mb="20px" isRequired>
-                    <FormLabel>Category Name</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Category Name"
-                      outlineColor={inputOutlineColor}
-                      name="name"
-                      isInvalid={Boolean(errors.name) && Boolean(touched.name)}
-                      onBlur={handleBlur}
-                      onChange={handleChange("name")}
-                      value={values.name || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.name) && errors.name}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="category-icon" mb="20px" isRequired>
-                    <FormLabel>Category Icon</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Category Icon"
-                      outlineColor={inputOutlineColor}
-                      name="icon"
-                      isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}
-                      onBlur={handleBlur}
-                      onChange={handleChange("icon")}
-                      value={values.icon || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.icon) && errors.icon}
-                    </FormHelperText>
-                  </FormControl>
-                  <Divider my={2} />
-                  <Box display={"flex"} gap={2}>
-                    <Button onClick={onCloseDialog} colorScheme="red">
-                      Cancel
-                    </Button>
-                    <Button
-                      leftIcon={<FiEdit />}
-                      bg={"blue.400"}
-                      color={"white"}
-                      _hover={{
-                        bg: "blue.500",
-                      }}
-                      _active={{ bg: "blue.400" }}
-                      isDisabled={!isValid || !dirty}
-                      type="submit"
-                      onClick={handleSubmit}
-                      isLoading={updateLoading}
-                      spinner={<BeatLoader size={8} color="white" />}
-                    >
-                      Update Category
-                    </Button>
-                  </Box>
+                  <Stack spacing={4}>
+                    <FormControl isInvalid={Boolean(errors.name) && Boolean(touched.name)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Category Name</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="Category Name"
+                          name="name"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.name) && Boolean(touched.name)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("name")}
+                          value={values.name || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.name}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Icon URL</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiImage} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="https://example.com/icon.png"
+                          name="icon"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("icon")}
+                          value={values.icon || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.icon}</FormErrorMessage>
+                    </FormControl>
+
+                    {values.icon && (
+                      <Flex justify="center" py={2}>
+                        <Box
+                          w={16}
+                          h={16}
+                          borderRadius="xl"
+                          bg="gray.50"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          overflow="hidden"
+                          border="1px solid"
+                          borderColor={borderColor}
+                        >
+                          <Image src={values.icon} alt="Preview" width={40} height={40} />
+                        </Box>
+                      </Flex>
+                    )}
+
+                    <Flex gap={3} pt={2}>
+                      <Button onClick={onCloseDialog} variant="ghost" flex={1} borderRadius="xl">
+                        Cancel
+                      </Button>
+                      <Button
+                        leftIcon={<FiEdit2 />}
+                        bg="teal.500"
+                        color="white"
+                        _hover={{ bg: "teal.400" }}
+                        _active={{ bg: "teal.600" }}
+                        isDisabled={!isValid || !dirty}
+                        type="submit"
+                        onClick={handleSubmit}
+                        isLoading={updateLoading}
+                        spinner={<BeatLoader size={8} color="white" />}
+                        flex={1}
+                        borderRadius="xl"
+                      >
+                        Update
+                      </Button>
+                    </Flex>
+                  </Stack>
                 </Form>
               )}
             </Formik>
           </Box>
         }
       />
-      <CustomBox>
-        <Heading p="4" fontFamily={"monospace"}>
-          Category
-        </Heading>
-        <Flex
-          flexDirection={{ base: "column", lg: "row" }}
-          justifyContent={{ base: "center", lg: "normal" }}
-          alignItems={{ base: "center", lg: "normal" }}
-        >
-          <Box w={{ base: "97%", md: "50%" }} my={"2"} p={"10px"}>
-            <Formik
-              initialValues={initialValues}
-              onSubmit={async (values, { resetForm }) => {
-                await clickHandler(values);
-                resetForm();
-              }}
-              validationSchema={object({
-                name: string()
-                  .matches(
-                    /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!",
-                  )
-                  .required("Title is required field!"),
-                icon: string()
-                  .url("Icon should be a valid url!")
-                  .required("Icon is required field!"),
-              })}
-            >
-              {({
-                errors,
-                values,
-                dirty,
-                isValid,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-              }) => (
-                <Form>
-                  <FormControl id="category-name" mb="20px" isRequired>
-                    <FormLabel>Category Name</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Category Name"
-                      outlineColor={inputOutlineColor}
-                      name="name"
-                      isInvalid={Boolean(errors.name) && Boolean(touched.name)}
-                      onBlur={handleBlur}
-                      onChange={handleChange("name")}
-                      value={values.name || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.name) && errors.name}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="category-icon" mb="20px" isRequired>
-                    <FormLabel>Category Icon</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Category Icon"
-                      outlineColor={inputOutlineColor}
-                      name="icon"
-                      isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}
-                      onBlur={handleBlur}
-                      onChange={handleChange("icon")}
-                      value={values.icon || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.icon) && errors.icon}
-                    </FormHelperText>
-                  </FormControl>
-                  <Button
-                    leftIcon={<FiPlus />}
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{ bg: "blue.400" }}
-                    isDisabled={!isValid || !dirty}
-                    type="submit"
-                    onClick={handleSubmit}
-                    isLoading={categoryLoading}
-                    spinner={<BeatLoader size={8} color="white" />}
-                  >
-                    Add Category
-                  </Button>
-                </Form>
-              )}
-            </Formik>
-          </Box>
-          <Box w={{ base: "97%", md: "50%" }}>
-            {isLoading &&
-              [1, 2, 3, 4, 5].map((_data, index) => (
-                <Skeleton
-                  key={index}
-                  borderWidth="1px"
-                  borderRadius={"10px"}
-                  m="10px"
-                >
-                  <Box
-                    borderWidth="1px"
-                    borderRadius={"10px"}
-                    bg={bgCard}
-                    m="10px"
-                    shadow={"lg"}
-                  >
-                    <Flex
-                      p="10px"
-                      flexDirection={{ base: "column", sm: "row" }}
-                    >
-                      <Box w={"50%"}>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={{ base: "md", md: "xl" }}
-                          fontWeight={"bold"}
-                          width={{ base: "200px", md: "220px" }}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                      </Box>
-                      <Box w={"50%"}>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={{ base: "md", md: "xl" }}
-                          fontWeight={"bold"}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={"md"}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                      </Box>
-                      <Box w={"20%"}>
-                        <IconButton
-                          icon={<FiTrash color="red" />}
-                          backgroundColor={"gray.200"}
-                        />
-                      </Box>
-                    </Flex>
-                  </Box>
-                </Skeleton>
-              ))}
 
-            {data?.data?.categories?.length === 0 && (
-              <Box
-                borderWidth="1px"
-                borderRadius={"10px"}
+      <CustomBox>
+        <Stack spacing={8}>
+          {/* Header */}
+          <Flex justify="space-between" align={{ base: "start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+            <Box>
+              <Heading size="lg" fontWeight="bold" mb={1}>
+                Categories
+              </Heading>
+              <Text fontSize="sm" color={mutedText}>
+                Organize your transactions with custom categories
+              </Text>
+            </Box>
+            <Flex
+              align="center"
+              gap={2}
+              bg="teal.50"
+              _dark={{ bg: "teal.900" }}
+              color="teal.600"
+              px={4}
+              py={2}
+              borderRadius="xl"
+              fontSize="sm"
+              fontWeight="medium"
+            >
+              <Icon as={FiGrid} />
+              <Skeleton isLoaded={!isLoading}>
+                {data?.data?.categories?.length || 0} Categories
+              </Skeleton>
+            </Flex>
+          </Flex>
+
+          <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={{ base: 6, md: 8 }}>
+            {/* Form */}
+            <GridItem>
+              <MotionBox
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
                 bg={bgCard}
-                m="10px"
-                shadow={"lg"}
-                p={10}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                p={6}
+                boxShadow="sm"
               >
-                <Text
-                  fontFamily={"monospace"}
-                  fontSize={{ base: "md", md: "xl" }}
-                  fontWeight={"bold"}
-                  width={{ base: "200px", md: "220px" }}
-                  mb={{ base: "5px", md: "0" }}
-                  color={"red.400"}
-                >
-                  No Categories found
+                <Text fontSize="lg" fontWeight="bold" mb={5}>
+                  Add New Category
                 </Text>
-              </Box>
-            )}
-            {data?.data?.categories?.map((item) => (
-              <Box
-                key={item._id}
-                borderWidth="1px"
-                borderRadius={"10px"}
-                bg={bgCard}
-                m="10px"
-                shadow={"lg"}
-              >
-                <Flex
-                  p="10px"
-                  justifyContent={"space-between"}
-                  alignItems={"center"}
+                <Formik
+                  initialValues={{ name: "", icon: "" }}
+                  onSubmit={async (values, { resetForm }) => {
+                    await clickHandler(values);
+                    resetForm();
+                  }}
+                  validationSchema={object({
+                    name: string()
+                      .matches(
+                        /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                        "Title should have at least 3 characters, should not any number and start with capital letter!",
+                      )
+                      .required("Title is required field!"),
+                    icon: string()
+                      .url("Icon should be a valid url!")
+                      .required("Icon is required field!"),
+                  })}
                 >
-                  <Image src={item.icon} height={40} width={40} alt="icon" />
-                  <Box w={"50%"}>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={{ base: "md", md: "xl" }}
-                      fontWeight={"bold"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {item.name}
+                  {({
+                    errors,
+                    values,
+                    dirty,
+                    isValid,
+                    touched,
+                    handleChange,
+                    handleBlur,
+                    handleSubmit,
+                  }) => (
+                    <Form>
+                      <Stack spacing={4}>
+                        <FormControl isInvalid={Boolean(errors.name) && Boolean(touched.name)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Category Name</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="e.g. Food, Travel"
+                              name="name"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.name) && Boolean(touched.name)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("name")}
+                              value={values.name || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.name}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Icon URL</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiImage} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="https://example.com/icon.png"
+                              name="icon"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.icon) && Boolean(touched.icon)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("icon")}
+                              value={values.icon || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.icon}</FormErrorMessage>
+                        </FormControl>
+
+                        {values.icon && (
+                          <Flex justify="center" py={2}>
+                            <Box
+                              w={16}
+                              h={16}
+                              borderRadius="xl"
+                              bg="gray.50"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              overflow="hidden"
+                              border="1px solid"
+                              borderColor={borderColor}
+                            >
+                              <Image src={values.icon} alt="Preview" width={40} height={40} />
+                            </Box>
+                          </Flex>
+                        )}
+
+                        <Button
+                          leftIcon={<FiPlus />}
+                          size="lg"
+                          bg="teal.500"
+                          color="white"
+                          _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
+                          _active={{ bg: "teal.600" }}
+                          isDisabled={!isValid || !dirty}
+                          type="submit"
+                          onClick={handleSubmit}
+                          isLoading={categoryLoading}
+                          spinner={<BeatLoader size={8} color="white" />}
+                          borderRadius="xl"
+                          boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
+                        >
+                          Add Category
+                        </Button>
+                      </Stack>
+                    </Form>
+                  )}
+                </Formik>
+              </MotionBox>
+            </GridItem>
+
+            {/* List */}
+            <GridItem>
+              <Stack spacing={4}>
+                <Text fontSize="lg" fontWeight="bold">
+                  All Categories
+                </Text>
+
+                {isLoading &&
+                  [1, 2, 3].map((i) => (
+                    <Skeleton key={i} height="72px" borderRadius="xl" />
+                  ))}
+
+                {!isLoading && data?.data?.categories?.length === 0 && (
+                  <Box
+                    p={8}
+                    textAlign="center"
+                    borderRadius="2xl"
+                    border="1px dashed"
+                    borderColor={borderColor}
+                  >
+                    <Icon as={FiGrid} boxSize={8} color="gray.300" mb={3} />
+                    <Text fontWeight="medium" color={mutedText}>
+                      No categories found
+                    </Text>
+                    <Text fontSize="sm" color={mutedText}>
+                      Add your first category to organize expenses
                     </Text>
                   </Box>
-                  <Box
-                    w={"20%"}
-                    display={"flex"}
-                    gap={2}
-                    flexDirection={"column"}
-                  >
-                    <IconButton
-                      icon={<FiTrash color="red" />}
-                      backgroundColor={"gray.200"}
-                      onClick={() => confirmDialog(item._id)}
-                    />
-                    <IconButton
-                      icon={<FiEdit color="blue" />}
-                      backgroundColor={"gray.200"}
-                      onClick={() => confirmUpdateDialog(item._id)}
-                    />
-                  </Box>
-                </Flex>
-              </Box>
-            ))}
-          </Box>
-        </Flex>
+                )}
+
+                {!isLoading &&
+                  data?.data?.categories?.map((item) => (
+                    <MotionBox
+                      key={item._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      bg={bgCard}
+                      border="1px solid"
+                      borderColor={borderColor}
+                      borderRadius="xl"
+                      p={4}
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", borderColor: "teal.200" }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Flex justify="space-between" align="center">
+                        <Flex align="center" gap={3}>
+                          <Flex
+                            w={12}
+                            h={12}
+                            borderRadius="xl"
+                            bg="teal.50"
+                            align="center"
+                            justify="center"
+                            overflow="hidden"
+                          >
+                            <Image
+                              src={item.icon}
+                              alt={item.name}
+                              width={28}
+                              height={28}
+                            />
+                          </Flex>
+                          <Text fontWeight="semibold" fontSize="md">
+                            {item.name}
+                          </Text>
+                        </Flex>
+                        <Flex gap={2}>
+                          <IconButton
+                            icon={<FiEdit2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="teal"
+                            borderRadius="lg"
+                            aria-label="Edit"
+                            onClick={() => confirmUpdateDialog(item._id)}
+                          />
+                          <IconButton
+                            icon={<FiTrash2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            borderRadius="lg"
+                            aria-label="Delete"
+                            onClick={() => confirmDialog(item._id)}
+                          />
+                        </Flex>
+                      </Flex>
+                    </MotionBox>
+                  ))}
+              </Stack>
+            </GridItem>
+          </Grid>
+        </Stack>
       </CustomBox>
     </Layout>
   );

@@ -10,6 +10,7 @@ import {
   useShowIncome,
   useUpdateIncome,
 } from "@/hooks/useIncome";
+import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { calculateIncome } from "@/logic/calculations";
 import dateFormat from "@/utils/dateFormat";
 import {
@@ -17,23 +18,42 @@ import {
   Button,
   Flex,
   FormControl,
-  FormHelperText,
+  FormErrorMessage,
   FormLabel,
+  Grid,
+  GridItem,
   Heading,
+  Icon,
   IconButton,
   Input,
+  InputGroup,
+  InputLeftElement,
   Skeleton,
+  Stack,
   Text,
   useColorModeValue,
   useDisclosure,
   useToast,
+  Badge,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
+import { motion } from "framer-motion";
 import { useState } from "react";
-import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
+import {
+  FiEdit2,
+  FiPlus,
+  FiTrash2,
+  FiCalendar,
+  FiDollarSign,
+  FiBriefcase,
+  FiTag,
+  FiTrendingUp,
+} from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
 import { date, number, object, string } from "yup";
+
+const MotionBox = motion(Box);
 
 const Income = () => {
   let id = "";
@@ -42,6 +62,7 @@ const Income = () => {
     id = user?.id || "";
   }
 
+  const { settings } = useSettings();
   const [currentPage, setCurrentPage] = useState(1);
   const [incomeDate, setIncomeDate] = useState("");
   const { data, isFetching } = useShowIncome(
@@ -61,8 +82,11 @@ const Income = () => {
   );
   const toast = useToast();
   const queryClient = useQueryClient();
-  const bgCard = useColorModeValue("white", "dark");
-  const inputOutlineColor = useColorModeValue("gray.400", "");
+
+  const bgCard = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.100", "gray.700");
+  const mutedText = useColorModeValue("gray.500", "gray.400");
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isDialogOpen,
@@ -108,7 +132,7 @@ const Income = () => {
 
   function onError(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Something went wrong",
       status: "error",
       isClosable: true,
     });
@@ -156,11 +180,12 @@ const Income = () => {
 
   function onErrorDelete(error) {
     toast({
-      title: error.response.data.error,
+      title: error.response?.data?.error || "Delete failed",
       status: "error",
       isClosable: true,
     });
   }
+
   return (
     <Layout>
       <Alert
@@ -169,8 +194,8 @@ const Income = () => {
         onClick={deleteHandler}
         colorScheme={"red"}
         alertHeader={"Delete Income"}
-        alertBody={"Are you sure you want to delete this income?"}
-        confirmButtonText={"Yes"}
+        alertBody={"Are you sure you want to delete this income? This action cannot be undone."}
+        confirmButtonText={"Delete"}
         isLoading={deleteLoading}
       />
       <Dialog
@@ -214,452 +239,430 @@ const Income = () => {
                 handleSubmit,
               }) => (
                 <Form>
-                  <FormControl id="income-title" mb="20px" isRequired>
-                    <FormLabel>Income Company Name</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Income Company Name"
-                      outlineColor={inputOutlineColor}
-                      name="companyName"
-                      isInvalid={
-                        Boolean(errors.companyName) &&
-                        Boolean(touched.companyName)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("companyName")}
-                      value={values.companyName || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.companyName) && errors.companyName}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="income-title" mb="20px" isRequired>
-                    <FormLabel>Income Title</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Income Title"
-                      outlineColor={inputOutlineColor}
-                      name="title"
-                      isInvalid={
-                        Boolean(errors.title) && Boolean(touched.title)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("title")}
-                      value={values.title || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.title) && errors.title}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="income-amount" mb="20px" isRequired>
-                    <FormLabel>Income Amount</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Income Amount"
-                      outlineColor={inputOutlineColor}
-                      name="amount"
-                      isInvalid={
-                        Boolean(errors.amount) && Boolean(touched.amount)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("amount")}
-                      value={values.amount || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.amount) && errors.amount}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="date-picker" mb="20px" isRequired>
-                    <FormLabel>Income Date</FormLabel>
-                    <Field
-                      as={Input}
-                      type="date"
-                      placeholder="Income Date"
-                      outlineColor={inputOutlineColor}
-                      name="incomeDate"
-                      isInvalid={
-                        Boolean(errors.incomeDate) &&
-                        Boolean(touched.incomeDate)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("incomeDate")}
-                      value={values.incomeDate || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.incomeDate) && errors.incomeDate}
-                    </FormHelperText>
-                  </FormControl>
-                  <Box display={"flex"} gap={2}>
-                    <Button onClick={onCloseDialog} colorScheme="red">
-                      Cancel
-                    </Button>
-                    <Button
-                      leftIcon={<FiEdit />}
-                      bg={"blue.400"}
-                      color={"white"}
-                      _hover={{
-                        bg: "blue.500",
-                      }}
-                      _active={{ bg: "blue.400" }}
-                      isDisabled={!isValid || !dirty}
-                      type="submit"
-                      onClick={handleSubmit}
-                      isLoading={updateLoading}
-                      spinner={<BeatLoader size={8} color="white" />}
-                    >
-                      Update Income
-                    </Button>
-                  </Box>
+                  <Stack spacing={4}>
+                    <FormControl isInvalid={Boolean(errors.companyName) && Boolean(touched.companyName)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Income Company Name</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiBriefcase} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="Company Name"
+                          name="companyName"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.companyName) && Boolean(touched.companyName)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("companyName")}
+                          value={values.companyName || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.companyName}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.title) && Boolean(touched.title)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Income Title</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="Income Title"
+                          name="title"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.title) && Boolean(touched.title)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("title")}
+                          value={values.title || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.title}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Income Amount</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="text"
+                          placeholder="Amount"
+                          name="amount"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("amount")}
+                          value={values.amount || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.amount}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.incomeDate) && Boolean(touched.incomeDate)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Income Date</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiCalendar} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="date"
+                          name="incomeDate"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.incomeDate) && Boolean(touched.incomeDate)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("incomeDate")}
+                          value={values.incomeDate || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.incomeDate}</FormErrorMessage>
+                    </FormControl>
+
+                    <Flex gap={3} pt={2}>
+                      <Button onClick={onCloseDialog} variant="ghost" flex={1} borderRadius="xl">
+                        Cancel
+                      </Button>
+                      <Button
+                        leftIcon={<FiEdit2 />}
+                        bg="teal.500"
+                        color="white"
+                        _hover={{ bg: "teal.400" }}
+                        _active={{ bg: "teal.600" }}
+                        isDisabled={!isValid || !dirty}
+                        type="submit"
+                        onClick={handleSubmit}
+                        isLoading={updateLoading}
+                        spinner={<BeatLoader size={8} color="white" />}
+                        flex={1}
+                        borderRadius="xl"
+                      >
+                        Update
+                      </Button>
+                    </Flex>
+                  </Stack>
                 </Form>
               )}
             </Formik>
           </Box>
         }
       />
-      <CustomBox>
-        <Heading p="4" fontFamily={"monospace"}>
-          Income
-        </Heading>
-        <Box
-          ml="10px"
-          mr={"10px"}
-          borderWidth="1px"
-          borderRadius="lg"
-          overflow="hidden"
-          textAlign={"center"}
-          shadow={"lg"}
-          bg={bgCard}
-          display={"flex"}
-          justifyContent={"center"}
-          alignItems={"center"}
-        >
-          <Skeleton
-            isLoaded={!isFetching}
-            display={"flex"}
-            justifyContent={"center"}
-            alignItems={"center"}
-            overflow="hidden"
-            borderRadius={10}
-          >
-            <Text
-              fontFamily={"monospace"}
-              fontSize={{ base: "xl", sm: "1xl", md: "3xl" }}
-              fontWeight={"bold"}
-              textAlign={"center"}
-              overflow="hidden"
-            >
-              Total Income:
-              <Text as={"span"} textColor={"green.400"}>
-                {!incomeDate
-                  ? data?.data?.totalAmount
-                  : calculateIncome(data?.data?.data)}
-                RS
-              </Text>
-            </Text>
-          </Skeleton>
-        </Box>
-        <Flex
-          flexDirection={{ base: "column", lg: "row" }}
-          justifyContent={{ base: "center", lg: "normal" }}
-          alignItems={{ base: "center", lg: "normal" }}
-        >
-          <Box w={{ base: "97%", md: "50%" }} my={"2"} p={"10px"}>
-            <Formik
-              initialValues={initialValues}
-              onSubmit={clickHandler}
-              validationSchema={object({
-                companyName: string()
-                  .matches(
-                    /^(?=.{3,30}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Company Name should have at least 3 characters, should not any number and start with capital letter!",
-                  )
-                  .required("Title is required field!"),
-                title: string()
-                  .matches(
-                    /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-                    "Title should have at least 3 characters, should not any number and start with capital letter!",
-                  )
-                  .required("Title is required field!"),
-                amount: number("Amount must be a number!")
-                  .typeError("That doesn't look like a number")
-                  .positive("Amount must be a positive number!")
-                  .required("Amount is required field!")
-                  .integer("Please enter only integers!"),
-                incomeDate: date().required("Date is required field!"),
-              })}
-            >
-              {({
-                errors,
-                values,
-                dirty,
-                isValid,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-              }) => (
-                <Form>
-                  <FormControl id="income-title" mb="20px" isRequired>
-                    <FormLabel>Income Company Name</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Income Company Name"
-                      outlineColor={inputOutlineColor}
-                      name="companyName"
-                      isInvalid={
-                        Boolean(errors.companyName) &&
-                        Boolean(touched.companyName)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("companyName")}
-                      value={values.companyName || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.companyName) && errors.companyName}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="income-title" mb="20px" isRequired>
-                    <FormLabel>Income Title</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Income Title"
-                      outlineColor={inputOutlineColor}
-                      name="title"
-                      isInvalid={
-                        Boolean(errors.title) && Boolean(touched.title)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("title")}
-                      value={values.title || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.title) && errors.title}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="income-amount" mb="20px" isRequired>
-                    <FormLabel>Income Amount</FormLabel>
-                    <Field
-                      as={Input}
-                      type="text"
-                      placeholder="Income Amount"
-                      outlineColor={inputOutlineColor}
-                      name="amount"
-                      isInvalid={
-                        Boolean(errors.amount) && Boolean(touched.amount)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("amount")}
-                      value={values.amount || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.amount) && errors.amount}
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl id="date-picker" mb="20px" isRequired>
-                    <FormLabel>Income Date</FormLabel>
-                    <Field
-                      as={Input}
-                      type="date"
-                      placeholder="Income Date"
-                      outlineColor={inputOutlineColor}
-                      name="incomeDate"
-                      isInvalid={
-                        Boolean(errors.incomeDate) &&
-                        Boolean(touched.incomeDate)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("incomeDate")}
-                      value={values.incomeDate || ""}
-                    />
-                    <FormHelperText color="red">
-                      {Boolean(touched.incomeDate) && errors.incomeDate}
-                    </FormHelperText>
-                  </FormControl>
-                  <Button
-                    leftIcon={<FiPlus />}
-                    bg={"blue.400"}
-                    color={"white"}
-                    _hover={{
-                      bg: "blue.500",
-                    }}
-                    _active={{ bg: "blue.400" }}
-                    isDisabled={!isValid || !dirty}
-                    type="submit"
-                    onClick={handleSubmit}
-                    isLoading={isLoading}
-                    spinner={<BeatLoader size={8} color="white" />}
-                  >
-                    Add Income
-                  </Button>
-                </Form>
-              )}
-            </Formik>
-          </Box>
-          <Box w={{ base: "97%", md: "50%" }}>
-            {isFetching &&
-              [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((_data, index) => (
-                <Skeleton
-                  key={index}
-                  borderWidth="1px"
-                  borderRadius={"10px"}
-                  m="10px"
-                >
-                  <Box
-                    borderWidth="1px"
-                    borderRadius={"10px"}
-                    bg={bgCard}
-                    m="10px"
-                    shadow={"lg"}
-                  >
-                    <Flex
-                      p="10px"
-                      flexDirection={{ base: "column", sm: "row" }}
-                    >
-                      <Box w={"50%"}>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={{ base: "md", md: "xl" }}
-                          fontWeight={"bold"}
-                          width={{ base: "200px", md: "220px" }}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                      </Box>
-                      <Box w={"50%"}>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={{ base: "md", md: "xl" }}
-                          fontWeight={"bold"}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                        <Text
-                          fontFamily={"monospace"}
-                          fontSize={"md"}
-                          mb={{ base: "5px", md: "0" }}
-                        ></Text>
-                      </Box>
-                      <Box w={"20%"}>
-                        <IconButton
-                          icon={<FiTrash color="red" />}
-                          backgroundColor={"gray.200"}
-                        />
-                      </Box>
-                    </Flex>
-                  </Box>
-                </Skeleton>
-              ))}
-            <Flex
-              justifyContent={"center"}
-              display={isFetching ? "none" : "flex"}
-            >
-              <Input
-                type="month"
-                onChange={(e) => setIncomeDate(e.target.value)}
-                mt={5}
-                outlineColor={"gray"}
-                width={{ base: 200, sm: 300 }}
-              />
-            </Flex>
-            {data?.data?.data?.length === 0 && (
-              <Box
-                borderWidth="1px"
-                borderRadius={"10px"}
-                bg={bgCard}
-                m="10px"
-                shadow={"lg"}
-                p={10}
-              >
-                <Text
-                  fontFamily={"monospace"}
-                  fontSize={{ base: "md", md: "xl" }}
-                  fontWeight={"bold"}
-                  width={{ base: "200px", md: "220px" }}
-                  mb={{ base: "5px", md: "0" }}
-                  color={"red.400"}
-                >
-                  No Incomes found
-                </Text>
-              </Box>
-            )}
 
-            {data?.data?.data?.map((item) => (
-              <Box
-                key={item._id}
-                borderWidth="1px"
-                borderRadius={"10px"}
+      <CustomBox>
+        <Stack spacing={8}>
+          {/* Header */}
+          <Flex justify="space-between" align={{ base: "start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+            <Box>
+              <Heading size="lg" fontWeight="bold" mb={1}>
+                Income
+              </Heading>
+              <Text fontSize="sm" color={mutedText}>
+                Track and manage your income sources
+              </Text>
+            </Box>
+            <Badge
+              colorScheme="green"
+              variant="subtle"
+              px={4}
+              py={2}
+              borderRadius="xl"
+              fontSize="md"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <Icon as={FiTrendingUp} />
+              <Skeleton isLoaded={!isFetching}>
+                <Text fontWeight="bold">
+                  {formatMoney(!incomeDate ? data?.data?.totalAmount || 0 : calculateIncome(data?.data?.data), settings)}
+                </Text>
+              </Skeleton>
+            </Badge>
+          </Flex>
+
+          {/* Main Grid */}
+          <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={{ base: 6, md: 8 }}>
+            {/* Form */}
+            <GridItem>
+              <MotionBox
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
                 bg={bgCard}
-                m="10px"
-                shadow={"lg"}
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="2xl"
+                p={6}
+                boxShadow="sm"
               >
-                <Flex p="10px">
-                  <Box w={"50%"}>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={{ base: "md", md: "xl" }}
-                      fontWeight={"bold"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {item.companyName}
-                    </Text>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={{ base: "xs", md: "md" }}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {item.title}
-                    </Text>
-                  </Box>
-                  <Box w={"50%"}>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={{ base: "md", md: "xl" }}
-                      fontWeight={"bold"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {item.amount}RS
-                    </Text>
-                    <Text
-                      fontFamily={"monospace"}
-                      fontSize={"md"}
-                      mb={{ base: "5px", md: "0" }}
-                    >
-                      {dateFormat(item.incomeDate)}
-                    </Text>
-                  </Box>
-                  <Box
-                    w={"20%"}
-                    display={"flex"}
-                    gap={2}
-                    flexDirection={"column"}
-                  >
-                    <IconButton
-                      icon={<FiTrash color="red" />}
-                      backgroundColor={"gray.200"}
-                      onClick={() => confirmDialog(item._id)}
-                    />
-                    <IconButton
-                      icon={<FiEdit color="blue" />}
-                      backgroundColor={"gray.200"}
-                      onClick={() => confirmUpdateDialog(item._id)}
-                    />
-                  </Box>
+                <Text fontSize="lg" fontWeight="bold" mb={5}>
+                  Add New Income
+                </Text>
+                <Formik
+                  initialValues={{ companyName: "", title: "", amount: "", incomeDate: "" }}
+                  onSubmit={clickHandler}
+                  validationSchema={object({
+                    companyName: string()
+                      .matches(
+                        /^(?=.{3,30}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                        "Company Name should have at least 3 characters, should not any number and start with capital letter!",
+                      )
+                      .required("Title is required field!"),
+                    title: string()
+                      .matches(
+                        /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
+                        "Title should have at least 3 characters, should not any number and start with capital letter!",
+                      )
+                      .required("Title is required field!"),
+                    amount: number("Amount must be a number!")
+                      .typeError("That doesn't look like a number")
+                      .positive("Amount must be a positive number!")
+                      .required("Amount is required field!")
+                      .integer("Please enter only integers!"),
+                    incomeDate: date().required("Date is required field!"),
+                  })}
+                >
+                  {({
+                    errors,
+                    values,
+                    dirty,
+                    isValid,
+                    touched,
+                    handleChange,
+                    handleBlur,
+                    handleSubmit,
+                  }) => (
+                    <Form>
+                      <Stack spacing={4}>
+                        <FormControl isInvalid={Boolean(errors.companyName) && Boolean(touched.companyName)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Company Name</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiBriefcase} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="Company Name"
+                              name="companyName"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.companyName) && Boolean(touched.companyName)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("companyName")}
+                              value={values.companyName || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.companyName}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.title) && Boolean(touched.title)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Title</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="Income Title"
+                              name="title"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.title) && Boolean(touched.title)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("title")}
+                              value={values.title || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.title}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Amount</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="text"
+                              placeholder="Amount"
+                              name="amount"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("amount")}
+                              value={values.amount || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.amount}</FormErrorMessage>
+                        </FormControl>
+
+                        <FormControl isInvalid={Boolean(errors.incomeDate) && Boolean(touched.incomeDate)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Date</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiCalendar} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="date"
+                              name="incomeDate"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.incomeDate) && Boolean(touched.incomeDate)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("incomeDate")}
+                              value={values.incomeDate || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.incomeDate}</FormErrorMessage>
+                        </FormControl>
+
+                        <Button
+                          leftIcon={<FiPlus />}
+                          size="lg"
+                          bg="teal.500"
+                          color="white"
+                          _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
+                          _active={{ bg: "teal.600" }}
+                          isDisabled={!isValid || !dirty}
+                          type="submit"
+                          onClick={handleSubmit}
+                          isLoading={isLoading}
+                          spinner={<BeatLoader size={8} color="white" />}
+                          borderRadius="xl"
+                          boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
+                        >
+                          Add Income
+                        </Button>
+                      </Stack>
+                    </Form>
+                  )}
+                </Formik>
+              </MotionBox>
+            </GridItem>
+
+            {/* List */}
+            <GridItem>
+              <Stack spacing={4}>
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="lg" fontWeight="bold">
+                    Recent Incomes
+                  </Text>
+                  <Input
+                    type="month"
+                    onChange={(e) => setIncomeDate(e.target.value)}
+                    size="sm"
+                    w="160px"
+                    borderRadius="xl"
+                    focusBorderColor="teal.400"
+                  />
                 </Flex>
-              </Box>
-            ))}
-            <Pagination
-              currentPage={currentPage}
-              onPageChange={handlePageChange}
-              totalPages={totalPages}
-              display={
-                data?.data?.totalIncomes <= 5 || isFetching ? "none" : "flex"
-              }
-            />
-          </Box>
-        </Flex>
+
+                {isFetching &&
+                  [1, 2, 3].map((i) => (
+                    <Skeleton key={i} height="80px" borderRadius="xl" />
+                  ))}
+
+                {!isFetching && data?.data?.data?.length === 0 && (
+                  <Box
+                    p={8}
+                    textAlign="center"
+                    borderRadius="2xl"
+                    border="1px dashed"
+                    borderColor={borderColor}
+                  >
+                    <Icon as={FiTrendingUp} boxSize={8} color="gray.300" mb={3} />
+                    <Text fontWeight="medium" color={mutedText}>
+                      No incomes found
+                    </Text>
+                    <Text fontSize="sm" color={mutedText}>
+                      Add your first income to get started
+                    </Text>
+                  </Box>
+                )}
+
+                {!isFetching &&
+                  data?.data?.data?.map((item) => (
+                    <MotionBox
+                      key={item._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      bg={bgCard}
+                      border="1px solid"
+                      borderColor={borderColor}
+                      borderRadius="xl"
+                      p={4}
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", borderColor: "green.200" }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Flex justify="space-between" align="center">
+                        <Flex align="center" gap={3}>
+                          <Flex
+                            w={10}
+                            h={10}
+                            borderRadius="xl"
+                            bg="green.50"
+                            align="center"
+                            justify="center"
+                          >
+                            <Icon as={FiTrendingUp} color="green.500" />
+                          </Flex>
+                          <Stack spacing={0}>
+                            <Text fontWeight="semibold" fontSize="sm">
+                              {item.companyName}
+                            </Text>
+                            <Text fontSize="xs" color={mutedText}>
+                              {item.title}
+                            </Text>
+                          </Stack>
+                        </Flex>
+                        <Stack spacing={0} align="end">
+                          <Text fontWeight="bold" fontSize="md" color="green.500">
+                            +{formatMoney(item.amount, settings)}
+                          </Text>
+                          <Text fontSize="xs" color={mutedText}>
+                            {dateFormat(item.incomeDate)}
+                          </Text>
+                        </Stack>
+                        <Flex gap={2} ml={2}>
+                          <IconButton
+                            icon={<FiEdit2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="teal"
+                            borderRadius="lg"
+                            aria-label="Edit"
+                            onClick={() => confirmUpdateDialog(item._id)}
+                          />
+                          <IconButton
+                            icon={<FiTrash2 />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            borderRadius="lg"
+                            aria-label="Delete"
+                            onClick={() => confirmDialog(item._id)}
+                          />
+                        </Flex>
+                      </Flex>
+                    </MotionBox>
+                  ))}
+
+                <Pagination
+                  currentPage={currentPage}
+                  onPageChange={handlePageChange}
+                  totalPages={totalPages}
+                  display={data?.data?.totalIncomes <= 5 || isFetching ? "none" : "flex"}
+                />
+              </Stack>
+            </GridItem>
+          </Grid>
+        </Stack>
       </CustomBox>
     </Layout>
   );

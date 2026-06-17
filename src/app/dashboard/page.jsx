@@ -4,6 +4,7 @@ import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
 import { useShowExpense } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
+import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { totalBalance, transactionHistory } from "@/logic/calculations";
 import {
   Box,
@@ -64,6 +65,7 @@ const Dashboard = () => {
     id = storedUser?.id || "";
   }
 
+  const { settings } = useSettings();
   const { data: expenses, isLoading: expenseFetching } = useShowExpense(id);
   const { data: incomes, isLoading: incomeFetching } = useShowIncome(id);
 
@@ -164,7 +166,7 @@ const Dashboard = () => {
               )}
             </Flex>
             <Text fontSize="3xl" fontWeight="bold" color={theme.text}>
-              ${Number(amount).toLocaleString()}
+              {formatMoney(amount, settings)}
             </Text>
           </Stack>
         )}
@@ -218,7 +220,7 @@ const Dashboard = () => {
         </Flex>
         <Stack spacing={0} align="end">
           <Text fontWeight="bold" fontSize="md" color={isExpense ? "red.500" : "green.500"}>
-            {isExpense ? "-" : "+"}${item.amount}
+            {isExpense ? "-" : "+"}{formatMoney(item.amount, settings)}
           </Text>
           <Text fontSize="xs" color={mutedText}>
             {new Date(item.createdAt).toLocaleDateString("en-US", {
@@ -268,8 +270,8 @@ const Dashboard = () => {
           mb={2}
         />
         <Flex justify="space-between" fontSize="xs" color={mutedText}>
-          <Text>${value.toLocaleString()}</Text>
-          <Text>of ${total.toLocaleString()}</Text>
+          <Text>{formatMoney(value, settings)}</Text>
+          <Text>of {formatMoney(total, settings)}</Text>
         </Flex>
       </Box>
     );
@@ -485,7 +487,7 @@ const Dashboard = () => {
                   {stat.label}
                 </Text>
                 <Text fontSize="2xl" fontWeight="bold" color={stat.color === "green" ? "green.500" : "red.500"}>
-                  ${stat.value.toLocaleString()}
+                  {formatMoney(stat.value, settings)}
                 </Text>
               </MotionBox>
             ))}

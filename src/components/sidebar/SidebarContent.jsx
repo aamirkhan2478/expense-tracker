@@ -21,6 +21,7 @@ import {
   FiTrendingUp,
   FiPieChart,
   FiLogOut,
+  FiSettings,
 } from "react-icons/fi";
 import Alert from "../Alert";
 import { useRouter } from "next/navigation";
@@ -58,6 +59,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
     { name: "Income", icon: FiTrendingUp, path: "/income" },
     { name: "Expense", icon: FiPieChart, path: "/expense" },
     { name: "Category", icon: FiActivity, path: "/category" },
+    { name: "Settings", icon: FiSettings, path: "/settings" },
   ];
 
   const bottomItems = [
