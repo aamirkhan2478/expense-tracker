@@ -22,6 +22,7 @@ import {
   FiPieChart,
   FiLogOut,
   FiSettings,
+  FiGlobe,
 } from "react-icons/fi";
 import Alert from "../Alert";
 import { useRouter } from "next/navigation";
@@ -55,6 +56,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
   };
 
   const LinkItems = [
+    { name: "Home", icon: FiGlobe, path: "/" },
     { name: "Dashboard", icon: FiHome, path: "/dashboard" },
     { name: "Income", icon: FiTrendingUp, path: "/income" },
     { name: "Expense", icon: FiPieChart, path: "/expense" },
@@ -97,6 +99,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
         h="full"
         display="flex"
         flexDirection="column"
+        overflow="hidden"
         {...rest}
       >
         {/* Header */}
@@ -106,7 +109,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           mx="6"
           justifyContent="space-between"
         >
-          <Flex align="center" gap={2}>
+          <Flex align="center" gap={2} my={3}>
             <Box
               w={8}
               h={8}
@@ -159,7 +162,18 @@ const SidebarContent = ({ onClose, ...rest }) => {
         <Divider mx={6} w="auto" borderColor={useColorModeValue("gray.100", "gray.700")} />
 
         {/* Main Nav */}
-        <Box flex={1} py={4}>
+        <Box
+          flex={1}
+          py={4}
+          overflowY="auto"
+          sx={{
+            scrollbarWidth: "none",
+            "-ms-overflow-style": "none",
+            "&::-webkit-scrollbar": {
+              display: "none",
+            },
+          }}
+        >
           <Text
             px={8}
             pb={2}

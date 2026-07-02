@@ -16,6 +16,7 @@ import {
   useBreakpointValue,
   useDisclosure,
   IconButton,
+  Avatar,
 } from "@chakra-ui/react";
 import {
   FiMenu,
@@ -24,9 +25,34 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 import NextLink from "next/link";
+import { useState, useEffect } from "react";
 
 export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const storedUser =
+        typeof window !== "undefined" ? localStorage.getItem("user") : null;
+      setIsLoggedIn(!!token);
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          setUser(null);
+        }
+      }
+    };
+    checkAuth();
+    window.addEventListener("storage", checkAuth);
+    return () => window.removeEventListener("storage", checkAuth);
+  }, []);
+
+  const navItems = getNavItems(isLoggedIn);
 
   return (
     <Box position="fixed" w="100%" zIndex={999} top={0}>
@@ -69,7 +95,7 @@ export default function Navbar() {
           </Text>
 
           <Flex display={{ base: "none", md: "flex" }} ml={10}>
-            <DesktopNav />
+            <DesktopNav items={navItems} />
           </Flex>
         </Flex>
 
@@ -77,50 +103,81 @@ export default function Navbar() {
           flex={{ base: 1, md: 0 }}
           justify={"flex-end"}
           direction={"row"}
-          spacing={6}
+          spacing={4}
+          align="center"
         >
-          <Button
-            as={NextLink}
-            fontSize={"sm"}
-            fontWeight={400}
-            variant={"link"}
-            href={"/auth"}
-            display={{ base: "none", md: "inline-flex" }}
-          >
-            Sign In
-          </Button>
-          <Button
-            as={NextLink}
-            display={{ base: "none", md: "inline-flex" }}
-            fontSize={"sm"}
-            fontWeight={600}
-            color={"white"}
-            bg={"teal.500"}
-            href={"/auth?tab=signup"}
-            _hover={{
-              bg: "teal.400",
-            }}
-          >
-            Get Started
-          </Button>
+          {isLoggedIn ? (
+            <>
+              <Button
+                as={NextLink}
+                display={{ base: "none", md: "inline-flex" }}
+                fontSize={"sm"}
+                fontWeight={600}
+                color={"white"}
+                bg={"teal.500"}
+                href={"/dashboard"}
+                _hover={{
+                  bg: "teal.400",
+                }}
+                borderRadius="xl"
+              >
+                Dashboard
+              </Button>
+              <Avatar
+                size="sm"
+                name={user?.name || "User"}
+                bg="teal.500"
+                color="white"
+                display={{ base: "none", md: "flex" }}
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                as={NextLink}
+                fontSize={"sm"}
+                fontWeight={400}
+                variant={"link"}
+                href={"/auth"}
+                display={{ base: "none", md: "inline-flex" }}
+              >
+                Sign In
+              </Button>
+              <Button
+                as={NextLink}
+                display={{ base: "none", md: "inline-flex" }}
+                fontSize={"sm"}
+                fontWeight={600}
+                color={"white"}
+                bg={"teal.500"}
+                href={"/auth?tab=signup"}
+                _hover={{
+                  bg: "teal.400",
+                }}
+                borderRadius="xl"
+              >
+                Get Started
+              </Button>
+            </>
+          )}
         </Stack>
       </Flex>
 
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav />
+        <MobileNav items={navItems} isLoggedIn={isLoggedIn} user={user} />
       </Collapse>
     </Box>
   );
 }
 
-const DesktopNav = () => {
+const DesktopNav = ({ items }) => {
   const linkColor = useColorModeValue("gray.600", "gray.200");
   const linkHoverColor = useColorModeValue("gray.800", "white");
   const popoverContentBgColor = useColorModeValue("white", "gray.800");
 
   return (
     <Stack direction={"row"} spacing={4}>
-      {NAV_ITEMS.map((navItem) => (
+      {items.map((navItem) => (
         <Box key={navItem.label}>
           <Popover trigger={"hover"} placement={"bottom-start"}>
             <PopoverTrigger>
@@ -201,7 +258,7 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
   );
 };
 
-const MobileNav = () => {
+const MobileNav = ({ items, isLoggedIn, user }) => {
   return (
     <Stack
       bg={useColorModeValue("white", "gray.800")}
@@ -209,22 +266,46 @@ const MobileNav = () => {
       display={{ md: "none" }}
       boxShadow="md"
     >
-      {NAV_ITEMS.map((navItem) => (
+      {items.map((navItem) => (
         <MobileNavItem key={navItem.label} {...navItem} />
       ))}
       <Stack spacing={4} mt={4} pt={4} borderTopWidth={1}>
-        <Button as={NextLink} href="/auth" variant="link" justifyContent="start">
-          Sign In
-        </Button>
-        <Button
-          as={NextLink}
-          href="/auth?tab=signup"
-          bg="teal.500"
-          color="white"
-          _hover={{ bg: "teal.400" }}
-        >
-          Get Started
-        </Button>
+        {isLoggedIn ? (
+          <>
+            <Button
+              as={NextLink}
+              href="/dashboard"
+              bg="teal.500"
+              color="white"
+              _hover={{ bg: "teal.400" }}
+              borderRadius="xl"
+            >
+              Dashboard
+            </Button>
+            <Flex align="center" gap={3} px={2}>
+              <Avatar size="sm" name={user?.name || "User"} bg="teal.500" color="white" />
+              <Text fontSize="sm" fontWeight="medium">
+                {user?.name || "User"}
+              </Text>
+            </Flex>
+          </>
+        ) : (
+          <>
+            <Button as={NextLink} href="/auth" variant="link" justifyContent="start">
+              Sign In
+            </Button>
+            <Button
+              as={NextLink}
+              href="/auth?tab=signup"
+              bg="teal.500"
+              color="white"
+              _hover={{ bg: "teal.400" }}
+              borderRadius="xl"
+            >
+              Get Started
+            </Button>
+          </>
+        )}
       </Stack>
     </Stack>
   );
@@ -283,17 +364,24 @@ const MobileNavItem = ({ label, children, href }) => {
   );
 };
 
-const NAV_ITEMS = [
-  {
-    label: "Features",
-    href: "#features",
-  },
-  {
-    label: "How It Works",
-    href: "#how-it-works",
-  },
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-  },
-];
+function getNavItems(isLoggedIn) {
+  const items = [
+    {
+      label: "Features",
+      href: "#features",
+    },
+    {
+      label: "How It Works",
+      href: "#how-it-works",
+    },
+  ];
+
+  if (isLoggedIn) {
+    items.push({
+      label: "Dashboard",
+      href: "/dashboard",
+    });
+  }
+
+  return items;
+}

@@ -95,7 +95,6 @@ export default function Footer() {
             <ListHeader>Product</ListHeader>
             <Link as={NextLink} href="#features">Features</Link>
             <Link as={NextLink} href="#how-it-works">How it Works</Link>
-            <Link as={NextLink} href="/dashboard">Dashboard</Link>
           </Stack>
           <Stack align="flex-start">
             <ListHeader>Account</ListHeader>

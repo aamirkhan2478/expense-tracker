@@ -16,7 +16,7 @@ import {
   InputLeftElement,
   FormErrorMessage,
 } from "@chakra-ui/react";
-import React, { useEffect } from "react";
+import React from "react";
 import { FiEye, FiEyeOff, FiMail, FiLock } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -34,7 +34,6 @@ const SignIn = ({ onSwitch }) => {
   const {
     mutate,
     isLoading: loading,
-    isSuccess,
   } = useSignInUser(onSuccess, onError);
 
   const [user, setUser] = useState({
@@ -77,6 +76,8 @@ const SignIn = ({ onSwitch }) => {
       status: "success",
       isClosable: true,
     });
+
+    router.push("/dashboard");
   }
 
   function onError(error) {
@@ -90,12 +91,6 @@ const SignIn = ({ onSwitch }) => {
       isClosable: true,
     });
   }
-
-  useEffect(() => {
-    if (isSuccess) {
-      router.push("/dashboard");
-    }
-  }, [isSuccess, router]);
 
   return (
     <MotionStack

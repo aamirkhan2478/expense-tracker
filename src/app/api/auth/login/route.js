@@ -49,7 +49,7 @@ export async function POST(req) {
     return res.json(
       {
         success: true,
-        msg: "User Registered Successfully",
+        msg: "User logged in Successfully",
         user: userData,
         token,
       },
