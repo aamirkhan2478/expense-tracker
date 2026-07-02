@@ -23,6 +23,7 @@ import {
   FiLogOut,
   FiSettings,
   FiGlobe,
+  FiBarChart2,
 } from "react-icons/fi";
 import Alert from "../Alert";
 import { useRouter } from "next/navigation";
@@ -61,6 +62,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
     { name: "Income", icon: FiTrendingUp, path: "/income" },
     { name: "Expense", icon: FiPieChart, path: "/expense" },
     { name: "Category", icon: FiActivity, path: "/category" },
+    { name: "Reports", icon: FiBarChart2, path: "/reports" },
     { name: "Settings", icon: FiSettings, path: "/settings" },
   ];
 
