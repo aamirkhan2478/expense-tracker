@@ -1,5 +1,6 @@
 "use client";
 import Chart from "@/components/Chart";
+import PieChart from "@/components/PieChart";
 import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
 import { useShowExpense, useBudgetSummary } from "@/hooks/useExpense";
@@ -360,21 +361,24 @@ const Dashboard = () => {
           >
             {/* Chart Section */}
             <GridItem>
-              {isLoading ? (
-                <Box
-                  bg={bg}
-                  border="1px solid"
-                  borderColor={borderColor}
-                  borderRadius="2xl"
-                  p={6}
-                  h={{ base: "300px", md: "400px" }}
-                >
-                  <Skeleton height="20px" width="40%" mb={4} />
-                  <Skeleton height="calc(100% - 40px)" borderRadius="xl" />
-                </Box>
-              ) : (
-                <Chart />
-              )}
+              <Stack spacing={6}>
+                {isLoading ? (
+                  <Box
+                    bg={bg}
+                    border="1px solid"
+                    borderColor={borderColor}
+                    borderRadius="2xl"
+                    p={6}
+                    h={{ base: "300px", md: "400px" }}
+                  >
+                    <Skeleton height="20px" width="40%" mb={4} />
+                    <Skeleton height="calc(100% - 40px)" borderRadius="xl" />
+                  </Box>
+                ) : (
+                  <Chart />
+                )}
+                <PieChart />
+              </Stack>
             </GridItem>
 
             {/* Right Panel */}

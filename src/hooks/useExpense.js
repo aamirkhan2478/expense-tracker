@@ -126,3 +126,21 @@ export const useBudgetSummary = (user) => {
     refetchOnWindowFocus: false,
   });
 };
+
+// Expenses grouped by category hook
+const byCategory = ({ queryKey }) => {
+  const user = queryKey[1];
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  return axiosInstance.get(`/api/expense/by-category?user=${user}`, config);
+};
+
+export const useExpensesByCategory = (user) => {
+  return useQuery(["expenses-by-category", user], byCategory, {
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+};
