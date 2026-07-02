@@ -13,6 +13,10 @@ const CategorySchema = new Schema(
       type: String,
       require: [true, "Icon is required"],
     },
+    budget: {
+      type: Number,
+      default: 0,
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: UserModel.modelName,

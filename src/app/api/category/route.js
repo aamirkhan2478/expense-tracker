@@ -3,7 +3,6 @@ import { connectToDB } from "@/utils/database";
 import Category from "@/models/category";
 import Joi from "joi";
 import User from "@/models/user";
-import mongoose from "mongoose";
 
 export async function POST(req) {
   const body = await req.json();
@@ -11,6 +10,7 @@ export async function POST(req) {
     name: Joi.string().required(),
     icon: Joi.string().required(),
     user: Joi.string().required(),
+    budget: Joi.number().min(0).optional(),
   });
 
   const { error } = signupSchema.validate(body, { abortEarly: false });
@@ -26,7 +26,7 @@ export async function POST(req) {
     );
   }
 
-  const { name, icon, user } = body;
+  const { name, icon, user, budget } = body;
 
   try {
     await connectToDB();
@@ -46,6 +46,7 @@ export async function POST(req) {
       name,
       icon,
       user,
+      budget: budget || 0,
     });
     await category.save();
     return res.json(

@@ -108,3 +108,21 @@ const updateExpense = (values) => {
 export const useUpdateExpense = (onSuccess, onError) => {
   return useMutation(updateExpense, { onError, onSuccess });
 };
+
+// Budget summary hook
+const budgetSummary = ({ queryKey }) => {
+  const user = queryKey[1];
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+  return axiosInstance.get(`/api/expense/budget?user=${user}`, config);
+};
+
+export const useBudgetSummary = (user) => {
+  return useQuery(["budget-summary", user], budgetSummary, {
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
+  });
+};

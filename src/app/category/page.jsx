@@ -3,6 +3,7 @@ import Alert from "@/components/Alert";
 import CustomBox from "@/components/CustomBox";
 import Dialog from "@/components/Dialog";
 import Layout from "@/components/Layout";
+import { useSettings, formatMoney } from "@/hooks/useSettings";
 import {
   useAddCategory,
   useDeleteCategory,
@@ -24,12 +25,14 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
+  Progress,
   Skeleton,
   Stack,
   Text,
   useColorModeValue,
   useDisclosure,
   useToast,
+  Badge,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import Image from "next/image";
@@ -42,10 +45,11 @@ import {
   FiTag,
   FiImage,
   FiGrid,
+  FiDollarSign,
 } from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
-import { object, string } from "yup";
+import { number, object, string } from "yup";
 
 const MotionBox = motion(Box);
 
@@ -56,6 +60,7 @@ const Category = () => {
     id = user?.id || "";
   }
 
+  const { settings } = useSettings();
   const { data, isLoading } = useShowCategory(id || "");
   const { mutate, isLoading: categoryLoading } = useAddCategory(
     onSuccess,
@@ -86,12 +91,14 @@ const Category = () => {
   const initialValues = {
     name: category?.name || "",
     icon: category?.icon || "",
+    budget: category?.budget || "",
   };
   const clickHandler = (values) => {
     const newData = {
       name: values.name,
       icon: values.icon,
       user: id,
+      budget: values.budget ? Number(values.budget) : 0,
     };
     mutate(newData);
   };
@@ -132,6 +139,7 @@ const Category = () => {
       id: categoryId,
       name: values.name,
       icon: values.icon,
+      budget: values.budget ? Number(values.budget) : 0,
     };
 
     updateCategory(newData, {
@@ -158,6 +166,13 @@ const Category = () => {
       isClosable: true,
     });
   }
+
+  const getBudgetColor = (percentage) => {
+    if (percentage >= 100) return "red";
+    if (percentage >= 80) return "orange";
+    if (percentage >= 50) return "yellow";
+    return "green";
+  };
 
   return (
     <Layout>
@@ -190,6 +205,10 @@ const Category = () => {
                 icon: string()
                   .url("Icon should be a valid url!")
                   .required("Icon is required field!"),
+                budget: number()
+                  .typeError("Budget must be a number")
+                  .min(0, "Budget cannot be negative")
+                  .optional(),
               })}
             >
               {({
@@ -244,6 +263,27 @@ const Category = () => {
                         />
                       </InputGroup>
                       <FormErrorMessage>{errors.icon}</FormErrorMessage>
+                    </FormControl>
+
+                    <FormControl isInvalid={Boolean(errors.budget) && Boolean(touched.budget)}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Monthly Budget (Optional)</FormLabel>
+                      <InputGroup size="lg">
+                        <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                        <Field
+                          as={Input}
+                          type="number"
+                          placeholder="0"
+                          name="budget"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          pl={10}
+                          isInvalid={Boolean(errors.budget) && Boolean(touched.budget)}
+                          onBlur={handleBlur}
+                          onChange={handleChange("budget")}
+                          value={values.budget || ""}
+                        />
+                      </InputGroup>
+                      <FormErrorMessage>{errors.budget}</FormErrorMessage>
                     </FormControl>
 
                     {values.icon && (
@@ -303,7 +343,7 @@ const Category = () => {
                 Categories
               </Heading>
               <Text fontSize="sm" color={mutedText}>
-                Organize your transactions with custom categories
+                Organize your transactions and set monthly budgets
               </Text>
             </Box>
             <Flex
@@ -343,7 +383,7 @@ const Category = () => {
                   Add New Category
                 </Text>
                 <Formik
-                  initialValues={{ name: "", icon: "" }}
+                  initialValues={{ name: "", icon: "", budget: "" }}
                   onSubmit={async (values, { resetForm }) => {
                     await clickHandler(values);
                     resetForm();
@@ -358,6 +398,10 @@ const Category = () => {
                     icon: string()
                       .url("Icon should be a valid url!")
                       .required("Icon is required field!"),
+                    budget: number()
+                      .typeError("Budget must be a number")
+                      .min(0, "Budget cannot be negative")
+                      .optional(),
                   })}
                 >
                   {({
@@ -414,6 +458,27 @@ const Category = () => {
                           <FormErrorMessage>{errors.icon}</FormErrorMessage>
                         </FormControl>
 
+                        <FormControl isInvalid={Boolean(errors.budget) && Boolean(touched.budget)}>
+                          <FormLabel fontSize="sm" fontWeight="medium">Monthly Budget (Optional)</FormLabel>
+                          <InputGroup size="lg">
+                            <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                            <Field
+                              as={Input}
+                              type="number"
+                              placeholder="0"
+                              name="budget"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              pl={10}
+                              isInvalid={Boolean(errors.budget) && Boolean(touched.budget)}
+                              onBlur={handleBlur}
+                              onChange={handleChange("budget")}
+                              value={values.budget || ""}
+                            />
+                          </InputGroup>
+                          <FormErrorMessage>{errors.budget}</FormErrorMessage>
+                        </FormControl>
+
                         {values.icon && (
                           <Flex justify="center" py={2}>
                             <Box
@@ -466,7 +531,7 @@ const Category = () => {
 
                 {isLoading &&
                   [1, 2, 3].map((i) => (
-                    <Skeleton key={i} height="72px" borderRadius="xl" />
+                    <Skeleton key={i} height="100px" borderRadius="xl" />
                   ))}
 
                 {!isLoading && data?.data?.categories?.length === 0 && (
@@ -488,65 +553,82 @@ const Category = () => {
                 )}
 
                 {!isLoading &&
-                  data?.data?.categories?.map((item) => (
-                    <MotionBox
-                      key={item._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      bg={bgCard}
-                      border="1px solid"
-                      borderColor={borderColor}
-                      borderRadius="xl"
-                      p={4}
-                      boxShadow="sm"
-                      _hover={{ boxShadow: "md", borderColor: "teal.200" }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Flex justify="space-between" align="center">
-                        <Flex align="center" gap={3}>
-                          <Flex
-                            w={12}
-                            h={12}
-                            borderRadius="xl"
-                            bg="teal.50"
-                            align="center"
-                            justify="center"
-                            overflow="hidden"
-                          >
-                            <Image
-                              src={item.icon}
-                              alt={item.name}
-                              width={28}
-                              height={28}
+                  data?.data?.categories?.map((item) => {
+                    const budget = item.budget || 0;
+                    const hasBudget = budget > 0;
+                    return (
+                      <MotionBox
+                        key={item._id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        bg={bgCard}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        borderRadius="xl"
+                        p={4}
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", borderColor: "teal.200" }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Flex justify="space-between" align="start" mb={hasBudget ? 3 : 0}>
+                          <Flex align="center" gap={3}>
+                            <Flex
+                              w={12}
+                              h={12}
+                              borderRadius="xl"
+                              bg="teal.50"
+                              align="center"
+                              justify="center"
+                              overflow="hidden"
+                            >
+                              <Image
+                                src={item.icon}
+                                alt={item.name}
+                                width={28}
+                                height={28}
+                              />
+                            </Flex>
+                            <Box>
+                              <Text fontWeight="semibold" fontSize="md">
+                                {item.name}
+                              </Text>
+                              {hasBudget && (
+                                <Badge
+                                  colorScheme="teal"
+                                  variant="subtle"
+                                  borderRadius="full"
+                                  fontSize="xs"
+                                  mt={1}
+                                >
+                                  Budget: {formatMoney(budget, settings)}
+                                </Badge>
+                              )}
+                            </Box>
+                          </Flex>
+                          <Flex gap={2}>
+                            <IconButton
+                              icon={<FiEdit2 />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="teal"
+                              borderRadius="lg"
+                              aria-label="Edit"
+                              onClick={() => confirmUpdateDialog(item._id)}
+                            />
+                            <IconButton
+                              icon={<FiTrash2 />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              borderRadius="lg"
+                              aria-label="Delete"
+                              onClick={() => confirmDialog(item._id)}
                             />
                           </Flex>
-                          <Text fontWeight="semibold" fontSize="md">
-                            {item.name}
-                          </Text>
                         </Flex>
-                        <Flex gap={2}>
-                          <IconButton
-                            icon={<FiEdit2 />}
-                            size="sm"
-                            variant="ghost"
-                            colorScheme="teal"
-                            borderRadius="lg"
-                            aria-label="Edit"
-                            onClick={() => confirmUpdateDialog(item._id)}
-                          />
-                          <IconButton
-                            icon={<FiTrash2 />}
-                            size="sm"
-                            variant="ghost"
-                            colorScheme="red"
-                            borderRadius="lg"
-                            aria-label="Delete"
-                            onClick={() => confirmDialog(item._id)}
-                          />
-                        </Flex>
-                      </Flex>
-                    </MotionBox>
-                  ))}
+                      </MotionBox>
+                    );
+                  })}
               </Stack>
             </GridItem>
           </Grid>

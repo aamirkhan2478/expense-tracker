@@ -52,7 +52,7 @@ const updateCategory = (values) => {
   };
   return axiosInstance.patch(
     `/api/category/${values.id}/update`,
-    { name: values.name, icon: values.icon },
+    { name: values.name, icon: values.icon, budget: values.budget },
     config
   );
 };

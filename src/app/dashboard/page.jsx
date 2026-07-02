@@ -2,7 +2,7 @@
 import Chart from "@/components/Chart";
 import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
-import { useShowExpense } from "@/hooks/useExpense";
+import { useShowExpense, useBudgetSummary } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { totalBalance, transactionHistory } from "@/logic/calculations";
@@ -32,6 +32,7 @@ import {
   FiClock,
   FiActivity,
   FiPieChart,
+  FiTarget,
 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 
@@ -68,6 +69,7 @@ const Dashboard = () => {
   const { settings } = useSettings();
   const { data: expenses, isLoading: expenseFetching } = useShowExpense(id);
   const { data: incomes, isLoading: incomeFetching } = useShowIncome(id);
+  const { data: budgetData, isLoading: budgetFetching } = useBudgetSummary(id);
 
   const history = transactionHistory(
     incomes?.data?.data || [],
@@ -86,6 +88,7 @@ const Dashboard = () => {
   const bg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
   const mutedText = useColorModeValue("gray.500", "gray.400");
+  const progressBg = useColorModeValue("gray.100", "gray.700");
 
   const StatCard = ({ title, amount, icon, colorScheme, trend, isLoading }) => {
     const colorMap = {
@@ -440,6 +443,97 @@ const Dashboard = () => {
                         colorScheme="red"
                         icon={FiPieChart}
                       />
+                    </Stack>
+                  )}
+                </Box>
+
+                {/* Budget vs Actual */}
+                <Box>
+                  <Flex justify="space-between" align="center" mb={4}>
+                    <Heading size="md" fontWeight="bold">
+                      Budget vs Actual
+                    </Heading>
+                    <Text fontSize="xs" color={mutedText}>
+                      {budgetData?.data?.month || "This Month"}
+                    </Text>
+                  </Flex>
+                  {budgetFetching ? (
+                    <Stack spacing={4}>
+                      <Skeleton height="80px" borderRadius="xl" />
+                      <Skeleton height="80px" borderRadius="xl" />
+                    </Stack>
+                  ) : budgetData?.data?.summary?.length === 0 ? (
+                    <Box
+                      p={6}
+                      textAlign="center"
+                      borderRadius="xl"
+                      border="1px dashed"
+                      borderColor={borderColor}
+                    >
+                      <Icon as={FiTarget} boxSize={6} color="gray.300" mb={2} />
+                      <Text fontSize="sm" color={mutedText}>
+                        No budgets set yet
+                      </Text>
+                      <Text fontSize="xs" color={mutedText}>
+                        Go to Categories to set monthly budgets
+                      </Text>
+                    </Box>
+                  ) : (
+                    <Stack spacing={4}>
+                      {budgetData?.data?.summary?.map((item) => {
+                        const pct = Math.min(item.percentage, 100);
+                        const color =
+                          item.percentage >= 100
+                            ? "red"
+                            : item.percentage >= 80
+                            ? "orange"
+                            : item.percentage >= 50
+                            ? "yellow"
+                            : "green";
+                        return (
+                          <Box
+                            key={item.categoryId}
+                            bg={bg}
+                            border="1px solid"
+                            borderColor={borderColor}
+                            borderRadius="xl"
+                            p={4}
+                          >
+                            <Flex justify="space-between" align="center" mb={2}>
+                              <Flex align="center" gap={2}>
+                                <Text fontWeight="semibold" fontSize="sm">
+                                  {item.name}
+                                </Text>
+                                {item.overBudget && (
+                                  <Badge colorScheme="red" variant="subtle" borderRadius="full" fontSize="xs">
+                                    Over Budget
+                                  </Badge>
+                                )}
+                              </Flex>
+                              <Text fontSize="xs" fontWeight="bold" color={`${color}.500`}>
+                                {item.percentage}%
+                              </Text>
+                            </Flex>
+                            <Progress
+                              value={pct}
+                              size="sm"
+                              colorScheme={color}
+                              borderRadius="full"
+                              bg={progressBg}
+                              mb={2}
+                            />
+                            <Flex justify="space-between" fontSize="xs" color={mutedText}>
+                              <Text>Spent: {formatMoney(item.spent, settings)}</Text>
+                              <Text>Budget: {formatMoney(item.budget, settings)}</Text>
+                            </Flex>
+                            {item.remaining > 0 && (
+                              <Text fontSize="xs" color="green.500" mt={1}>
+                                {formatMoney(item.remaining, settings)} remaining
+                              </Text>
+                            )}
+                          </Box>
+                        );
+                      })}
                     </Stack>
                   )}
                 </Box>
