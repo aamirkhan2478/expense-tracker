@@ -13,6 +13,7 @@ import {
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { calculateIncome } from "@/logic/calculations";
 import dateFormat from "@/utils/dateFormat";
+import { exportToCSV, exportToJSON, formatIncomeForExport } from "@/utils/exportData";
 import {
   Box,
   Button,
@@ -48,6 +49,8 @@ import {
   FiBriefcase,
   FiTag,
   FiTrendingUp,
+  FiDownload,
+  FiFileText,
 } from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
@@ -364,24 +367,51 @@ const Income = () => {
                 Track and manage your income sources
               </Text>
             </Box>
-            <Badge
-              colorScheme="green"
-              variant="subtle"
-              px={4}
-              py={2}
-              borderRadius="xl"
-              fontSize="md"
-              display="flex"
-              alignItems="center"
-              gap={2}
-            >
-              <Icon as={FiTrendingUp} />
-              <Skeleton isLoaded={!isFetching}>
-                <Text fontWeight="bold">
-                  {formatMoney(!incomeDate ? data?.data?.totalAmount || 0 : calculateIncome(data?.data?.data), settings)}
-                </Text>
-              </Skeleton>
-            </Badge>
+            <Flex align="center" gap={2}>
+              <IconButton
+                icon={<FiDownload />}
+                size="sm"
+                variant="ghost"
+                colorScheme="green"
+                borderRadius="full"
+                aria-label="Export CSV"
+                onClick={() => {
+                  const rows = formatIncomeForExport(data?.data?.data || [], settings.currency);
+                  exportToCSV(rows, `income_${new Date().toISOString().split("T")[0]}`);
+                }}
+                title="Export CSV"
+              />
+              <IconButton
+                icon={<FiFileText />}
+                size="sm"
+                variant="ghost"
+                colorScheme="green"
+                borderRadius="full"
+                aria-label="Export JSON"
+                onClick={() => {
+                  exportToJSON(data?.data?.data || [], `income_${new Date().toISOString().split("T")[0]}`);
+                }}
+                title="Export JSON"
+              />
+              <Badge
+                colorScheme="green"
+                variant="subtle"
+                px={4}
+                py={2}
+                borderRadius="xl"
+                fontSize="md"
+                display="flex"
+                alignItems="center"
+                gap={2}
+              >
+                <Icon as={FiTrendingUp} />
+                <Skeleton isLoaded={!isFetching}>
+                  <Text fontWeight="bold">
+                    {formatMoney(!incomeDate ? data?.data?.totalAmount || 0 : calculateIncome(data?.data?.data), settings)}
+                  </Text>
+                </Skeleton>
+              </Badge>
+            </Flex>
           </Flex>
 
           {/* Main Grid */}

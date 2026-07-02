@@ -14,6 +14,7 @@ import {
 } from "@/hooks/useExpense";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import dateFormat from "@/utils/dateFormat";
+import { exportToCSV, exportToJSON, formatExpenseForExport } from "@/utils/exportData";
 import {
   Box,
   Button,
@@ -55,6 +56,7 @@ import {
   FiTrendingDown,
   FiDownload,
   FiUpload,
+  FiFileText,
 } from "react-icons/fi";
 import { useQueryClient } from "react-query";
 import { BeatLoader } from "react-spinners";
@@ -463,22 +465,49 @@ const ExpenseContent = () => {
                 Manage and track your spending
               </Text>
             </Box>
-            <Badge
-              colorScheme="red"
-              variant="subtle"
-              px={4}
-              py={2}
-              borderRadius="xl"
-              fontSize="md"
-              display="flex"
-              alignItems="center"
-              gap={2}
-            >
-              <Icon as={FiTrendingDown} />
-              <Skeleton isLoaded={!isLoading}>
-                <Text fontWeight="bold">{formatMoney(data?.data?.totalAmount || 0, settings)}</Text>
-              </Skeleton>
-            </Badge>
+            <Flex align="center" gap={2}>
+              <IconButton
+                icon={<FiDownload />}
+                size="sm"
+                variant="ghost"
+                colorScheme="red"
+                borderRadius="full"
+                aria-label="Export CSV"
+                onClick={() => {
+                  const rows = formatExpenseForExport(data?.data?.data || [], settings.currency);
+                  exportToCSV(rows, `expenses_${new Date().toISOString().split("T")[0]}`);
+                }}
+                title="Export CSV"
+              />
+              <IconButton
+                icon={<FiFileText />}
+                size="sm"
+                variant="ghost"
+                colorScheme="red"
+                borderRadius="full"
+                aria-label="Export JSON"
+                onClick={() => {
+                  exportToJSON(data?.data?.data || [], `expenses_${new Date().toISOString().split("T")[0]}`);
+                }}
+                title="Export JSON"
+              />
+              <Badge
+                colorScheme="red"
+                variant="subtle"
+                px={4}
+                py={2}
+                borderRadius="xl"
+                fontSize="md"
+                display="flex"
+                alignItems="center"
+                gap={2}
+              >
+                <Icon as={FiTrendingDown} />
+                <Skeleton isLoaded={!isLoading}>
+                  <Text fontWeight="bold">{formatMoney(data?.data?.totalAmount || 0, settings)}</Text>
+                </Skeleton>
+              </Badge>
+            </Flex>
           </Flex>
 
           <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={{ base: 6, md: 8 }}>

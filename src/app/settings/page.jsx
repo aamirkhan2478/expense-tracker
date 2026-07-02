@@ -3,6 +3,8 @@
 import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
 import { useSettings, CURRENCIES, formatMoney } from "@/hooks/useSettings";
+import { exportToJSON, exportAllData } from "@/utils/exportData";
+import axiosInstance from "@/utils/axiosInstance";
 import {
   Box,
   Button,
@@ -31,6 +33,9 @@ import {
   FiList,
   FiRefreshCw,
   FiCheckCircle,
+  FiDownload,
+  FiFileText,
+  FiDatabase,
 } from "react-icons/fi";
 
 const MotionBox = motion(Box);
@@ -85,6 +90,42 @@ export default function SettingsPage() {
       isClosable: true,
       position: "top-right",
     });
+  };
+
+  const handleExportAll = async () => {
+    try {
+      const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
+      const [incomeRes, expenseRes, categoryRes] = await Promise.all([
+        axiosInstance.get(`/api/income?user=${user.id || ""}&limit=9999&page=1`),
+        axiosInstance.get(`/api/expense?user=${user.id || ""}&limit=9999&page=1`),
+        axiosInstance.get(`/api/category?user=${user.id || ""}`),
+      ]);
+
+      exportAllData({
+        incomes: incomeRes.data?.data || [],
+        expenses: expenseRes.data?.data || [],
+        categories: categoryRes.data?.categories || [],
+        settings,
+      });
+
+      toast({
+        title: "Export complete",
+        description: "Your data has been downloaded as JSON.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    } catch (err) {
+      toast({
+        title: "Export failed",
+        description: "Could not fetch data for export.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }
   };
 
   const SettingCard = ({ icon, title, description, children }) => (
@@ -298,6 +339,34 @@ export default function SettingsPage() {
                       {localCurrency}
                     </Badge>
                   </Flex>
+                </Stack>
+              </SettingCard>
+            </GridItem>
+
+            {/* Data Export */}
+            <GridItem>
+              <SettingCard
+                icon={FiDatabase}
+                title="Data Export"
+                description="Download your data for backup or analysis"
+              >
+                <Stack spacing={3}>
+                  <Text fontSize="sm" color={mutedText}>
+                    Export all your financial data as a JSON backup file.
+                  </Text>
+                  <Button
+                    leftIcon={<FiFileText />}
+                    size="md"
+                    variant="outline"
+                    colorScheme="teal"
+                    borderRadius="xl"
+                    onClick={handleExportAll}
+                  >
+                    Export All (JSON)
+                  </Button>
+                  <Text fontSize="xs" color={mutedText}>
+                    CSV exports are available on the Income and Expense pages.
+                  </Text>
                 </Stack>
               </SettingCard>
             </GridItem>

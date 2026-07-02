@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import { useShowExpense, useBudgetSummary } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
+import { exportToCSV, exportToJSON, formatIncomeForExport, formatExpenseForExport } from "@/utils/exportData";
 import { totalBalance, transactionHistory } from "@/logic/calculations";
 import {
   Box,
@@ -22,6 +23,7 @@ import {
   Progress,
   Avatar,
   Badge,
+  IconButton,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import {
@@ -34,6 +36,8 @@ import {
   FiActivity,
   FiPieChart,
   FiTarget,
+  FiDownload,
+  FiFileText,
 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 
@@ -303,24 +307,61 @@ const Dashboard = () => {
                 {user?.name ? `${user.name}'s Dashboard` : "Dashboard"}
               </Heading>
             </Box>
-            <Flex
-              align="center"
-              gap={2}
-              bg={useColorModeValue("teal.50", "teal.900")}
-              color="teal.600"
-              px={4}
-              py={2}
-              borderRadius="full"
-              fontSize="sm"
-              fontWeight="medium"
-            >
-              <FiClock size={14} />
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+            <Flex align="center" gap={2}>
+              <IconButton
+                icon={<FiDownload />}
+                size="sm"
+                variant="ghost"
+                colorScheme="teal"
+                borderRadius="full"
+                aria-label="Export CSV"
+                onClick={() => {
+                  const allData = [
+                    ...formatIncomeForExport(incomeAmount, settings.currency),
+                    ...formatExpenseForExport(expenseAmount, settings.currency),
+                  ];
+                  exportToCSV(allData, `transactions_${new Date().toISOString().split("T")[0]}`);
+                }}
+                title="Export CSV"
+              />
+              <IconButton
+                icon={<FiFileText />}
+                size="sm"
+                variant="ghost"
+                colorScheme="teal"
+                borderRadius="full"
+                aria-label="Export JSON"
+                onClick={() => {
+                  exportToJSON(
+                    {
+                      incomes: incomeAmount,
+                      expenses: expenseAmount,
+                      exportedAt: new Date().toISOString(),
+                    },
+                    `transactions_${new Date().toISOString().split("T")[0]}`
+                  );
+                }}
+                title="Export JSON"
+              />
+              <Flex
+                align="center"
+                gap={2}
+                bg={useColorModeValue("teal.50", "teal.900")}
+                color="teal.600"
+                px={4}
+                py={2}
+                borderRadius="full"
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                <FiClock size={14} />
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </Flex>
             </Flex>
           </MotionFlex>
 
