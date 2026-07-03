@@ -26,6 +26,7 @@ import {
   FiBarChart2,
 } from "react-icons/fi";
 import Alert from "../Alert";
+import GlobalSearch from "../GlobalSearch";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -159,6 +160,14 @@ const SidebarContent = ({ onClose, ...rest }) => {
               </Text>
             </Stack>
           </Flex>
+        </Box>
+
+        <Box px={6} pb={3} display={{ base: "block", md: "none" }}>
+          <GlobalSearch />
+        </Box>
+
+        <Box px={6} pb={3} display={{ base: "none", md: "block" }}>
+          <GlobalSearch />
         </Box>
 
         <Divider mx={6} w="auto" borderColor={useColorModeValue("gray.100", "gray.700")} />

@@ -20,7 +20,7 @@ import {
   Progress,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   FiTrendingUp,
   FiTrendingDown,
@@ -77,6 +77,11 @@ const Reports = () => {
   const { settings } = useSettings();
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedMonth, setSelectedMonth] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: summaryData, isLoading: summaryLoading } = useReportSummary(
     id,
@@ -356,7 +361,7 @@ const Reports = () => {
                     {selectedYear}
                   </Badge>
                 </Flex>
-                {trendLoading ? (
+                {!mounted || trendLoading ? (
                   <Skeleton height="300px" borderRadius="xl" />
                 ) : (
                   <Box h="300px" w="100%">

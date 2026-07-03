@@ -12,10 +12,11 @@ import {
   Filler,
 } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-import { Box, Text, Flex, useColorModeValue, SimpleGrid } from "@chakra-ui/react";
+import { Box, Text, Flex, useColorModeValue, SimpleGrid, Skeleton } from "@chakra-ui/react";
 import { useExpensesByCategory } from "@/hooks/useExpense";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { FiPieChart } from "react-icons/fi";
+import { useState, useEffect } from "react";
 
 ChartJs.register(
   CategoryScale,
@@ -51,6 +52,11 @@ function PieChart() {
 
   const { data } = useExpensesByCategory(id || "");
   const { settings } = useSettings();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const bg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -162,7 +168,11 @@ function PieChart() {
       ) : (
         <Flex direction={{ base: "column", md: "row" }} align="center" gap={6}>
           <Box h={{ base: "200px", md: "240px" }} w={{ base: "200px", md: "240px" }} position="relative">
-            <Doughnut data={chartData} options={options} />
+            {!mounted ? (
+              <Skeleton height="100%" width="100%" borderRadius="full" />
+            ) : (
+              <Doughnut data={chartData} options={options} />
+            )}
             <Flex
               position="absolute"
               top="0"

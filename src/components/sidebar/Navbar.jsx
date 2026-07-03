@@ -22,30 +22,33 @@ const Navbar = ({ onOpen, ...rest }) => {
       justifyContent="flex-start"
       {...rest}
     >
-      <IconButton
-        variant="ghost"
-        onClick={onOpen}
-        aria-label="open menu"
-        icon={<FiMenu />}
-        mr={4}
-      />
+      <Flex align="center">
+        <IconButton
+          variant="ghost"
+          onClick={onOpen}
+          aria-label="open menu"
+          icon={<FiMenu />}
+          mr={4}
+        />
 
-      <Flex align="center" gap={2}>
-        <Box
-          w={7}
-          h={7}
-          borderRadius="md"
-          bg="teal.500"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <FiPieChart color="white" size={16} />
-        </Box>
-        <Text fontSize="md" fontWeight="bold" letterSpacing="tight">
-          SpendWise
-        </Text>
+        <Flex align="center" gap={2}>
+          <Box
+            w={7}
+            h={7}
+            borderRadius="md"
+            bg="teal.500"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <FiPieChart color="white" size={16} />
+          </Box>
+          <Text fontSize="md" fontWeight="bold" letterSpacing="tight">
+            SpendWise
+          </Text>
+        </Flex>
       </Flex>
+
     </Flex>
   );
 };

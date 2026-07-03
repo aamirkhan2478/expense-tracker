@@ -14,10 +14,11 @@ import {
 import { Line } from "react-chartjs-2";
 import dateFormat from "@/utils/dateFormat";
 import { useSettings } from "@/hooks/useSettings";
-import { Box, useColorModeValue, Text, Flex } from "@chakra-ui/react";
+import { Box, useColorModeValue, Text, Flex, Skeleton } from "@chakra-ui/react";
 import { useShowExpense } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
 import { FiTrendingUp } from "react-icons/fi";
+import { useState, useEffect } from "react";
 
 ChartJs.register(
   CategoryScale,
@@ -47,6 +48,11 @@ function Chart() {
   const tooltipText = useColorModeValue("#1A202C", "#F7FAFC");
 
   const { settings } = useSettings();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const incomeLabels = incomes?.data?.data?.map((inc) =>
     dateFormat(inc.incomeDate),
@@ -212,7 +218,11 @@ function Chart() {
         </Box>
       </Flex>
       <Box h={{ base: "250px", md: "320px" }} w="100%">
-        <Line data={data} options={options} height="100%" width="100%" />
+        {!mounted ? (
+          <Skeleton height="100%" borderRadius="xl" />
+        ) : (
+          <Line data={data} options={options} height="100%" width="100%" />
+        )}
       </Box>
     </Box>
   );
