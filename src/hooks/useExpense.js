@@ -100,6 +100,8 @@ const updateExpense = (values) => {
       amount: values.amount,
       expenseDate: values.expenseDate,
       category: values.category,
+      isRecurring: values.isRecurring,
+      recurringFrequency: values.recurringFrequency,
     },
     config
   );

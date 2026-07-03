@@ -38,6 +38,7 @@ import {
   useDisclosure,
   useToast,
   Badge,
+  Switch,
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import Image from "next/image";
@@ -134,6 +135,8 @@ const ExpenseContent = () => {
     amount: expense?.amount || "",
     expenseDate: dateFormat(expense?.expenseDate, "YYYY-MM-DD") || "",
     category: expense?.category?._id || "",
+    isRecurring: expense?.isRecurring || false,
+    recurringFrequency: expense?.recurringFrequency || "monthly",
   };
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
   const handlePageChange = (page) => {
@@ -148,6 +151,8 @@ const ExpenseContent = () => {
       expenseDate: values.expenseDate,
       category: values.category,
       user: id,
+      isRecurring: values.isRecurring,
+      recurringFrequency: values.isRecurring ? values.recurringFrequency : null,
     };
     mutate(newData, {
       onSuccess: () => {
@@ -194,6 +199,8 @@ const ExpenseContent = () => {
       amount: values.amount,
       expenseDate: values.expenseDate,
       category: values.category,
+      isRecurring: values.isRecurring,
+      recurringFrequency: values.isRecurring ? values.recurringFrequency : null,
     };
 
     updateExpense(newData, {
@@ -413,6 +420,40 @@ const ExpenseContent = () => {
                       <FormErrorMessage>{errors.category}</FormErrorMessage>
                     </FormControl>
 
+                    <FormControl>
+                      <Flex align="center" gap={3}>
+                        <Field
+                          as={Switch}
+                          name="isRecurring"
+                          colorScheme="red"
+                          isChecked={values.isRecurring}
+                          onChange={handleChange("isRecurring")}
+                        />
+                        <FormLabel htmlFor="isRecurring" mb={0} fontSize="sm" fontWeight="medium">
+                          Recurring Expense
+                        </FormLabel>
+                      </Flex>
+                    </FormControl>
+
+                    {values.isRecurring && (
+                      <FormControl>
+                        <FormLabel fontSize="sm" fontWeight="medium">Frequency</FormLabel>
+                        <Field
+                          as={Select}
+                          name="recurringFrequency"
+                          borderRadius="xl"
+                          focusBorderColor="teal.400"
+                          onChange={handleChange("recurringFrequency")}
+                          value={values.recurringFrequency || "monthly"}
+                        >
+                          <option value="daily">Daily</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="yearly">Yearly</option>
+                        </Field>
+                      </FormControl>
+                    )}
+
                     <Flex gap={3} pt={2}>
                       <Button onClick={onCloseDialog} variant="ghost" flex={1} borderRadius="xl">
                         Cancel
@@ -528,7 +569,7 @@ const ExpenseContent = () => {
                   Add New Expense
                 </Text>
                 <Formik
-                  initialValues={{ title: "", amount: "", expenseDate: "", category: "" }}
+                  initialValues={{ title: "", amount: "", expenseDate: "", category: "", isRecurring: false, recurringFrequency: "monthly" }}
                   onSubmit={clickHandler}
                   validationSchema={object({
                     title: string()
@@ -639,6 +680,40 @@ const ExpenseContent = () => {
                           </Select>
                           <FormErrorMessage>{errors.category}</FormErrorMessage>
                         </FormControl>
+
+                        <FormControl>
+                          <Flex align="center" gap={3}>
+                            <Field
+                              as={Switch}
+                              name="isRecurring"
+                              colorScheme="red"
+                              isChecked={values.isRecurring}
+                              onChange={handleChange("isRecurring")}
+                            />
+                            <FormLabel htmlFor="isRecurring" mb={0} fontSize="sm" fontWeight="medium">
+                              Recurring Expense
+                            </FormLabel>
+                          </Flex>
+                        </FormControl>
+
+                        {values.isRecurring && (
+                          <FormControl>
+                            <FormLabel fontSize="sm" fontWeight="medium">Frequency</FormLabel>
+                            <Field
+                              as={Select}
+                              name="recurringFrequency"
+                              borderRadius="xl"
+                              focusBorderColor="teal.400"
+                              onChange={handleChange("recurringFrequency")}
+                              value={values.recurringFrequency || "monthly"}
+                            >
+                              <option value="daily">Daily</option>
+                              <option value="weekly">Weekly</option>
+                              <option value="monthly">Monthly</option>
+                              <option value="yearly">Yearly</option>
+                            </Field>
+                          </FormControl>
+                        )}
 
                         <Button
                           leftIcon={<FiPlus />}
@@ -857,6 +932,11 @@ const ExpenseContent = () => {
                             <Text fontSize="xs" color={mutedText}>
                               {item.category?.name || "Uncategorized"}
                             </Text>
+                            {item.isRecurring && (
+                              <Badge colorScheme="red" variant="subtle" fontSize="10px" borderRadius="full" w="fit-content">
+                                Recurring · {item.recurringFrequency}
+                              </Badge>
+                            )}
                           </Stack>
                         </Flex>
                         <Stack spacing={0} align="end">

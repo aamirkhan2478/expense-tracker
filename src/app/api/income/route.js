@@ -13,6 +13,8 @@ export async function POST(req) {
     amount: Joi.number().required(),
     incomeDate: Joi.date().required(),
     user: Joi.string().required(),
+    isRecurring: Joi.boolean().optional(),
+    recurringFrequency: Joi.string().valid("daily", "weekly", "monthly", "yearly").optional(),
   });
 
   const { error } = signupSchema.validate(body, { abortEarly: false });
@@ -28,7 +30,7 @@ export async function POST(req) {
     );
   }
 
-  const { companyName, title, amount, incomeDate, user } = body;
+  const { companyName, title, amount, incomeDate, user, isRecurring, recurringFrequency } = body;
 
   try {
     await connectToDB();
@@ -50,11 +52,14 @@ export async function POST(req) {
       amount,
       incomeDate,
       user,
+      isRecurring: isRecurring || false,
+      recurringFrequency: isRecurring ? recurringFrequency : null,
+      lastProcessedAt: isRecurring ? incomeDate : null,
     });
     await income.save();
     return res.json({ success: true, msg: "Income created" }, { status: 201 });
   } catch (error) {
-    console.log(err.message);
+    console.log(error.message);
     return res.json({ error: "Server Error" }, { status: 500 });
   }
 }
@@ -66,7 +71,6 @@ export async function GET(req) {
   const incomeLimit = searchParams.get("limit");
   const incomeDate = searchParams.get("incomeDate");
 
-  // Pagination Logic
   const page = Number(incomePage) || 1;
   const limit = Number(incomeLimit) || 5;
   const startIndex = (page - 1) * limit;
@@ -76,7 +80,6 @@ export async function GET(req) {
 
     let dateFilter = {};
     if (incomeDate) {
-      // filter by month
       const startDate = new Date(incomeDate);
       const endDate = new Date(incomeDate);
       endDate.setMonth(endDate.getMonth() + 1);
@@ -143,7 +146,6 @@ export async function GET(req) {
       };
     }
 
-    // Calculate the total income amount
     const incomes = await Income.find({ user });
     let totalAmount = 0;
     incomes.forEach((income) => {

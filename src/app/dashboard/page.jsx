@@ -24,6 +24,7 @@ import {
   Avatar,
   Badge,
   IconButton,
+  useToast,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import {
@@ -38,8 +39,11 @@ import {
   FiTarget,
   FiDownload,
   FiFileText,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { useEffect, useState } from "react";
+import axiosInstance from "@/utils/axiosInstance";
+import { useQueryClient } from "react-query";
 
 const MotionBox = motion(Box);
 const MotionFlex = motion(Flex);
@@ -70,6 +74,39 @@ const Dashboard = () => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
     id = storedUser?.id || "";
   }
+
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  // Process recurring transactions on load
+  useEffect(() => {
+    if (!id) return;
+    const processRecurring = async () => {
+      try {
+        const response = await axiosInstance.post("/api/recurring/process", { user: id });
+        const { totalCreated, incomesCreated, expensesCreated } = response.data;
+        if (totalCreated > 0) {
+          toast({
+            title: "Recurring transactions processed",
+            description: `${totalCreated} new ${totalCreated === 1 ? "entry" : "entries"} created (${incomesCreated} income, ${expensesCreated} expense).`,
+            status: "success",
+            duration: 5000,
+            isClosable: true,
+            position: "top-right",
+          });
+          // Refresh dashboard data
+          queryClient.invalidateQueries(["show-incomes", id]);
+          queryClient.invalidateQueries(["show-expenses", id]);
+          queryClient.invalidateQueries(["budget-summary", id]);
+          queryClient.invalidateQueries(["expenses-by-category", id]);
+        }
+      } catch (err) {
+        // Silently fail — we don't want to block the dashboard if recurring processing fails
+        console.error("Recurring processing error:", err);
+      }
+    };
+    processRecurring();
+  }, [id, toast, queryClient]);
 
   const { settings } = useSettings();
   const { data: expenses, isLoading: expenseFetching } = useShowExpense(id);
@@ -579,6 +616,104 @@ const Dashboard = () => {
                           </Box>
                         );
                       })}
+                    </Stack>
+                  )}
+                </Box>
+
+                {/* Recurring Transactions */}
+                <Box>
+                  <Flex justify="space-between" align="center" mb={4}>
+                    <Heading size="md" fontWeight="bold">
+                      Recurring
+                    </Heading>
+                  </Flex>
+                  {isLoading ? (
+                    <Stack spacing={4}>
+                      <Skeleton height="60px" borderRadius="xl" />
+                      <Skeleton height="60px" borderRadius="xl" />
+                    </Stack>
+                  ) : (
+                    <Stack spacing={3}>
+                      {(() => {
+                        const recurringIncomes = (incomes?.data?.data || []).filter((i) => i.isRecurring);
+                        const recurringExpenses = (expenses?.data?.data || []).filter((e) => e.isRecurring);
+                        const allRecurring = [
+                          ...recurringIncomes.map((i) => ({ ...i, kind: "income" })),
+                          ...recurringExpenses.map((e) => ({ ...e, kind: "expense" })),
+                        ];
+                        if (allRecurring.length === 0) {
+                          return (
+                            <Box
+                              p={6}
+                              textAlign="center"
+                              borderRadius="xl"
+                              border="1px dashed"
+                              borderColor={borderColor}
+                            >
+                              <Icon as={FiRefreshCw} boxSize={6} color="gray.300" mb={2} />
+                              <Text fontSize="sm" color={mutedText}>
+                                No recurring transactions
+                              </Text>
+                              <Text fontSize="xs" color={mutedText}>
+                                Mark income or expenses as recurring
+                              </Text>
+                            </Box>
+                          );
+                        }
+                        return allRecurring.slice(0, 5).map((item) => (
+                          <MotionBox
+                            key={`${item.kind}-${item._id}`}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            bg={bg}
+                            border="1px solid"
+                            borderColor={borderColor}
+                            borderRadius="xl"
+                            p={3}
+                          >
+                            <Flex justify="space-between" align="center">
+                              <Flex align="center" gap={2}>
+                                <Flex
+                                  w={8}
+                                  h={8}
+                                  borderRadius="lg"
+                                  bg={item.kind === "income" ? "green.50" : "red.50"}
+                                  align="center"
+                                  justify="center"
+                                >
+                                  <Icon
+                                    as={item.kind === "income" ? FiTrendingUp : FiTrendingDown}
+                                    color={item.kind === "income" ? "green.500" : "red.500"}
+                                    boxSize={3}
+                                  />
+                                </Flex>
+                                <Stack spacing={0}>
+                                  <Text fontWeight="semibold" fontSize="sm">
+                                    {item.title || item.companyName}
+                                  </Text>
+                                  <Badge
+                                    colorScheme={item.kind === "income" ? "green" : "red"}
+                                    variant="subtle"
+                                    fontSize="10px"
+                                    borderRadius="full"
+                                    w="fit-content"
+                                  >
+                                    {item.recurringFrequency}
+                                  </Badge>
+                                </Stack>
+                              </Flex>
+                              <Text
+                                fontWeight="bold"
+                                fontSize="sm"
+                                color={item.kind === "income" ? "green.500" : "red.500"}
+                              >
+                                {item.kind === "income" ? "+" : "-"}
+                                {formatMoney(item.amount, settings)}
+                              </Text>
+                            </Flex>
+                          </MotionBox>
+                        ));
+                      })()}
                     </Stack>
                   )}
                 </Box>

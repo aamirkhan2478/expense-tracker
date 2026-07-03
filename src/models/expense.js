@@ -1,8 +1,7 @@
 import { Schema, model, models } from "mongoose";
-import Category from "./category"; // Adjust the path as needed
+import Category from "./category";
 import User from "./user";
 
-// Explicitly register the 'Category' model if it's not already registered
 const CategoryModel = models.Category || model("Category", Category.schema);
 const UserModel = models.User || model("User", User.schema);
 
@@ -28,6 +27,19 @@ const ExpenseSchema = new Schema(
     category: {
       type: Schema.Types.ObjectId,
       ref: CategoryModel.modelName,
+    },
+    isRecurring: {
+      type: Boolean,
+      default: false,
+    },
+    recurringFrequency: {
+      type: String,
+      enum: ["daily", "weekly", "monthly", "yearly"],
+      default: null,
+    },
+    lastProcessedAt: {
+      type: Date,
+      default: null,
     },
     user: {
       type: Schema.Types.ObjectId,

@@ -10,6 +10,8 @@ export async function PATCH(req, { params }) {
     amount: Joi.number().required(),
     expenseDate: Joi.date().required(),
     category: Joi.string().required(),
+    isRecurring: Joi.boolean().optional(),
+    recurringFrequency: Joi.string().valid("daily", "weekly", "monthly", "yearly").optional(),
   });
 
   const { error } = signupSchema.validate(body, { abortEarly: false });
@@ -25,18 +27,24 @@ export async function PATCH(req, { params }) {
     );
   }
 
-  const { title, amount, expenseDate, category } = body;
+  const { title, amount, expenseDate, category, isRecurring, recurringFrequency } = body;
 
   const { id } = params;
 
   try {
     await connectToDB();
-    const result = await Expense.findByIdAndUpdate(id, {
+    const updateData = {
       title,
       amount,
       expenseDate,
       category,
-    });
+    };
+    if (isRecurring !== undefined) {
+      updateData.isRecurring = isRecurring;
+      updateData.recurringFrequency = isRecurring ? recurringFrequency : null;
+      updateData.lastProcessedAt = isRecurring ? expenseDate : null;
+    }
+    const result = await Expense.findByIdAndUpdate(id, updateData);
     if (!result) {
       return res.json(
         { success: false, error: "Expense not found" },

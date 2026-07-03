@@ -23,6 +23,19 @@ const IncomeSchema = new Schema(
       require: [true, "Type is required"],
       default: "income",
     },
+    isRecurring: {
+      type: Boolean,
+      default: false,
+    },
+    recurringFrequency: {
+      type: String,
+      enum: ["daily", "weekly", "monthly", "yearly"],
+      default: null,
+    },
+    lastProcessedAt: {
+      type: Date,
+      default: null,
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",

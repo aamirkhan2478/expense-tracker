@@ -63,6 +63,8 @@ const updateIncome = (values) => {
       amount: values.amount,
       incomeDate: values.incomeDate,
       companyName: values.companyName,
+      isRecurring: values.isRecurring,
+      recurringFrequency: values.recurringFrequency,
     },
     config
   );

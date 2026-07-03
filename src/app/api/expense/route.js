@@ -13,6 +13,8 @@ export async function POST(req) {
     expenseDate: Joi.date().required(),
     category: Joi.string().required(),
     user: Joi.string().required(),
+    isRecurring: Joi.boolean().optional(),
+    recurringFrequency: Joi.string().valid("daily", "weekly", "monthly", "yearly").optional(),
   });
 
   const { error } = signupSchema.validate(body, { abortEarly: false });
@@ -28,7 +30,7 @@ export async function POST(req) {
     );
   }
 
-  const { title, amount, expenseDate, category, user } = body;
+  const { title, amount, expenseDate, category, user, isRecurring, recurringFrequency } = body;
 
   try {
     await connectToDB();
@@ -50,17 +52,19 @@ export async function POST(req) {
       expenseDate,
       category,
       user,
+      isRecurring: isRecurring || false,
+      recurringFrequency: isRecurring ? recurringFrequency : null,
+      lastProcessedAt: isRecurring ? expenseDate : null,
     });
     await expense.save();
     return res.json({ success: true, msg: "Expense created" }, { status: 201 });
   } catch (error) {
-    console.log(err.message);
+    console.log(error.message);
     return res.json({ error: "Server Error" }, { status: 500 });
   }
 }
 
 export async function GET(req) {
-  // Get query params
   const { searchParams } = new URL(req.url);
   const user = searchParams.get("user");
   const expensePage = searchParams.get("page");
@@ -68,9 +72,8 @@ export async function GET(req) {
   const category = searchParams.get("category") || "";
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
-  const searchQuery = searchParams.get("searchQuery") || "" 
-  
-  // Pagination Logic
+  const searchQuery = searchParams.get("searchQuery") || "";
+
   const page = Number(expensePage) || 1;
   const limit = Number(expenseLimit) || 5;
   const startIndex = (page - 1) * limit;
@@ -80,12 +83,10 @@ export async function GET(req) {
 
     let filter = {};
 
-    // Add category filter
     if (category) {
       filter.category = category;
     }
 
-    // Add startDate and endDate filters
     if (startDate && endDate) {
       filter.expenseDate = {
         $gte: startDate,
@@ -93,8 +94,7 @@ export async function GET(req) {
       };
     }
 
-    // Add search query filter
-    if (searchQuery){
+    if (searchQuery) {
       filter.title = new RegExp(searchQuery, "i");
     }
 
@@ -154,7 +154,6 @@ export async function GET(req) {
       };
     }
 
-    // Calculate the total expense amount
     const filteredExpenses = await Expense.find({ user, ...filter });
     let totalAmount = 0;
     filteredExpenses.forEach((expense) => {
