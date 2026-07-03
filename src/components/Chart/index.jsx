@@ -43,8 +43,14 @@ function Chart() {
 
   const isDark = useColorModeValue(false, true);
   const textColor = useColorModeValue("#4A5568", "#A0AEC0");
-  const gridColor = useColorModeValue("rgba(0,0,0,0.05)", "rgba(255,255,255,0.05)");
-  const tooltipBg = useColorModeValue("rgba(255,255,255,0.95)", "rgba(26,32,44,0.95)");
+  const gridColor = useColorModeValue(
+    "rgba(0,0,0,0.05)",
+    "rgba(255,255,255,0.05)",
+  );
+  const tooltipBg = useColorModeValue(
+    "rgba(255,255,255,0.95)",
+    "rgba(26,32,44,0.95)",
+  );
   const tooltipText = useColorModeValue("#1A202C", "#F7FAFC");
 
   const { settings } = useSettings();
@@ -212,6 +218,7 @@ function Chart() {
           display="flex"
           alignItems="center"
           gap={1}
+          h={{ base: "20px", md: "30px" }}
         >
           <FiTrendingUp size={12} />
           Live Data
