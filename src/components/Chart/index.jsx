@@ -196,6 +196,9 @@ function Chart() {
       boxShadow="sm"
       p={6}
       h="100%"
+      sx={{
+        width: "calc(100% - 20px)",
+      }}
       borderRadius="2xl"
     >
       <Flex justify="space-between" align="center" mb={4}>

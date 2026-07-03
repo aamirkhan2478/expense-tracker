@@ -12,7 +12,14 @@ import {
   Filler,
 } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-import { Box, Text, Flex, useColorModeValue, SimpleGrid, Skeleton } from "@chakra-ui/react";
+import {
+  Box,
+  Text,
+  Flex,
+  useColorModeValue,
+  SimpleGrid,
+  Skeleton,
+} from "@chakra-ui/react";
 import { useExpensesByCategory } from "@/hooks/useExpense";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { FiPieChart } from "react-icons/fi";
@@ -31,16 +38,16 @@ ChartJs.register(
 );
 
 const CATEGORY_COLORS = [
-  { bg: "rgba(20, 184, 166, 0.85)", border: "rgba(20, 184, 166, 1)" },      // teal
-  { bg: "rgba(244, 63, 94, 0.85)", border: "rgba(244, 63, 94, 1)" },       // rose
-  { bg: "rgba(59, 130, 246, 0.85)", border: "rgba(59, 130, 246, 1)" },     // blue
-  { bg: "rgba(245, 158, 11, 0.85)", border: "rgba(245, 158, 11, 1)" },     // amber
-  { bg: "rgba(16, 185, 129, 0.85)", border: "rgba(16, 185, 129, 1)" },     // green
-  { bg: "rgba(139, 92, 246, 0.85)", border: "rgba(139, 92, 246, 1)" },     // violet
-  { bg: "rgba(236, 72, 153, 0.85)", border: "rgba(236, 72, 153, 1)" },     // pink
-  { bg: "rgba(99, 102, 241, 0.85)", border: "rgba(99, 102, 241, 1)" },     // indigo
-  { bg: "rgba(249, 115, 22, 0.85)", border: "rgba(249, 115, 22, 1)" },     // orange
-  { bg: "rgba(6, 182, 212, 0.85)", border: "rgba(6, 182, 212, 1)" },       // cyan
+  { bg: "rgba(20, 184, 166, 0.85)", border: "rgba(20, 184, 166, 1)" }, // teal
+  { bg: "rgba(244, 63, 94, 0.85)", border: "rgba(244, 63, 94, 1)" }, // rose
+  { bg: "rgba(59, 130, 246, 0.85)", border: "rgba(59, 130, 246, 1)" }, // blue
+  { bg: "rgba(245, 158, 11, 0.85)", border: "rgba(245, 158, 11, 1)" }, // amber
+  { bg: "rgba(16, 185, 129, 0.85)", border: "rgba(16, 185, 129, 1)" }, // green
+  { bg: "rgba(139, 92, 246, 0.85)", border: "rgba(139, 92, 246, 1)" }, // violet
+  { bg: "rgba(236, 72, 153, 0.85)", border: "rgba(236, 72, 153, 1)" }, // pink
+  { bg: "rgba(99, 102, 241, 0.85)", border: "rgba(99, 102, 241, 1)" }, // indigo
+  { bg: "rgba(249, 115, 22, 0.85)", border: "rgba(249, 115, 22, 1)" }, // orange
+  { bg: "rgba(6, 182, 212, 0.85)", border: "rgba(6, 182, 212, 1)" }, // cyan
 ];
 
 function PieChart() {
@@ -61,7 +68,10 @@ function PieChart() {
   const bg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
   const textColor = useColorModeValue("#4A5568", "#A0AEC0");
-  const tooltipBg = useColorModeValue("rgba(255,255,255,0.95)", "rgba(26,32,44,0.95)");
+  const tooltipBg = useColorModeValue(
+    "rgba(255,255,255,0.95)",
+    "rgba(26,32,44,0.95)",
+  );
   const tooltipText = useColorModeValue("#1A202C", "#F7FAFC");
 
   const categoryData = data?.data?.data || [];
@@ -71,8 +81,12 @@ function PieChart() {
     datasets: [
       {
         data: categoryData.map((item) => item.amount),
-        backgroundColor: categoryData.map((_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length].bg),
-        borderColor: categoryData.map((_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length].border),
+        backgroundColor: categoryData.map(
+          (_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length].bg,
+        ),
+        borderColor: categoryData.map(
+          (_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length].border,
+        ),
         borderWidth: 2,
         hoverOffset: 8,
       },
@@ -121,6 +135,9 @@ function PieChart() {
       borderColor={borderColor}
       boxShadow="sm"
       p={6}
+      sx={{
+        width: "calc(100% - 20px)",
+      }}
       borderRadius="2xl"
     >
       <Flex justify="space-between" align="center" mb={4}>
@@ -167,7 +184,11 @@ function PieChart() {
         </Flex>
       ) : (
         <Flex direction={{ base: "column", md: "row" }} align="center" gap={6}>
-          <Box h={{ base: "200px", md: "240px" }} w={{ base: "200px", md: "240px" }} position="relative">
+          <Box
+            h={{ base: "200px", md: "240px" }}
+            w={{ base: "200px", md: "240px" }}
+            position="relative"
+          >
             {!mounted ? (
               <Skeleton height="100%" width="100%" borderRadius="full" />
             ) : (
@@ -209,7 +230,12 @@ function PieChart() {
                 <Text fontSize="sm" fontWeight="bold" color={textColor}>
                   {item.percentage}%
                 </Text>
-                <Text fontSize="xs" color="gray.500" minW="60px" textAlign="right">
+                <Text
+                  fontSize="xs"
+                  color="gray.500"
+                  minW="60px"
+                  textAlign="right"
+                >
                   {formatMoney(item.amount, settings)}
                 </Text>
               </Flex>
