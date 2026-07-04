@@ -136,7 +136,7 @@ function PieChart() {
       boxShadow="sm"
       p={6}
       sx={{
-        width: "calc(100% - 20px)",
+        width: "calc(100% - 22px)",
       }}
       borderRadius="2xl"
     >
