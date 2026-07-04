@@ -38,8 +38,8 @@ function Chart() {
     const user = JSON.parse(localStorage.getItem("user"));
     id = user?.id || "";
   }
-  const { data: expenses } = useShowExpense(id || "");
-  const { data: incomes } = useShowIncome(id || "");
+  const { data: expenses } = useShowExpense(id || "", 9999, 1);
+  const { data: incomes } = useShowIncome(id || "", 9999, 1);
 
   const isDark = useColorModeValue(false, true);
   const textColor = useColorModeValue("#4A5568", "#A0AEC0");

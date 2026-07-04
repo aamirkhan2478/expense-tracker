@@ -18,7 +18,7 @@ export async function GET(req) {
   try {
     await connectToDB();
 
-    const userExist = await User.findOne({ user: userId });
+    const userExist = await User.findById(userId);
     if (!userExist) {
       return res.json(
         { success: false, error: "User not found" },
@@ -26,10 +26,10 @@ export async function GET(req) {
       );
     }
 
-    // Get current month start and end dates
+    // Get current month start and end dates (UTC to match stored dates)
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+    const endOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59));
 
     // Get all categories for user with budget
     const categories = await Category.find({ user: userId }).select("name icon budget");

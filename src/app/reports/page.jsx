@@ -185,7 +185,7 @@ const Reports = () => {
     },
   };
 
-  const StatCard = ({ title, amount, icon, colorScheme, subtitle }) => {
+  const StatCard = ({ title, amount, icon, colorScheme, subtitle, suffix }) => {
     const colorMap = {
       green: { bg: "green.50", iconBg: "green.500", text: "green.600" },
       red: { bg: "red.50", iconBg: "red.500", text: "red.600" },
@@ -193,6 +193,10 @@ const Reports = () => {
       teal: { bg: "teal.50", iconBg: "teal.500", text: "teal.600" },
     };
     const theme = colorMap[colorScheme] || colorMap.blue;
+
+    const displayValue = suffix
+      ? `${amount}${suffix}`
+      : formatMoney(amount, settings);
 
     return (
       <MotionBox
@@ -219,7 +223,7 @@ const Reports = () => {
             </Flex>
           </Flex>
           <Text fontSize="3xl" fontWeight="bold" color={theme.text}>
-            {formatMoney(amount, settings)}
+            {displayValue}
           </Text>
           {subtitle && (
             <Text fontSize="xs" color={mutedText}>
@@ -325,6 +329,7 @@ const Reports = () => {
               icon={FiPieChart}
               colorScheme="blue"
               subtitle="Of total income"
+              suffix="%"
             />
           </SimpleGrid>
 

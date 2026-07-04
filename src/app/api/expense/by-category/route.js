@@ -18,7 +18,7 @@ export async function GET(req) {
   try {
     await connectToDB();
 
-    const userExist = await User.findOne({ user: userId });
+    const userExist = await User.findById(userId);
     if (!userExist) {
       return res.json(
         { success: false, error: "User not found" },
@@ -37,8 +37,8 @@ export async function GET(req) {
       endDate.setHours(23, 59, 59, 999);
     } else {
       const now = new Date();
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      startDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+      endDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59));
     }
 
     // Aggregate expenses by category

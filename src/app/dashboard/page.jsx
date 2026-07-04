@@ -109,8 +109,8 @@ const Dashboard = () => {
   }, [id, toast, queryClient]);
 
   const { settings } = useSettings();
-  const { data: expenses, isLoading: expenseFetching } = useShowExpense(id);
-  const { data: incomes, isLoading: incomeFetching } = useShowIncome(id);
+  const { data: expenses, isLoading: expenseFetching } = useShowExpense(id, 9999, 1);
+  const { data: incomes, isLoading: incomeFetching } = useShowIncome(id, 9999, 1);
   const { data: budgetData, isLoading: budgetFetching } = useBudgetSummary(id);
 
   const history = transactionHistory(

@@ -34,7 +34,7 @@ export async function POST(req) {
 
   try {
     await connectToDB();
-    let userExist = await User.findOne({ user });
+    let userExist = await User.findById(user);
     if (!userExist) {
       return res.json(
         {

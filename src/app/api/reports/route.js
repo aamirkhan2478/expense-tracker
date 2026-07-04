@@ -21,7 +21,7 @@ export async function GET(req) {
   try {
     await connectToDB();
 
-    const userExist = await User.findOne({ user: userId });
+    const userExist = await User.findById(userId);
     if (!userExist) {
       return res.json(
         { success: false, error: "User not found" },
@@ -34,11 +34,11 @@ export async function GET(req) {
 
     let startDate, endDate;
     if (month !== null && month >= 1 && month <= 12) {
-      startDate = new Date(year, month - 1, 1);
-      endDate = new Date(year, month, 0, 23, 59, 59);
+      startDate = new Date(Date.UTC(year, month - 1, 1));
+      endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59));
     } else {
-      startDate = new Date(year, 0, 1);
-      endDate = new Date(year, 11, 31, 23, 59, 59);
+      startDate = new Date(Date.UTC(year, 0, 1));
+      endDate = new Date(Date.UTC(year, 11, 31, 23, 59, 59));
     }
 
     // Income summary
