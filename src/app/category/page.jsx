@@ -37,7 +37,8 @@ import {
 import { Field, Form, Formik } from "formik";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   FiEdit2,
   FiPlus,
@@ -48,6 +49,7 @@ import {
   FiDollarSign,
 } from "react-icons/fi";
 import { useQueryClient } from "react-query";
+import { useHighlight } from "@/hooks/useHighlight";
 import { BeatLoader } from "react-spinners";
 import { number, object, string } from "yup";
 
@@ -72,6 +74,26 @@ const Category = () => {
     useDeleteCategory(onErrorDelete, onSuccessDelete);
   const toast = useToast();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const { highlightId, setHighlightId } = useHighlight();
+
+  // On mount: read highlight param and scroll when data loads
+  useEffect(() => {
+    const highlightParam = searchParams.get("highlight");
+    if (highlightParam) {
+      setHighlightId(highlightParam);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (highlightId && data?.data?.categories) {
+      setTimeout(() => {
+        const el = document.getElementById(`record-${highlightId}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [highlightId, data]);
 
   const bgCard = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -556,17 +578,19 @@ const Category = () => {
                   data?.data?.categories?.map((item) => {
                     const budget = item.budget || 0;
                     const hasBudget = budget > 0;
+                    const isHighlighted = highlightId === item._id;
                     return (
                       <MotionBox
                         key={item._id}
+                        id={`record-${item._id}`}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        bg={bgCard}
-                        border="1px solid"
-                        borderColor={borderColor}
+                        bg={isHighlighted ? "blue.50" : bgCard}
+                        border="2px solid"
+                        borderColor={isHighlighted ? "blue.400" : borderColor}
                         borderRadius="xl"
                         p={4}
-                        boxShadow="sm"
+                        boxShadow={isHighlighted ? "0 0 0 4px rgba(59, 130, 246, 0.2)" : "sm"}
                         _hover={{ boxShadow: "md", borderColor: "teal.200" }}
                         transition={{ duration: 0.2 }}
                       >

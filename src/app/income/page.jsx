@@ -41,7 +41,9 @@ import {
 } from "@chakra-ui/react";
 import { Field, Form, Formik } from "formik";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useHighlight } from "@/hooks/useHighlight";
 import {
   FiEdit2,
   FiPlus,
@@ -70,6 +72,7 @@ const Income = () => {
   const { settings } = useSettings();
   const [currentPage, setCurrentPage] = useState(1);
   const [incomeDate, setIncomeDate] = useState("");
+  const [pendingHighlight, setPendingHighlight] = useState(null);
   const { data, isFetching } = useShowIncome(
     id || "",
     5,
@@ -87,6 +90,48 @@ const Income = () => {
   );
   const toast = useToast();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const { highlightId, setHighlightId } = useHighlight();
+
+  // On mount: read page & highlight params from URL
+  useEffect(() => {
+    const pageParam = searchParams.get("page");
+    const highlightParam = searchParams.get("highlight");
+    if (pageParam) {
+      setCurrentPage(parseInt(pageParam));
+    }
+    if (highlightParam) {
+      setPendingHighlight(highlightParam);
+      setHighlightId(highlightParam);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When data loads, check if highlighted record is visible.
+  // If not, clear the date filter so it becomes visible.
+  useEffect(() => {
+    if (!pendingHighlight || !data?.data?.data) return;
+
+    const found = data.data.data.some((item) => item._id === pendingHighlight);
+    if (found) {
+      // Record is on this page — scroll to it
+      setTimeout(() => {
+        const el = document.getElementById(`record-${pendingHighlight}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+      setPendingHighlight(null);
+    } else if (incomeDate) {
+      // Record hidden by date filter — clear it
+      setIncomeDate("");
+      setCurrentPage(1);
+      // Keep pendingHighlight so we scroll after re-fetch
+    } else {
+      // Record not found even without filters — give up
+      setPendingHighlight(null);
+    }
+  }, [pendingHighlight, data, incomeDate]);
 
   const bgCard = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -692,17 +737,20 @@ const Income = () => {
                 )}
 
                 {!isFetching &&
-                  data?.data?.data?.map((item) => (
+                  data?.data?.data?.map((item) => {
+                    const isHighlighted = highlightId === item._id;
+                    return (
                     <MotionBox
                       key={item._id}
+                      id={`record-${item._id}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      bg={bgCard}
-                      border="1px solid"
-                      borderColor={borderColor}
+                      bg={isHighlighted ? "green.50" : bgCard}
+                      border="2px solid"
+                      borderColor={isHighlighted ? "green.400" : borderColor}
                       borderRadius="xl"
                       p={4}
-                      boxShadow="sm"
+                      boxShadow={isHighlighted ? "0 0 0 4px rgba(34, 197, 94, 0.2)" : "sm"}
                       _hover={{ boxShadow: "md", borderColor: "green.200" }}
                       transition={{ duration: 0.2 }}
                     >
@@ -762,7 +810,7 @@ const Income = () => {
                         </Flex>
                       </Flex>
                     </MotionBox>
-                  ))}
+                  );})}
 
                 <Pagination
                   currentPage={currentPage}

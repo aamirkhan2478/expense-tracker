@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ChakraUIProvider from "@/components/providers/ChakraUIProvider";
 import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
+import HighlightProviderWrapper from "@/components/providers/HighlightProvider";
 import { ColorModeScript } from "@chakra-ui/react";
 import theme from "@/constants/theme";
 
@@ -18,7 +19,9 @@ export default function RootLayout({ children }) {
       <body className={inter.className} suppressHydrationWarning>
         <ReactQueryProvider>
           <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-          <ChakraUIProvider>{children}</ChakraUIProvider>
+          <ChakraUIProvider>
+            <HighlightProviderWrapper>{children}</HighlightProviderWrapper>
+          </ChakraUIProvider>
         </ReactQueryProvider>
       </body>
     </html>
