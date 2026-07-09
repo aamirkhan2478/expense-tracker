@@ -27,6 +27,7 @@ import {
 } from "react-icons/fi";
 import Alert from "../Alert";
 import GlobalSearch from "../GlobalSearch";
+import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -34,6 +35,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const { onClose: closeAlert, isOpen, onOpen } = useDisclosure();
   const router = useRouter();
+  const { logout } = useAuth();
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -50,11 +52,8 @@ const SidebarContent = ({ onClose, ...rest }) => {
   }, []);
 
   const confirmHandler = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    document.cookie = "token=; path=/; max-age=0; SameSite=Strict";
     closeAlert();
-    router.push("/");
+    logout({ sessionExpired: false, redirectTo: "/" });
   };
 
   const LinkItems = [

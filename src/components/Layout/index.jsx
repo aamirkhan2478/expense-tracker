@@ -9,8 +9,10 @@ import {
 } from "@chakra-ui/react";
 import SidebarContent from "../sidebar/SidebarContent";
 import Navbar from "../sidebar/Navbar";
+import { useTokenExpiryCheck } from "@/hooks/useTokenExpiryCheck";
 
 const Layout = ({ children }) => {
+  useTokenExpiryCheck();
   const { isOpen, onOpen, onClose } = useDisclosure();
   return (
     <Box minH="100vh" bg={useColorModeValue("gray.50", "gray.950")}>

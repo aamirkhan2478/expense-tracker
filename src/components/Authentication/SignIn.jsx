@@ -77,7 +77,14 @@ const SignIn = ({ onSwitch }) => {
       isClosable: true,
     });
 
-    router.push("/dashboard");
+    // Check for a redirect destination (e.g. after session expiry)
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get("redirect");
+    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+      router.push(redirect);
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   function onError(error) {
