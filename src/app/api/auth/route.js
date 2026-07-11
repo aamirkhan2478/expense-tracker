@@ -67,9 +67,21 @@ export async function POST(req) {
         email,
         password,
       });
+
+      // Generate verification token
+      const verificationToken = user.generateEmailVerificationToken();
       await user.save();
 
       const token = user.generateToken();
+
+      // Send emails asynchronously (don't block response)
+      const { sendWelcomeEmail, sendVerificationEmail } = require("@/lib/email");
+      sendWelcomeEmail(email, name, user._id.toString()).catch((err) =>
+        console.error("[Auth] Welcome email failed:", err.message)
+      );
+      sendVerificationEmail(email, name, verificationToken, user._id.toString()).catch((err) =>
+        console.error("[Auth] Verification email failed:", err.message)
+      );
 
       const userData = {
         name: user.name,

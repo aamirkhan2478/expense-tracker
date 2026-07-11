@@ -19,6 +19,7 @@ import {
 import React from "react";
 import { FiEye, FiEyeOff, FiMail, FiLock } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import NextLink from "next/link";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useSignInUser } from "@/hooks/useAuth";
@@ -180,6 +181,8 @@ const SignIn = ({ onSwitch }) => {
             Remember me
           </Checkbox>
           <Text
+            as={NextLink}
+            href="/forgot-password"
             fontSize="sm"
             color="teal.500"
             fontWeight="medium"

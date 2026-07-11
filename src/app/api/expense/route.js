@@ -57,6 +57,65 @@ export async function POST(req) {
       lastProcessedAt: isRecurring ? expenseDate : null,
     });
     await expense.save();
+
+    // Check budget thresholds asynchronously
+    const { sendBudgetWarningEmail, sendBudgetExceededEmail } = require("@/lib/email");
+    const Category = require("@/models/category").default;
+    
+    (async () => {
+      try {
+        const cat = await Category.findById(category);
+        if (!cat || !cat.budget || cat.budget <= 0) return;
+
+        const now = new Date();
+        const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+        const endOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59));
+
+        const ExpenseModel = require("@/models/expense").default;
+        const aggregation = await ExpenseModel.aggregate([
+          {
+            $match: {
+              user: userExist._id,
+              category: cat._id,
+              expenseDate: { $gte: startOfMonth, $lte: endOfMonth },
+            },
+          },
+          { $group: { _id: null, totalSpent: { $sum: "$amount" } } },
+        ]);
+
+        const totalSpent = aggregation[0]?.totalSpent || 0;
+        const percentage = Math.round((totalSpent / cat.budget) * 100);
+        const monthName = now.toLocaleString("default", { month: "long" });
+
+        if (percentage >= 100) {
+          const overAmount = (totalSpent - cat.budget).toFixed(2);
+          await sendBudgetExceededEmail(
+            userExist.email,
+            userExist.name,
+            cat.name,
+            totalSpent.toFixed(2),
+            cat.budget.toFixed(2),
+            overAmount,
+            monthName,
+            userExist._id.toString()
+          );
+        } else if (percentage >= 80) {
+          await sendBudgetWarningEmail(
+            userExist.email,
+            userExist.name,
+            cat.name,
+            totalSpent.toFixed(2),
+            cat.budget.toFixed(2),
+            percentage,
+            monthName,
+            userExist._id.toString()
+          );
+        }
+      } catch (budgetErr) {
+        console.error("[Expense] Budget check failed:", budgetErr.message);
+      }
+    })();
+
     return res.json({ success: true, msg: "Expense created" }, { status: 201 });
   } catch (error) {
     console.log(error.message);

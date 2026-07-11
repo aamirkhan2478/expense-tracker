@@ -27,6 +27,26 @@ export async function POST(req) {
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
+      // Send failed login alert asynchronously
+      const headers = req.headers;
+      const forwardedFor = headers.get("x-forwarded-for");
+      const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : "Unknown";
+      const userAgent = headers.get("user-agent") || "Unknown";
+      const timestamp = new Date().toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+
+      const { sendFailedLoginAlert } = require("@/lib/email");
+      sendFailedLoginAlert(
+        user.email,
+        user.name,
+        timestamp,
+        ipAddress,
+        userAgent,
+        user._id.toString()
+      ).catch((err) => console.error("[Auth] Failed login alert failed:", err.message));
+
       return res.json(
         {
           success: false,
