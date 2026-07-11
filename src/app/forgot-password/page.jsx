@@ -17,7 +17,9 @@ import {
   IconButton,
   useColorMode,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { FiMail, FiArrowLeft, FiSun, FiMoon, FiCheckCircle } from "react-icons/fi";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
@@ -29,10 +31,19 @@ const MotionStack = motion(Stack);
 export default function ForgotPasswordPage() {
   const { colorMode, toggleColorMode } = useColorMode();
   const toast = useToast();
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const validate = () => {
     const newErrors = {};

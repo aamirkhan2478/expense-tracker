@@ -22,7 +22,8 @@ import {
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import NextLink from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
 import AuthBranding from "@/components/Authentication/AuthBranding";
 
@@ -30,12 +31,21 @@ const MotionStack = motion(Stack);
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get("token");
   const { colorMode, toggleColorMode } = useColorMode();
   const toast = useToast();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const [status, setStatus] = useState("verifying"); // verifying | success | error
   const [message, setMessage] = useState("");
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
     if (!token) {

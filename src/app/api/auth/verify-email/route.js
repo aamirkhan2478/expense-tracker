@@ -2,8 +2,23 @@ import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import User from "@/models/user";
 import crypto from "crypto";
+import { rateLimit } from "@/lib/rate-limiter";
 
 export async function POST(req) {
+  // ── Rate Limiting ──
+  const rateLimitResult = rateLimit(req, {
+    maxRequests: 10,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    keyPrefix: "auth:verify-email",
+  });
+
+  if (rateLimitResult) {
+    return res.json(
+      { success: false, error: "Too many attempts. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   try {
     const { token } = await req.json();
 
@@ -25,7 +40,7 @@ export async function POST(req) {
 
     if (!user) {
       return res.json(
-        { success: false, error: "Invalid or expired token" },
+        { success: false, error: "Invalid or expired verification link" },
         { status: 400 }
       );
     }
@@ -41,6 +56,9 @@ export async function POST(req) {
     );
   } catch (err) {
     console.error("[VerifyEmail] Error:", err.message);
-    return res.json({ error: "Server Error" }, { status: 500 });
+    return res.json(
+      { success: false, error: "Server error. Please try again later." },
+      { status: 500 }
+    );
   }
 }

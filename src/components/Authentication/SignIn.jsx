@@ -20,32 +20,36 @@ import React from "react";
 import { FiEye, FiEyeOff, FiMail, FiLock } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import NextLink from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useSignInUser } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MotionStack = motion(Stack);
 
 const SignIn = ({ onSwitch }) => {
   const router = useRouter();
+  const { login, isAuthenticated } = useAuth();
   const [show, setShow] = useState(false);
-  const handleClick = () => setShow(!show);
   const toast = useToast();
 
-  const {
-    mutate,
-    isLoading: loading,
-  } = useSignInUser(onSuccess, onError);
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
 
   const [user, setUser] = useState({
     email: "",
     password: "",
+    rememberMe: false,
   });
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const changeHandler = (e) => {
-    const { name, value } = e.target;
-    setUser((preData) => ({ ...preData, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setUser((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -53,10 +57,14 @@ const SignIn = ({ onSwitch }) => {
 
   const validate = () => {
     const newErrors = {};
-    if (!user.email) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email))
+    if (!user.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
       newErrors.email = "Invalid email address";
-    if (!user.password) newErrors.password = "Password is required";
+    }
+    if (!user.password) {
+      newErrors.password = "Password is required";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -64,41 +72,64 @@ const SignIn = ({ onSwitch }) => {
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    mutate(user);
-  };
 
-  function onSuccess(data) {
-    localStorage.setItem("token", data?.data?.token);
-    localStorage.setItem("user", JSON.stringify(data?.data?.user));
-    document.cookie = `token=${data?.data?.token}; path=/; max-age=86400; SameSite=Strict`;
+    // Prevent duplicate submissions
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-    toast({
-      title: data?.data?.msg,
-      status: "success",
-      isClosable: true,
-    });
+    try {
+      const result = await login({
+        email: user.email.trim().toLowerCase(),
+        password: user.password,
+        rememberMe: user.rememberMe,
+      });
 
-    // Check for a redirect destination (e.g. after session expiry)
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get("redirect");
-    if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
-      router.push(redirect);
-    } else {
-      router.push("/dashboard");
+      if (result.success) {
+        toast({
+          title: result.data?.message || "Login successful",
+          status: "success",
+          isClosable: true,
+        });
+
+        // Check for redirect destination
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect");
+        if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+          router.push(redirect);
+        } else {
+          router.push("/dashboard");
+        }
+      } else {
+        // Handle email not verified
+        if (result.code === "EMAIL_NOT_VERIFIED") {
+          toast({
+            title: "Email not verified",
+            description: result.error,
+            status: "warning",
+            duration: 8000,
+            isClosable: true,
+          });
+        } else {
+          toast({
+            title: result.error || "Login failed",
+            status: "error",
+            isClosable: true,
+          });
+        }
+
+        // Clear password on failed login
+        setUser((prev) => ({ ...prev, password: "" }));
+      }
+    } catch (error) {
+      toast({
+        title: "An unexpected error occurred",
+        status: "error",
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-  }
-
-  function onError(error) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    document.cookie = "token=; path=/; max-age=0; SameSite=Strict";
-
-    toast({
-      title: error.response?.data?.error || "Login failed",
-      status: "error",
-      isClosable: true,
-    });
-  }
+  };
 
   return (
     <MotionStack
@@ -137,6 +168,7 @@ const SignIn = ({ onSwitch }) => {
               size="lg"
               borderRadius="xl"
               focusBorderColor="teal.400"
+              autoComplete="email"
             />
           </InputGroup>
           <FormErrorMessage>{errors.email}</FormErrorMessage>
@@ -156,18 +188,17 @@ const SignIn = ({ onSwitch }) => {
               placeholder="Enter your password"
               value={user.password}
               onChange={changeHandler}
-              onKeyUp={(e) => {
-                if (e.key === "Enter") submitHandler(e);
-              }}
               borderRadius="xl"
               focusBorderColor="teal.400"
+              autoComplete="current-password"
             />
             <InputRightElement h="full" pr={1}>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleClick}
+                onClick={() => setShow(!show)}
                 tabIndex={-1}
+                type="button"
               >
                 <Icon as={show ? FiEyeOff : FiEye} color="gray.400" />
               </Button>
@@ -177,7 +208,13 @@ const SignIn = ({ onSwitch }) => {
         </FormControl>
 
         <Flex justify="space-between" align="center">
-          <Checkbox size="sm" colorScheme="teal">
+          <Checkbox
+            name="rememberMe"
+            isChecked={user.rememberMe}
+            onChange={changeHandler}
+            size="sm"
+            colorScheme="teal"
+          >
             Remember me
           </Checkbox>
           <Text
@@ -203,7 +240,8 @@ const SignIn = ({ onSwitch }) => {
           _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
           _active={{ bg: "teal.600" }}
           transition="all 0.2s"
-          isLoading={loading}
+          isLoading={isSubmitting}
+          isDisabled={isSubmitting}
           boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
         >
           Sign In

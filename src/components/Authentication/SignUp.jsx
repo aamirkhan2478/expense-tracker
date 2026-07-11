@@ -19,11 +19,10 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import { FiEye, FiEyeOff, FiMail, FiLock, FiUser } from "react-icons/fi";
-import { useState } from "react";
-import { Field, Form, Formik } from "formik";
-import { object, ref, string } from "yup";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useSignUpUser } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MotionStack = motion(Stack);
 
@@ -32,7 +31,7 @@ const getPasswordStrength = (password) => {
   if (password.length >= 8) strength += 25;
   if (/[A-Z]/.test(password)) strength += 25;
   if (/[0-9]/.test(password)) strength += 25;
-  if (/[!@#$%^&*]/.test(password)) strength += 25;
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 25;
   return strength;
 };
 
@@ -51,49 +50,175 @@ const strengthLabel = (strength) => {
 };
 
 const SignUp = ({ onRegisterSuccess, onSwitch }) => {
+  const router = useRouter();
+  const { register, isAuthenticated } = useAuth();
   const [show, setShow] = useState(false);
-  const handleClick = () => setShow(!show);
   const toast = useToast();
-  const { mutate, isLoading, isSuccess } = useSignUpUser(onSuccess, onError);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const initialValues = {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  const [values, setValues] = useState({
     name: "",
     email: "",
     password: "",
     cpassword: "",
     agree: false,
+  });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+
+  const changeHandler = (e) => {
+    const { name, value, type, checked } = e.target;
+    setValues((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
-  const clickHandler = (values) => {
-    const data = {
-      name: values.name,
-      email: values.email,
-      password: values.password,
-    };
-    mutate(data, {
-      onSuccess: () => {
+  const blurHandler = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+    validateField(name);
+  };
+
+  const validateField = (fieldName) => {
+    const newErrors = { ...errors };
+
+    switch (fieldName) {
+      case "name":
+        if (!values.name.trim()) {
+          newErrors.name = "Name is required";
+        } else if (values.name.trim().length < 2) {
+          newErrors.name = "Name must be at least 2 characters";
+        } else if (values.name.trim().length > 50) {
+          newErrors.name = "Name cannot exceed 50 characters";
+        } else if (!/^[a-zA-Z\s'-]+$/.test(values.name)) {
+          newErrors.name = "Name can only contain letters, spaces, hyphens, and apostrophes";
+        } else {
+          delete newErrors.name;
+        }
+        break;
+
+      case "email":
+        if (!values.email.trim()) {
+          newErrors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+          newErrors.email = "Invalid email address";
+        } else {
+          delete newErrors.email;
+        }
+        break;
+
+      case "password":
+        if (!values.password) {
+          newErrors.password = "Password is required";
+        } else if (values.password.length < 8) {
+          newErrors.password = "Password must be at least 8 characters";
+        } else if (values.password.length > 128) {
+          newErrors.password = "Password cannot exceed 128 characters";
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(values.password)) {
+          newErrors.password = "Password must contain uppercase, lowercase, number, and special character";
+        } else {
+          delete newErrors.password;
+        }
+        break;
+
+      case "cpassword":
+        if (!values.cpassword) {
+          newErrors.cpassword = "Please confirm your password";
+        } else if (values.cpassword !== values.password) {
+          newErrors.cpassword = "Passwords do not match";
+        } else {
+          delete newErrors.cpassword;
+        }
+        break;
+
+      case "agree":
+        if (!values.agree) {
+          newErrors.agree = "You must agree to the terms";
+        } else {
+          delete newErrors.agree;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+    return !newErrors[fieldName];
+  };
+
+  const validateAll = () => {
+    const fields = ["name", "email", "password", "cpassword", "agree"];
+    let isValid = true;
+    fields.forEach((field) => {
+      if (!validateField(field)) isValid = false;
+    });
+    return isValid;
+  };
+
+  const submitHandler = async (e) => {
+    e.preventDefault();
+
+    setTouched({ name: true, email: true, password: true, cpassword: true, agree: true });
+
+    if (!validateAll()) return;
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await register({
+        name: values.name.trim(),
+        email: values.email.trim().toLowerCase(),
+        password: values.password,
+      });
+
+      if (result.success) {
+        toast({
+          title: result.data?.message || "Account created successfully",
+          description: "Please check your email to verify your account.",
+          status: "success",
+          duration: 8000,
+          isClosable: true,
+        });
+
         if (onRegisterSuccess) {
           onRegisterSuccess();
         }
-      },
-    });
+
+        // Redirect to dashboard or show verification message
+        router.push("/dashboard");
+      } else {
+        toast({
+          title: result.error || "Registration failed",
+          status: "error",
+          isClosable: true,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "An unexpected error occurred",
+        status: "error",
+        isClosable: true,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  function onSuccess(data) {
-    toast({
-      title: data?.data?.msg,
-      status: "success",
-      isClosable: true,
-    });
-  }
-
-  function onError(error) {
-    toast({
-      title: error.response?.data?.error || "Registration failed",
-      status: "error",
-      isClosable: true,
-    });
-  }
+  const passwordStrength = getPasswordStrength(values.password);
+  const isFormValid =
+    values.name &&
+    values.email &&
+    values.password &&
+    values.cpassword &&
+    values.agree &&
+    Object.keys(errors).length === 0;
 
   return (
     <MotionStack
@@ -114,249 +239,173 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
         </Text>
       </Box>
 
-      <Formik
-        initialValues={initialValues}
-        onSubmit={async (values, { resetForm }) => {
-          await clickHandler(values);
-          if (isSuccess) resetForm();
-        }}
-        validationSchema={object({
-          name: string()
-            .matches(
-              /^(?=.{3,20}$)(?![a-z])(?!.*[_.]{2})[a-zA-Z ]+(?<![_.])$/,
-              "Name should have at least 3 characters and should not contain numbers!",
-            )
-            .required("Name is required!"),
-          email: string()
-            .required("Email is required!")
-            .email("Invalid Email!"),
-          password: string()
-            .required("Password is required!")
-            .matches(
-              /^(?=.*[0-9])(?=.*[A-Z ])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&* ]{8,20}$/,
-              "Password must contain at least 8 characters, 1 number, 1 upper, 1 lowercase and 1 special character!",
-            ),
-          cpassword: string()
-            .oneOf([ref("password"), null], "Passwords do not match!")
-            .required("Confirm Password is required!"),
-          agree: string().oneOf(["true"], "You must agree to the terms!"),
-        })}
-      >
-        {({
-          errors,
-          touched,
-          values,
-          handleBlur,
-          handleChange,
-          handleSubmit,
-          isValid,
-          dirty,
-          setFieldValue,
-        }) => {
-          const passwordStrength = getPasswordStrength(values.password);
+      <Stack as="form" onSubmit={submitHandler} spacing={4}>
+        <FormControl isInvalid={touched.name && !!errors.name}>
+          <FormLabel fontSize="sm" fontWeight="medium">
+            Full Name
+          </FormLabel>
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" h="full">
+              <Icon as={FiUser} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              type="text"
+              name="name"
+              placeholder="John Doe"
+              borderRadius="xl"
+              focusBorderColor="teal.400"
+              value={values.name}
+              onChange={changeHandler}
+              onBlur={blurHandler}
+              autoComplete="name"
+            />
+          </InputGroup>
+          <FormErrorMessage>{errors.name}</FormErrorMessage>
+        </FormControl>
 
-          return (
-            <Form>
-              <Stack spacing={4}>
-                <FormControl
-                  isInvalid={Boolean(errors.name) && Boolean(touched.name)}
-                >
-                  <FormLabel fontSize="sm" fontWeight="medium">
-                    Full Name
-                  </FormLabel>
-                  <InputGroup size="lg">
-                    <InputLeftElement pointerEvents="none" h="full">
-                      <Icon as={FiUser} color="gray.400" />
-                    </InputLeftElement>
-                    <Field
-                      as={Input}
-                      type="text"
-                      name="name"
-                      placeholder="John Doe"
-                      borderRadius="xl"
-                      focusBorderColor="teal.400"
-                      isInvalid={Boolean(errors.name) && Boolean(touched.name)}
-                      onBlur={handleBlur}
-                      onChange={handleChange("name")}
-                      value={values.name || ""}
-                    />
-                  </InputGroup>
-                  <FormErrorMessage>
-                    {Boolean(touched.name) && errors.name}
-                  </FormErrorMessage>
-                </FormControl>
+        <FormControl isInvalid={touched.email && !!errors.email}>
+          <FormLabel fontSize="sm" fontWeight="medium">
+            Email Address
+          </FormLabel>
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" h="full">
+              <Icon as={FiMail} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              borderRadius="xl"
+              focusBorderColor="teal.400"
+              value={values.email}
+              onChange={changeHandler}
+              onBlur={blurHandler}
+              autoComplete="email"
+            />
+          </InputGroup>
+          <FormErrorMessage>{errors.email}</FormErrorMessage>
+        </FormControl>
 
-                <FormControl
-                  isInvalid={Boolean(errors.email) && Boolean(touched.email)}
-                >
-                  <FormLabel fontSize="sm" fontWeight="medium">
-                    Email Address
-                  </FormLabel>
-                  <InputGroup size="lg">
-                    <InputLeftElement pointerEvents="none" h="full">
-                      <Icon as={FiMail} color="gray.400" />
-                    </InputLeftElement>
-                    <Field
-                      as={Input}
-                      type="email"
-                      name="email"
-                      placeholder="you@example.com"
-                      borderRadius="xl"
-                      focusBorderColor="teal.400"
-                      isInvalid={Boolean(errors.email) && Boolean(touched.email)}
-                      onBlur={handleBlur}
-                      onChange={handleChange("email")}
-                      value={values.email || ""}
-                    />
-                  </InputGroup>
-                  <FormErrorMessage>
-                    {Boolean(touched.email) && errors.email}
-                  </FormErrorMessage>
-                </FormControl>
-
-                <FormControl
-                  isInvalid={Boolean(errors.password) && Boolean(touched.password)}
-                >
-                  <FormLabel fontSize="sm" fontWeight="medium">
-                    Password
-                  </FormLabel>
-                  <InputGroup size="lg">
-                    <InputLeftElement pointerEvents="none" h="full">
-                      <Icon as={FiLock} color="gray.400" />
-                    </InputLeftElement>
-                    <Field
-                      as={Input}
-                      type={show ? "text" : "password"}
-                      name="password"
-                      placeholder="Create a strong password"
-                      borderRadius="xl"
-                      focusBorderColor="teal.400"
-                      isInvalid={
-                        Boolean(errors.password) && Boolean(touched.password)
-                      }
-                      onBlur={handleBlur}
-                      onChange={(e) => {
-                        handleChange("password")(e);
-                      }}
-                      value={values.password || ""}
-                    />
-                    <InputRightElement h="full" pr={1}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClick}
-                        tabIndex={-1}
-                      >
-                        <Icon as={show ? FiEyeOff : FiEye} color="gray.400" />
-                      </Button>
-                    </InputRightElement>
-                  </InputGroup>
-                  {values.password && (
-                    <Box mt={2}>
-                      <Flex justify="space-between" align="center" mb={1}>
-                        <Text fontSize="xs" color="gray.500">
-                          Password strength
-                        </Text>
-                        <Text
-                          fontSize="xs"
-                          fontWeight="bold"
-                          color={`${strengthColor(passwordStrength)}.500`}
-                        >
-                          {strengthLabel(passwordStrength)}
-                        </Text>
-                      </Flex>
-                      <Progress
-                        value={passwordStrength}
-                        size="xs"
-                        colorScheme={strengthColor(passwordStrength)}
-                        borderRadius="full"
-                        bg="gray.100"
-                      />
-                    </Box>
-                  )}
-                  <FormErrorMessage>
-                    {Boolean(touched.password) && errors.password}
-                  </FormErrorMessage>
-                </FormControl>
-
-                <FormControl
-                  isInvalid={Boolean(errors.cpassword) && Boolean(touched.cpassword)}
-                >
-                  <FormLabel fontSize="sm" fontWeight="medium">
-                    Confirm Password
-                  </FormLabel>
-                  <InputGroup size="lg">
-                    <InputLeftElement pointerEvents="none" h="full">
-                      <Icon as={FiLock} color="gray.400" />
-                    </InputLeftElement>
-                    <Field
-                      as={Input}
-                      type={show ? "text" : "password"}
-                      name="cpassword"
-                      placeholder="Confirm your password"
-                      borderRadius="xl"
-                      focusBorderColor="teal.400"
-                      isInvalid={
-                        Boolean(errors.cpassword) && Boolean(touched.cpassword)
-                      }
-                      onBlur={handleBlur}
-                      onChange={handleChange("cpassword")}
-                      value={values.cpassword || ""}
-                    />
-                  </InputGroup>
-                  <FormErrorMessage>
-                    {Boolean(touched.cpassword) && errors.cpassword}
-                  </FormErrorMessage>
-                </FormControl>
-
-                <FormControl
-                  isInvalid={Boolean(errors.agree) && Boolean(touched.agree)}
-                >
-                  <Checkbox
-                    name="agree"
-                    isChecked={values.agree === "true" || values.agree === true}
-                    onChange={(e) =>
-                      setFieldValue("agree", e.target.checked ? "true" : "")
-                    }
-                    colorScheme="teal"
-                    size="sm"
-                  >
-                    <Text fontSize="sm" color="gray.500">
-                      I agree to the{" "}
-                      <Text as="span" color="teal.500" fontWeight="medium">
-                        Terms of Service
-                      </Text>{" "}
-                      and{" "}
-                      <Text as="span" color="teal.500" fontWeight="medium">
-                        Privacy Policy
-                      </Text>
-                    </Text>
-                  </Checkbox>
-                  <FormErrorMessage>{errors.agree}</FormErrorMessage>
-                </FormControl>
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  borderRadius="xl"
-                  bg="teal.500"
-                  color="white"
+        <FormControl isInvalid={touched.password && !!errors.password}>
+          <FormLabel fontSize="sm" fontWeight="medium">
+            Password
+          </FormLabel>
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" h="full">
+              <Icon as={FiLock} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              type={show ? "text" : "password"}
+              name="password"
+              placeholder="Create a strong password"
+              borderRadius="xl"
+              focusBorderColor="teal.400"
+              value={values.password}
+              onChange={changeHandler}
+              onBlur={blurHandler}
+              autoComplete="new-password"
+            />
+            <InputRightElement h="full" pr={1}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShow(!show)}
+                tabIndex={-1}
+                type="button"
+              >
+                <Icon as={show ? FiEyeOff : FiEye} color="gray.400" />
+              </Button>
+            </InputRightElement>
+          </InputGroup>
+          {values.password && (
+            <Box mt={2}>
+              <Flex justify="space-between" align="center" mb={1}>
+                <Text fontSize="xs" color="gray.500">
+                  Password strength
+                </Text>
+                <Text
+                  fontSize="xs"
                   fontWeight="bold"
-                  _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
-                  _active={{ bg: "teal.600" }}
-                  transition="all 0.2s"
-                  isLoading={isLoading}
-                  onClick={handleSubmit}
-                  isDisabled={!isValid || !dirty}
-                  boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
+                  color={`${strengthColor(passwordStrength)}.500`}
                 >
-                  Create Account
-                </Button>
-              </Stack>
-            </Form>
-          );
-        }}
-      </Formik>
+                  {strengthLabel(passwordStrength)}
+                </Text>
+              </Flex>
+              <Progress
+                value={passwordStrength}
+                size="xs"
+                colorScheme={strengthColor(passwordStrength)}
+                borderRadius="full"
+                bg="gray.100"
+              />
+            </Box>
+          )}
+          <FormErrorMessage>{errors.password}</FormErrorMessage>
+        </FormControl>
+
+        <FormControl isInvalid={touched.cpassword && !!errors.cpassword}>
+          <FormLabel fontSize="sm" fontWeight="medium">
+            Confirm Password
+          </FormLabel>
+          <InputGroup size="lg">
+            <InputLeftElement pointerEvents="none" h="full">
+              <Icon as={FiLock} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              type={show ? "text" : "password"}
+              name="cpassword"
+              placeholder="Confirm your password"
+              borderRadius="xl"
+              focusBorderColor="teal.400"
+              value={values.cpassword}
+              onChange={changeHandler}
+              onBlur={blurHandler}
+              autoComplete="new-password"
+            />
+          </InputGroup>
+          <FormErrorMessage>{errors.cpassword}</FormErrorMessage>
+        </FormControl>
+
+        <FormControl isInvalid={touched.agree && !!errors.agree}>
+          <Checkbox
+            name="agree"
+            isChecked={values.agree}
+            onChange={changeHandler}
+            onBlur={blurHandler}
+            colorScheme="teal"
+            size="sm"
+          >
+            <Text fontSize="sm" color="gray.500">
+              I agree to the{" "}
+              <Text as="span" color="teal.500" fontWeight="medium">
+                Terms of Service
+              </Text>{" "}
+              and{" "}
+              <Text as="span" color="teal.500" fontWeight="medium">
+                Privacy Policy
+              </Text>
+            </Text>
+          </Checkbox>
+          <FormErrorMessage>{errors.agree}</FormErrorMessage>
+        </FormControl>
+
+        <Button
+          type="submit"
+          size="lg"
+          borderRadius="xl"
+          bg="teal.500"
+          color="white"
+          fontWeight="bold"
+          _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
+          _active={{ bg: "teal.600" }}
+          transition="all 0.2s"
+          isLoading={isSubmitting}
+          isDisabled={!isFormValid || isSubmitting}
+          boxShadow="0 4px 14px 0 rgba(20, 184, 166, 0.39)"
+        >
+          Create Account
+        </Button>
+      </Stack>
 
       <Flex align="center" gap={4} pt={2}>
         <Box flex={1} h="1px" bg="gray.200" />

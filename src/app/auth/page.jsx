@@ -12,13 +12,18 @@ import { useState, useEffect } from "react";
 import NextLink from "next/link";
 import { FiArrowLeft, FiSun, FiMoon } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 const MotionBox = motion(Box);
 
 export default function AuthPage() {
   const [tabIndex, setTabIndex] = useState(0);
   const { colorMode, toggleColorMode } = useColorMode();
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
 
+  // Handle tab switching from URL
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -31,9 +36,36 @@ export default function AuthPage() {
     }
   }, []);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+        router.push(redirect);
+      } else {
+        router.push("/dashboard");
+      }
+    }
+  }, [isAuthenticated, isLoading, router]);
+
   const handleSwitch = () => {
     setTabIndex((prev) => (prev === 0 ? 1 : 0));
   };
+
+  // Show loading while checking auth state
+  if (isLoading) {
+    return (
+      <Flex minH="100vh" align="center" justify="center">
+        <Box className="animate-spin" w={8} h={8} border="4px" borderColor="teal.200" borderTopColor="teal.500" borderRadius="full" />
+      </Flex>
+    );
+  }
+
+  // Don't render auth forms if already authenticated (prevents flash)
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <Flex minH="100vh" direction={{ base: "column", lg: "row" }}>

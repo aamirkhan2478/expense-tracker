@@ -31,6 +31,7 @@ import {
 import { motion } from "framer-motion";
 import NextLink from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
 import AuthBranding from "@/components/Authentication/AuthBranding";
 
@@ -42,6 +43,7 @@ export default function ResetPasswordPage() {
   const token = searchParams.get("token");
   const { colorMode, toggleColorMode } = useColorMode();
   const toast = useToast();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const [show, setShow] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -50,6 +52,13 @@ export default function ResetPasswordPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push("/dashboard");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
     if (!token) {

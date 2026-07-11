@@ -9,7 +9,7 @@ export async function POST(req) {
   const rateLimitResult = rateLimit(req, {
     maxRequests: 3,
     windowMs: 60 * 60 * 1000, // 1 hour
-    keyPrefix: "auth:forgot-password",
+    keyPrefix: "auth:resend-verification",
   });
 
   if (rateLimitResult) {
@@ -35,40 +35,41 @@ export async function POST(req) {
 
     const user = await User.findOne({ email: normalizedEmail });
 
-    // Always return the same message to prevent email enumeration
-    if (!user) {
+    // Always return same message to prevent email enumeration
+    if (!user || user.emailVerified) {
       return res.json(
         {
           success: true,
-          message: "If an account exists with this email, you will receive a password reset link shortly.",
+          message: "If an unverified account exists with this email, a new verification link has been sent.",
         },
         { status: 200 }
       );
     }
 
-    const resetToken = user.generatePasswordResetToken();
+    // Generate new verification token
+    const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // Send password reset email asynchronously
-    const { sendPasswordResetEmail } = require("@/lib/email");
-    sendPasswordResetEmail(
+    // Send verification email asynchronously
+    const { sendVerificationEmail } = require("@/lib/email");
+    sendVerificationEmail(
       user.email,
       user.name,
-      resetToken,
+      verificationToken,
       user._id.toString()
     ).catch((err) =>
-      console.error("[ForgotPassword] Email failed:", err.message)
+      console.error("[ResendVerification] Email failed:", err.message)
     );
 
     return res.json(
       {
         success: true,
-        message: "If an account exists with this email, you will receive a password reset link shortly.",
+        message: "If an unverified account exists with this email, a new verification link has been sent.",
       },
       { status: 200 }
     );
   } catch (err) {
-    console.error("[ForgotPassword] Error:", err.message);
+    console.error("[ResendVerification] Error:", err.message);
     return res.json(
       { success: false, error: "Server error. Please try again later." },
       { status: 500 }

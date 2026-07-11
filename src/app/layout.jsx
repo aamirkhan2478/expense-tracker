@@ -3,15 +3,16 @@ import "./globals.css";
 import ChakraUIProvider from "@/components/providers/ChakraUIProvider";
 import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import HighlightProviderWrapper from "@/components/providers/HighlightProvider";
-import CrossTabAuthSync from "@/components/providers/CrossTabAuthSync";
+import { AuthProvider } from "@/contexts/AuthContext";
+import AuthInitializer from "@/components/providers/AuthInitializer";
 import { ColorModeScript } from "@chakra-ui/react";
 import theme from "@/constants/theme";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Expense Tracker",
-  description: "A simple expense tracker built with Next.js and Chakra UI.",
+  title: "SpendWise - Smart Personal Finance",
+  description: "Take control of your money with beautiful tracking, insights, and effortless budgeting.",
 };
 
 export default function RootLayout({ children }) {
@@ -22,8 +23,11 @@ export default function RootLayout({ children }) {
           <ColorModeScript initialColorMode={theme.config.initialColorMode} />
           <ChakraUIProvider>
             <HighlightProviderWrapper>
-              <CrossTabAuthSync />
-              {children}
+              <AuthProvider>
+                <AuthInitializer>
+                  {children}
+                </AuthInitializer>
+              </AuthProvider>
             </HighlightProviderWrapper>
           </ChakraUIProvider>
         </ReactQueryProvider>
