@@ -90,12 +90,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
         {...rest}
       >
         {/* Header */}
-        <Flex
-          h="20"
-          alignItems="center"
-          mx="6"
-          justifyContent="space-between"
-        >
+        <Flex h="20" alignItems="center" mx="6" justifyContent="space-between">
           <Flex align="center" gap={2} my={3}>
             <Box
               w={8}
@@ -154,7 +149,11 @@ const SidebarContent = ({ onClose, ...rest }) => {
           <GlobalSearch />
         </Box>
 
-        <Divider mx={6} w="auto" borderColor={useColorModeValue("gray.100", "gray.700")} />
+        <Divider
+          mx={6}
+          w="auto"
+          borderColor={useColorModeValue("gray.100", "gray.700")}
+        />
 
         {/* Main Nav */}
         <Box
@@ -163,7 +162,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           overflowY="auto"
           sx={{
             scrollbarWidth: "none",
-            "-ms-overflow-style": "none",
+            msOverflowStyle: "none",
             "&::-webkit-scrollbar": {
               display: "none",
             },
@@ -181,11 +180,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
             Menu
           </Text>
           {LinkItems.map((link) => (
-            <NavItem
-              key={link.name}
-              icon={link.icon}
-              path={link.path}
-            >
+            <NavItem key={link.name} icon={link.icon} path={link.path}>
               {link.name}
             </NavItem>
           ))}
@@ -193,7 +188,12 @@ const SidebarContent = ({ onClose, ...rest }) => {
 
         {/* Bottom Actions */}
         <Box pb={6}>
-          <Divider mx={6} w="auto" mb={4} borderColor={useColorModeValue("gray.100", "gray.700")} />
+          <Divider
+            mx={6}
+            w="auto"
+            mb={4}
+            borderColor={useColorModeValue("gray.100", "gray.700")}
+          />
           {bottomItems.map((link) => (
             <NavItem
               key={link.name}
