@@ -5,20 +5,38 @@ import Joi from "joi";
 import { rateLimit } from "@/lib/rate-limiter";
 import { normalizeEmail, sanitizeInput } from "@/lib/auth-service";
 
+function getCookieOptions(maxAge) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  };
+}
+
+function getRegularCookieOptions(maxAge) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: false,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  };
+}
+
 export async function POST(req) {
-  // ── Rate Limiting ──
   const rateLimitResult = rateLimit(req, {
     maxRequests: 5,
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     keyPrefix: "auth:register",
   });
 
   if (rateLimitResult) {
     return res.json(
-      {
-        success: false,
-        error: "Too many registration attempts. Please try again later.",
-      },
+      { success: false, error: "Too many registration attempts. Please try again later." },
       { status: 429 }
     );
   }
@@ -26,7 +44,6 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    // ── Input Validation ──
     const signupSchema = Joi.object({
       name: Joi.string()
         .min(2)
@@ -69,39 +86,28 @@ export async function POST(req) {
       );
     }
 
-    // ── Sanitize & Normalize ──
     const name = sanitizeInput(value.name);
     const email = normalizeEmail(value.email);
     const { password } = value;
 
     await connectToDB();
 
-    // ── Check for existing user ──
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      // Return same message to prevent email enumeration
       return res.json(
         { success: false, error: "An account with this email already exists" },
         { status: 409 }
       );
     }
 
-    // ── Create user ──
-    const user = new User({
-      name,
-      email,
-      password,
-    });
-
+    const user = new User({ name, email, password });
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    // ── Generate tokens ──
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
     await user.save({ validateBeforeSave: false });
 
-    // ── Send emails asynchronously (don't block response) ──
     const { sendWelcomeEmail, sendVerificationEmail } = require("@/lib/email");
     sendWelcomeEmail(email, name, user._id.toString()).catch((err) =>
       console.error("[Auth] Welcome email failed:", err.message)
@@ -110,7 +116,6 @@ export async function POST(req) {
       console.error("[Auth] Verification email failed:", err.message)
     );
 
-    // ── Return response ──
     const userData = {
       id: user._id,
       name: user.name,
@@ -118,7 +123,7 @@ export async function POST(req) {
       emailVerified: user.emailVerified,
     };
 
-    return res.json(
+    const response = res.json(
       {
         success: true,
         message: "Account created successfully. Please verify your email.",
@@ -128,6 +133,13 @@ export async function POST(req) {
       },
       { status: 201 }
     );
+
+    // Set both cookies
+    const maxAge = 24 * 60 * 60;
+    response.cookies.set("token", accessToken, getCookieOptions(maxAge));
+    response.cookies.set("_token", accessToken, getRegularCookieOptions(maxAge));
+
+    return response;
   } catch (err) {
     console.error("[Auth Register] Error:", err.message);
     return res.json(

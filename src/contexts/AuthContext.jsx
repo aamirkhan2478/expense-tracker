@@ -25,7 +25,32 @@ const REMEMBER_ME_KEY = "rememberMe";
 const SESSION_WARNING_SHOWN_KEY = "__spendwise_session_warning_shown__";
 const SESSION_EXPIRED_SHOWN_KEY = "__spendwise_session_expired_toast_shown__";
 
-// ─── Helper Functions ────────────────────────────────────────────
+// ─── Cookie Helpers ──────────────────────────────────────────────
+
+/**
+ * Set a browser cookie.
+ * @param {string} name
+ * @param {string} value
+ * @param {number} maxAgeSeconds
+ */
+function setCookie(name, value, maxAgeSeconds) {
+  if (typeof document === "undefined") return;
+  const isProd = process.env.NODE_ENV === "production";
+  const secure = isProd ? "; Secure" : "";
+  const maxAge = maxAgeSeconds ? `; Max-Age=${maxAgeSeconds}` : "";
+  document.cookie = `${name}=${encodeURIComponent(value)}${maxAge}${secure}; Path=/; SameSite=Lax`;
+}
+
+/**
+ * Delete a browser cookie.
+ * @param {string} name
+ */
+function deleteCookie(name) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
+// ─── Storage Helpers ─────────────────────────────────────────────
 
 function getStoredToken() {
   if (typeof window === "undefined") return null;
@@ -47,18 +72,12 @@ function getStoredUser() {
   }
 }
 
-function decodeJwt(token) {
-  if (!token) return null;
+function decodeJwtPayload(token) {
   try {
+    if (!token || token.split(".").length !== 3) return null;
     const base64Url = token.split(".")[1];
-    if (!base64Url) return null;
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
+    const jsonPayload = atob(base64);
     return JSON.parse(jsonPayload);
   } catch {
     return null;
@@ -66,14 +85,13 @@ function decodeJwt(token) {
 }
 
 function isTokenExpired(token) {
-  const payload = decodeJwt(token);
+  const payload = decodeJwtPayload(token);
   if (!payload || !payload.exp) return true;
-  // Add 60 second buffer to prevent edge cases
   return payload.exp * 1000 < Date.now() + 60000;
 }
 
 function getTokenExpiryTime(token) {
-  const payload = decodeJwt(token);
+  const payload = decodeJwtPayload(token);
   if (!payload || !payload.exp) return null;
   return payload.exp * 1000;
 }
@@ -90,13 +108,9 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Prevent duplicate logout
   const isLoggingOutRef = useRef(false);
-  // Prevent multiple simultaneous refresh requests
   const refreshPromiseRef = useRef(null);
-  // Session warning timeout
   const warningTimeoutRef = useRef(null);
-  // Expiry check interval
   const expiryIntervalRef = useRef(null);
 
   // ─── Initialize Auth State ──
@@ -107,10 +121,12 @@ export function AuthProvider({ children }) {
     if (token && storedUser && !isTokenExpired(token)) {
       setUser(storedUser);
       setIsAuthenticated(true);
-      // Set Authorization header for axios
       axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // Sync the regular cookie from localStorage (production recovery)
+      const maxAge = 24 * 60 * 60;
+      setCookie("_token", token, maxAge);
     } else if (token && isTokenExpired(token)) {
-      // Token expired on load - clean up
       clearAuthData();
     }
 
@@ -120,14 +136,8 @@ export function AuthProvider({ children }) {
   // ─── Session Expiry Warning & Detection ──
   useEffect(() => {
     if (!isAuthenticated) {
-      if (warningTimeoutRef.current) {
-        clearTimeout(warningTimeoutRef.current);
-        warningTimeoutRef.current = null;
-      }
-      if (expiryIntervalRef.current) {
-        clearInterval(expiryIntervalRef.current);
-        expiryIntervalRef.current = null;
-      }
+      if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
+      if (expiryIntervalRef.current) clearInterval(expiryIntervalRef.current);
       return;
     }
 
@@ -139,9 +149,8 @@ export function AuthProvider({ children }) {
 
     const now = Date.now();
     const timeUntilExpiry = expiryTime - now;
-    const warningTime = Math.max(timeUntilExpiry - 5 * 60 * 1000, 0); // Warn 5 min before
+    const warningTime = Math.max(timeUntilExpiry - 5 * 60 * 1000, 0);
 
-    // Show warning before expiry
     if (warningTime > 0) {
       warningTimeoutRef.current = setTimeout(() => {
         if (!sessionStorage.getItem(SESSION_WARNING_SHOWN_KEY)) {
@@ -158,7 +167,6 @@ export function AuthProvider({ children }) {
       }, warningTime);
     }
 
-    // Check expiry every 30 seconds
     expiryIntervalRef.current = setInterval(() => {
       const currentToken = getStoredToken();
       if (currentToken && isTokenExpired(currentToken)) {
@@ -177,8 +185,6 @@ export function AuthProvider({ children }) {
     if (typeof window === "undefined") return;
 
     let bc = null;
-
-    // Primary: BroadcastChannel
     try {
       bc = new BroadcastChannel("spendwise_auth");
       bc.onmessage = (event) => {
@@ -193,7 +199,6 @@ export function AuthProvider({ children }) {
       bc = null;
     }
 
-    // Fallback: storage event
     const handleStorage = (event) => {
       if (event.key === "__spendwise_logout__") {
         handleCrossTabLogout();
@@ -224,7 +229,6 @@ export function AuthProvider({ children }) {
     setUser(null);
     setIsAuthenticated(false);
 
-    // Only reload if on a protected route
     const protectedRoutes = ["/dashboard", "/income", "/expense", "/category", "/settings", "/reports"];
     if (protectedRoutes.some((route) => pathname?.startsWith(route))) {
       window.location.href = "/auth?session_expired=true";
@@ -238,6 +242,7 @@ export function AuthProvider({ children }) {
       setUser(data.user);
       setIsAuthenticated(true);
       axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+      setCookie("_token", data.token, 24 * 60 * 60);
     }
   }
 
@@ -247,25 +252,24 @@ export function AuthProvider({ children }) {
 
     if (typeof window === "undefined") return;
 
-    // Cancel pending requests
     if (window.__authAbortController__) {
       window.__authAbortController__.abort();
       window.__authAbortController__ = null;
     }
 
-    // Clear localStorage
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
 
-    // Clear sessionStorage flags
     sessionStorage.removeItem(SESSION_WARNING_SHOWN_KEY);
     sessionStorage.removeItem(SESSION_EXPIRED_SHOWN_KEY);
 
-    // Clear axios auth header
     delete axiosInstance.defaults.headers.common["Authorization"];
 
-    // Broadcast to other tabs
+    // Clear ALL cookies
+    deleteCookie("token");
+    deleteCookie("_token");
+
     if (!skipBroadcast) {
       try {
         const bc = new BroadcastChannel("spendwise_auth");
@@ -287,20 +291,16 @@ export function AuthProvider({ children }) {
       isLoggingOutRef.current = true;
 
       try {
-        // Call server logout to blacklist token
         const token = getStoredToken();
         if (token) {
           await axiosInstance.post("/api/auth/logout", null, {
             headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => {
-            // Ignore errors - still clear client data
-          });
+          }).catch(() => {});
         }
       } catch {
         // Ignore logout API errors
       }
 
-      // Show session expired toast
       if (sessionExpired && !sessionStorage.getItem(SESSION_EXPIRED_SHOWN_KEY)) {
         toast({
           title: "Session expired",
@@ -313,14 +313,12 @@ export function AuthProvider({ children }) {
         sessionStorage.setItem(SESSION_EXPIRED_SHOWN_KEY, "true");
       }
 
-      // Clear all auth data
       clearAuthData();
       setUser(null);
       setIsAuthenticated(false);
 
-      // Redirect
       if (!skipRedirect) {
-        const currentPath = pathname + window.location.search;
+        const currentPath = pathname + (typeof window !== "undefined" ? window.location.search : "");
         const isAuthPage = currentPath.startsWith("/auth");
 
         if (!isAuthPage) {
@@ -345,7 +343,6 @@ export function AuthProvider({ children }) {
         const response = await axiosInstance.post("/api/auth/login", credentials);
         const { token, refreshToken, user: userData } = response.data;
 
-        // Store tokens
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(userData));
 
@@ -353,25 +350,24 @@ export function AuthProvider({ children }) {
           localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
         }
 
-        // Store remember me preference
         if (credentials.rememberMe) {
           localStorage.setItem(REMEMBER_ME_KEY, "true");
         } else {
           localStorage.removeItem(REMEMBER_ME_KEY);
         }
 
-        // Set axios auth header
         axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-        // Update state
+        // Sync regular cookie for middleware compatibility
+        const maxAge = credentials.rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
+        setCookie("_token", token, maxAge);
+
         setUser(userData);
         setIsAuthenticated(true);
 
-        // Clear session flags
         sessionStorage.removeItem(SESSION_WARNING_SHOWN_KEY);
         sessionStorage.removeItem(SESSION_EXPIRED_SHOWN_KEY);
 
-        // Broadcast to other tabs
         try {
           const bc = new BroadcastChannel("spendwise_auth");
           bc.postMessage({ type: "LOGIN", token, user: userData });
@@ -400,7 +396,6 @@ export function AuthProvider({ children }) {
         const response = await axiosInstance.post("/api/auth", userData);
         const { token, refreshToken, user: newUser } = response.data;
 
-        // Store tokens
         localStorage.setItem(TOKEN_KEY, token);
         localStorage.setItem(USER_KEY, JSON.stringify(newUser));
 
@@ -408,14 +403,14 @@ export function AuthProvider({ children }) {
           localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
         }
 
-        // Set axios auth header
         axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-        // Update state
+        // Sync regular cookie
+        setCookie("_token", token, 24 * 60 * 60);
+
         setUser(newUser);
         setIsAuthenticated(true);
 
-        // Broadcast to other tabs
         try {
           const bc = new BroadcastChannel("spendwise_auth");
           bc.postMessage({ type: "LOGIN", token, user: newUser });
@@ -438,7 +433,6 @@ export function AuthProvider({ children }) {
 
   // ─── Refresh Token ──
   const refreshToken = useCallback(async () => {
-    // Prevent multiple simultaneous refresh requests
     if (refreshPromiseRef.current) {
       return refreshPromiseRef.current;
     }
@@ -457,14 +451,15 @@ export function AuthProvider({ children }) {
 
         const { token, refreshToken: newRefreshToken } = response.data;
 
-        // Store new tokens
         localStorage.setItem(TOKEN_KEY, token);
         if (newRefreshToken) {
           localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
         }
 
-        // Update axios header
         axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+        // Sync regular cookie
+        setCookie("_token", token, 24 * 60 * 60);
 
         setIsRefreshing(false);
         refreshPromiseRef.current = null;
@@ -473,8 +468,6 @@ export function AuthProvider({ children }) {
       } catch (error) {
         setIsRefreshing(false);
         refreshPromiseRef.current = null;
-
-        // Refresh failed - logout
         logout({ sessionExpired: true });
         return { success: false, error: "Session expired" };
       }

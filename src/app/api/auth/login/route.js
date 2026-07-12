@@ -4,20 +4,44 @@ import User from "@/models/user";
 import { rateLimit } from "@/lib/rate-limiter";
 import { normalizeEmail } from "@/lib/auth-service";
 
+/**
+ * Cookie settings optimized for production reliability.
+ * SameSite=Lax is more compatible than Strict while still secure.
+ * Both HttpOnly and regular cookies are set for maximum compatibility.
+ */
+function getCookieOptions(maxAge) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  };
+}
+
+function getRegularCookieOptions(maxAge) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: false,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  };
+}
+
 export async function POST(req) {
   // ── Rate Limiting ──
   const rateLimitResult = rateLimit(req, {
     maxRequests: 10,
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     keyPrefix: "auth:login",
   });
 
   if (rateLimitResult) {
     return res.json(
-      {
-        success: false,
-        error: "Too many login attempts. Please try again later.",
-      },
+      { success: false, error: "Too many login attempts. Please try again later." },
       { status: 429 }
     );
   }
@@ -44,7 +68,6 @@ export async function POST(req) {
     );
 
     if (!user) {
-      // Generic error to prevent email enumeration
       return res.json(
         { success: false, error: "Invalid email or password" },
         { status: 401 }
@@ -67,15 +90,11 @@ export async function POST(req) {
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-      // Increment failed login attempts
       await user.incrementLoginAttempts();
 
-      // Send failed login alert asynchronously
       const headers = req.headers;
       const forwardedFor = headers.get("x-forwarded-for");
-      const ipAddress = forwardedFor
-        ? forwardedFor.split(",")[0].trim()
-        : "Unknown";
+      const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : "Unknown";
       const userAgent = headers.get("user-agent") || "Unknown";
       const timestamp = new Date().toLocaleString("en-US", {
         dateStyle: "medium",
@@ -90,9 +109,7 @@ export async function POST(req) {
         ipAddress,
         userAgent,
         user._id.toString()
-      ).catch((err) =>
-        console.error("[Auth] Failed login alert failed:", err.message)
-      );
+      ).catch((err) => console.error("[Auth] Failed login alert failed:", err.message));
 
       return res.json(
         { success: false, error: "Invalid email or password" },
@@ -139,15 +156,17 @@ export async function POST(req) {
       { status: 200 }
     );
 
-    // Set HTTP-only cookie for the token
-    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 24 hours
-    response.cookies.set("token", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge,
-      path: "/",
-    });
+    // ── Set cookies ──
+    // We set TWO cookies for maximum production reliability:
+    // 1. "token" (HttpOnly) — secure, can't be stolen by XSS
+    // 2. "_token" (regular) — accessible to middleware AND client JS
+    //
+    // Why both? In some production environments (Vercel Edge, proxies),
+    // HttpOnly cookies may not be readable by middleware. The regular
+    // cookie serves as a reliable fallback.
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
+    response.cookies.set("token", accessToken, getCookieOptions(maxAge));
+    response.cookies.set("_token", accessToken, getRegularCookieOptions(maxAge));
 
     return response;
   } catch (err) {

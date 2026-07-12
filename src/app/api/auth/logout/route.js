@@ -10,46 +10,32 @@ export async function POST(req) {
       ? authHeader.substring(7)
       : null;
 
-    if (!token) {
-      return res.json(
-        { success: false, error: "No token provided" },
-        { status: 400 }
-      );
-    }
+    if (token) {
+      await connectToDB();
+      const { valid, payload } = await verifyToken(token);
 
-    await connectToDB();
-
-    // Verify and get payload
-    const { valid, payload } = await verifyToken(token);
-
-    if (valid && payload?.id) {
-      // Blacklist the access token
-      await blacklistToken(token, payload.id, "logout");
-
-      // Invalidate refresh token on the user
-      const user = await User.findById(payload.id).select(
-        "+refreshToken +refreshTokenExpires"
-      );
-      if (user) {
-        user.refreshToken = null;
-        user.refreshTokenExpires = null;
-        await user.save({ validateBeforeSave: false });
+      if (valid && payload?.id) {
+        await blacklistToken(token, payload.id, "logout");
+        const user = await User.findById(payload.id).select(
+          "+refreshToken +refreshTokenExpires"
+        );
+        if (user) {
+          user.refreshToken = null;
+          user.refreshTokenExpires = null;
+          await user.save({ validateBeforeSave: false });
+        }
       }
     }
 
-    // Clear the HTTP-only cookie
     const response = res.json(
       { success: true, message: "Logged out successfully" },
       { status: 200 }
     );
 
-    response.cookies.set("token", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 0,
-      path: "/",
-    });
+    // Clear ALL auth cookies (both HttpOnly and regular)
+    const cookieOptions = { path: "/", maxAge: 0 };
+    response.cookies.set("token", "", cookieOptions);
+    response.cookies.set("_token", "", cookieOptions);
 
     return response;
   } catch (err) {

@@ -4,8 +4,29 @@ import User from "@/models/user";
 import jwt from "jsonwebtoken";
 import { rateLimit } from "@/lib/rate-limiter";
 
+function getCookieOptions(maxAge) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  };
+}
+
+function getRegularCookieOptions(maxAge) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: false,
+    secure: isProd,
+    sameSite: "lax",
+    maxAge,
+    path: "/",
+  };
+}
+
 export async function POST(req) {
-  // ── Rate Limiting ──
   const rateLimitResult = rateLimit(req, {
     maxRequests: 10,
     windowMs: 15 * 60 * 1000,
@@ -29,7 +50,6 @@ export async function POST(req) {
       );
     }
 
-    // Verify refresh token
     let payload;
     try {
       payload = jwt.verify(refreshToken, process.env.JWT_SECRET, {
@@ -63,7 +83,6 @@ export async function POST(req) {
       );
     }
 
-    // Check if refresh token matches and hasn't expired
     if (user.refreshToken !== refreshToken || !user.refreshTokenExpires || user.refreshTokenExpires < new Date()) {
       return res.json(
         { success: false, error: "Refresh token has been revoked" },
@@ -71,7 +90,6 @@ export async function POST(req) {
       );
     }
 
-    // Generate new tokens
     const newAccessToken = user.generateAccessToken();
     const newRefreshToken = user.generateRefreshToken();
     await user.save({ validateBeforeSave: false });
@@ -86,14 +104,10 @@ export async function POST(req) {
       { status: 200 }
     );
 
-    // Update HTTP-only cookie
-    response.cookies.set("token", newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 24 * 60 * 60,
-      path: "/",
-    });
+    // Update both cookies
+    const maxAge = 24 * 60 * 60;
+    response.cookies.set("token", newAccessToken, getCookieOptions(maxAge));
+    response.cookies.set("_token", newAccessToken, getRegularCookieOptions(maxAge));
 
     return response;
   } catch (err) {
