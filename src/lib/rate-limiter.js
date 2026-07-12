@@ -1,6 +1,8 @@
 /**
  * Simple in-memory rate limiter for Next.js API routes.
- * In production, replace with Redis-based rate limiting.
+ * NOTE: On serverless platforms (Vercel, Netlify), memory is NOT shared
+ * between invocations, so this only provides limited protection per
+ * function instance. For production, use Redis-based rate limiting.
  */
 
 const rateLimitMap = new Map();
@@ -12,6 +14,7 @@ const rateLimitMap = new Map();
  * @param {number} options.maxRequests - Max requests allowed
  * @param {number} options.windowMs - Time window in milliseconds
  * @param {string} options.keyPrefix - Prefix for the rate limit key
+ * @param {string} [options.key] - Optional custom key (e.g., user email for per-user limiting)
  * @returns {{success: boolean, limit: number, remaining: number, resetTime: number}|null}
  *   Returns null if allowed, or an object with rate limit info if blocked.
  */
@@ -20,15 +23,24 @@ export function rateLimit(req, options = {}) {
     maxRequests = 5,
     windowMs = 15 * 60 * 1000, // 15 minutes
     keyPrefix = "",
+    key: customKey,
   } = options;
 
-  // Get client IP
-  const forwarded = req.headers.get("x-forwarded-for");
-  const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
+  // Get client IP — try multiple headers for different platforms
+  let ip = customKey;
+  if (!ip) {
+    const forwarded = req.headers.get("x-forwarded-for");
+    const realIp = req.headers.get("x-real-ip");
+    const vercelForwarded = req.headers.get("x-vercel-forwarded-for");
+    ip = vercelForwarded || forwarded || realIp || "unknown";
+    if (ip && ip.includes(",")) {
+      ip = ip.split(",")[0].trim();
+    }
+  }
+
   const key = `${keyPrefix}:${ip}`;
 
   const now = Date.now();
-  const windowStart = now - windowMs;
 
   // Get or create entry
   let entry = rateLimitMap.get(key);

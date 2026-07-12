@@ -32,20 +32,6 @@ function getRegularCookieOptions(maxAge) {
 }
 
 export async function POST(req) {
-  // ── Rate Limiting ──
-  const rateLimitResult = rateLimit(req, {
-    maxRequests: 10,
-    windowMs: 15 * 60 * 1000,
-    keyPrefix: "auth:login",
-  });
-
-  if (rateLimitResult) {
-    return res.json(
-      { success: false, error: "Too many login attempts. Please try again later." },
-      { status: 429 }
-    );
-  }
-
   try {
     const body = await req.json();
     const { email, password, rememberMe } = body;
@@ -60,11 +46,26 @@ export async function POST(req) {
 
     const normalizedEmail = normalizeEmail(email);
 
+    // ── Rate Limiting (per email, not per IP) ──
+    const rateLimitResult = rateLimit(req, {
+      maxRequests: 10,
+      windowMs: 15 * 60 * 1000,
+      keyPrefix: "auth:login",
+      key: normalizedEmail,
+    });
+
+    if (rateLimitResult) {
+      return res.json(
+        { success: false, error: "Too many login attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     await connectToDB();
 
-    // ── Find user (include password and lockout fields) ──
+    // ── Find user (include password, lockout, and verification fields) ──
     const user = await User.findOne({ email: normalizedEmail }).select(
-      "+password +loginAttempts +lockUntil +refreshToken +refreshTokenExpires"
+      "+password +loginAttempts +lockUntil +refreshToken +refreshTokenExpires +emailVerificationToken +emailVerificationExpires"
     );
 
     if (!user) {
@@ -118,15 +119,28 @@ export async function POST(req) {
     }
 
     // ── Check if email is verified ──
+    // Legacy migration: users created before email verification was enforced
+    // have no verification token. Auto-verify them on first login.
     if (!user.emailVerified) {
-      return res.json(
-        {
-          success: false,
-          error: "Please verify your email before logging in. Check your inbox for the verification link.",
-          code: "EMAIL_NOT_VERIFIED",
-        },
-        { status: 403 }
-      );
+      const hasPendingToken = user.emailVerificationToken && user.emailVerificationExpires && user.emailVerificationExpires > Date.now();
+      
+      if (!hasPendingToken) {
+        // Legacy user or token expired — auto-verify to prevent lockout
+        user.emailVerified = true;
+        user.emailVerificationToken = null;
+        user.emailVerificationExpires = null;
+        await user.save({ validateBeforeSave: false });
+      } else {
+        // New user who hasn't verified their email yet
+        return res.json(
+          {
+            success: false,
+            error: "Please verify your email before logging in. Check your inbox for the verification link.",
+            code: "EMAIL_NOT_VERIFIED",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // ── Reset login attempts on success ──
