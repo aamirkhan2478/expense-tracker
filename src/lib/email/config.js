@@ -3,7 +3,7 @@ const config = {
   // Sender info
   fromName: process.env.EMAIL_FROM_NAME || "SpendWise",
   fromEmail: process.env.EMAIL_FROM_EMAIL || "noreply@spendwise.app",
-  supportEmail: process.env.EMAIL_SUPPORT_EMAIL || "support@spendwise.app",
+  supportEmail: "aamir.khan2478@gmail.com",
   frontendUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
 
   // SMTP / Transport
