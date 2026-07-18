@@ -5,28 +5,6 @@ import Joi from "joi";
 import { rateLimit } from "@/lib/rate-limiter";
 import { normalizeEmail, sanitizeInput } from "@/lib/auth-service";
 
-function getCookieOptions(maxAge) {
-  const isProd = process.env.NODE_ENV === "production";
-  return {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: "lax",
-    maxAge,
-    path: "/",
-  };
-}
-
-function getRegularCookieOptions(maxAge) {
-  const isProd = process.env.NODE_ENV === "production";
-  return {
-    httpOnly: false,
-    secure: isProd,
-    sameSite: "lax",
-    maxAge,
-    path: "/",
-  };
-}
-
 export async function POST(req) {
   const rateLimitResult = rateLimit(req, {
     maxRequests: 5,
@@ -104,10 +82,6 @@ export async function POST(req) {
     const verificationToken = user.generateEmailVerificationToken();
     await user.save();
 
-    const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
-    await user.save({ validateBeforeSave: false });
-
     const { sendWelcomeEmail, sendVerificationEmail } = require("@/lib/email");
     sendWelcomeEmail(email, name, user._id.toString()).catch((err) =>
       console.error("[Auth] Welcome email failed:", err.message)
@@ -116,30 +90,13 @@ export async function POST(req) {
       console.error("[Auth] Verification email failed:", err.message)
     );
 
-    const userData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      emailVerified: user.emailVerified,
-    };
-
-    const response = res.json(
+    return res.json(
       {
         success: true,
-        message: "Account created successfully. Please verify your email.",
-        user: userData,
-        token: accessToken,
-        refreshToken,
+        message: "Account created successfully. Please check your email to verify your account before signing in.",
       },
       { status: 201 }
     );
-
-    // Set both cookies
-    const maxAge = 24 * 60 * 60;
-    response.cookies.set("token", accessToken, getCookieOptions(maxAge));
-    response.cookies.set("_token", accessToken, getRegularCookieOptions(maxAge));
-
-    return response;
   } catch (err) {
     console.error("[Auth Register] Error:", err.message);
     return res.json(

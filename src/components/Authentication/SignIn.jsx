@@ -49,7 +49,10 @@ const SignIn = ({ onSwitch }) => {
 
   const changeHandler = (e) => {
     const { name, value, type, checked } = e.target;
-    setUser((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setUser((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -94,7 +97,11 @@ const SignIn = ({ onSwitch }) => {
         // Check for redirect destination
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect");
-        if (redirect && redirect.startsWith("/") && !redirect.startsWith("//")) {
+        if (
+          redirect &&
+          redirect.startsWith("/") &&
+          !redirect.startsWith("//")
+        ) {
           router.push(redirect);
         } else {
           router.push("/dashboard");
@@ -250,7 +257,12 @@ const SignIn = ({ onSwitch }) => {
 
       <Flex align="center" gap={4}>
         <Box flex={1} h="1px" bg="gray.200" />
-        <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+        <Text
+          fontSize="xs"
+          color="gray.400"
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
           or
         </Text>
         <Box flex={1} h="1px" bg="gray.200" />
@@ -267,6 +279,21 @@ const SignIn = ({ onSwitch }) => {
           onClick={onSwitch}
         >
           Create an account
+        </Text>
+      </Text>
+
+      {/* Dont recieve verification mail click here  */}
+      <Text textAlign="center" fontSize="sm" color="gray.500">
+        Don&apos;t receive verification mail?{" "}
+        <Text
+          as={NextLink}
+          href="/resend-verification"
+          color="teal.500"
+          fontWeight="semibold"
+          cursor="pointer"
+          _hover={{ textDecoration: "underline" }}
+        >
+          Click here
         </Text>
       </Text>
     </MotionStack>

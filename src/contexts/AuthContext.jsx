@@ -394,32 +394,6 @@ export function AuthProvider({ children }) {
     async (userData) => {
       try {
         const response = await axiosInstance.post("/api/auth", userData);
-        const { token, refreshToken, user: newUser } = response.data;
-
-        localStorage.setItem(TOKEN_KEY, token);
-        localStorage.setItem(USER_KEY, JSON.stringify(newUser));
-
-        if (refreshToken) {
-          localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-        }
-
-        axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-        // Sync regular cookie
-        setCookie("_token", token, 24 * 60 * 60);
-
-        setUser(newUser);
-        setIsAuthenticated(true);
-
-        try {
-          const bc = new BroadcastChannel("spendwise_auth");
-          bc.postMessage({ type: "LOGIN", token, user: newUser });
-          bc.close();
-        } catch {
-          localStorage.setItem("__spendwise_login__", JSON.stringify({ token, user: newUser }));
-          localStorage.removeItem("__spendwise_login__");
-        }
-
         return { success: true, data: response.data };
       } catch (error) {
         return {

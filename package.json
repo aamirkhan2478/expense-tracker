@@ -7,7 +7,8 @@
     "build": "node scripts/compile-email-templates.js && next build",
     "start": "next start",
     "lint": "next lint",
-    "compile:emails": "node scripts/compile-email-templates.js"
+    "compile:emails": "node scripts/compile-email-templates.js",
+    "seed:admin": "node scripts/seed-admin.js"
   },
   "dependencies": {
     "@chakra-ui/next-js": "^2.1.5",

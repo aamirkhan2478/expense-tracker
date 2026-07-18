@@ -121,12 +121,42 @@ export async function POST(req) {
       }
     }
 
+    const totalCreated = createdIncomes.length + createdExpenses.length;
+
+    // ── Send batch summary email if anything was processed ──
+    if (totalCreated > 0) {
+      try {
+        const { sendRecurringBatchSummaryEmail } = require("@/lib/email");
+        const allTransactions = [
+          ...createdIncomes.map((i) => ({ name: i.title || i.companyName, amount: `$${Number(i.amount).toFixed(2)}`, status: "success" })),
+          ...createdExpenses.map((e) => ({ name: e.title, amount: `$${Number(e.amount).toFixed(2)}`, status: "success" })),
+        ];
+        const totalAmount = [...createdIncomes, ...createdExpenses].reduce((s, t) => s + Number(t.amount), 0);
+
+        sendRecurringBatchSummaryEmail(
+          userExist.email,
+          userExist.name,
+          {
+            totalProcessed: totalCreated,
+            totalSuccess: totalCreated,
+            totalFailed: 0,
+            totalAmount: `$${totalAmount.toFixed(2)}`,
+            processingDate: new Date().toLocaleDateString("en-US", { dateStyle: "medium" }),
+            transactions: allTransactions,
+          },
+          userExist._id.toString()
+        ).catch((err) => console.error("[Recurring] Batch summary email failed:", err.message));
+      } catch (emailErr) {
+        console.error("[Recurring] Batch summary email error:", emailErr.message);
+      }
+    }
+
     return res.json(
       {
         success: true,
         incomesCreated: createdIncomes.length,
         expensesCreated: createdExpenses.length,
-        totalCreated: createdIncomes.length + createdExpenses.length,
+        totalCreated,
         details: {
           incomes: createdIncomes.map((i) => ({
             id: i._id,
@@ -149,3 +179,4 @@ export async function POST(req) {
     return res.json({ error: "Server Error" }, { status: 500 });
   }
 }
+

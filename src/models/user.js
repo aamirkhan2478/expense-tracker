@@ -11,6 +11,11 @@ const UserSchema = new Schema({
     minlength: [2, "Name must be at least 2 characters"],
     maxlength: [50, "Name cannot exceed 50 characters"],
   },
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
+  },
   email: {
     type: String,
     required: [true, "Email is required"],
@@ -76,6 +81,46 @@ const UserSchema = new Schema({
     type: Date,
     default: null,
   },
+  // Notification preferences
+  notificationPreferences: {
+    type: {
+      loginNotification: { type: Boolean, default: true },
+      largeExpenseAlert: { type: Boolean, default: true },
+      upcomingReminder: { type: Boolean, default: true },
+      weeklySummary: { type: Boolean, default: true },
+      recurringBatchSummary: { type: Boolean, default: true },
+      overspendingAlert: { type: Boolean, default: true },
+      savingsMilestone: { type: Boolean, default: true },
+      bulkImportSummary: { type: Boolean, default: true },
+      budgetWarning: { type: Boolean, default: true },
+      budgetExceeded: { type: Boolean, default: true },
+      failedLogin: { type: Boolean, default: true },
+
+      reminderDaysBefore: { type: Number, default: 3 }, // 1, 3, or 7
+      spendingAlertThreshold: { type: Number, default: 1000 },
+      largeExpenseThreshold: { type: Number, default: 500 },
+      weeklySummaryDay: { type: Number, default: 1 }, // 1 = Monday, 7 = Sunday
+      timezone: { type: String, default: "UTC" },
+    },
+    default: () => ({
+      loginNotification: true,
+      largeExpenseAlert: true,
+      upcomingReminder: true,
+      weeklySummary: true,
+      recurringBatchSummary: true,
+      overspendingAlert: true,
+      savingsMilestone: true,
+      bulkImportSummary: true,
+      budgetWarning: true,
+      budgetExceeded: true,
+      failedLogin: true,
+      reminderDaysBefore: 3,
+      spendingAlertThreshold: 1000,
+      largeExpenseThreshold: 500,
+      weeklySummaryDay: 1,
+      timezone: "UTC",
+    })
+  }
 }, {
   timestamps: true,
 });
@@ -109,7 +154,7 @@ UserSchema.methods.comparePassword = async function (password) {
 // Generate Access Token (short-lived)
 UserSchema.methods.generateAccessToken = function () {
   return jwt.sign(
-    { id: this._id, type: "access" },
+    { id: this._id, type: "access", role: this.role },
     process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_EXPIRE || "24h",

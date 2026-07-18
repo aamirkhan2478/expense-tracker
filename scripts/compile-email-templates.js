@@ -8,7 +8,7 @@ const path = require("path");
 const mjml2html = require("mjml");
 
 const templatesDir = path.join(__dirname, "..", "src", "lib", "email", "templates");
-const compiledDir = path.join(templatesDir, "compiled");
+const compiledDir = path.join(__dirname, "..", "src", "lib", "email", "compiled");
 
 // Ensure compiled directory exists
 if (!fs.existsSync(compiledDir)) {
@@ -16,6 +16,7 @@ if (!fs.existsSync(compiledDir)) {
 }
 
 const templateFiles = [
+  // Phase 1
   "welcome.js",
   "verify-email.js",
   "password-reset.js",
@@ -23,6 +24,15 @@ const templateFiles = [
   "budget-exceeded.js",
   "monthly-report.js",
   "failed-login.js",
+  // Phase 2
+  "login-notification.js",
+  "large-expense-alert.js",
+  "upcoming-reminder.js",
+  "weekly-spending-summary.js",
+  "recurring-batch-summary.js",
+  "overspending-alert.js",
+  "savings-milestone.js",
+  "bulk-import-summary.js",
 ];
 
 async function compileAll() {

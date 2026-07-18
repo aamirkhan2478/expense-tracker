@@ -75,7 +75,10 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
 
   const changeHandler = (e) => {
     const { name, value, type, checked } = e.target;
-    setValues((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setValues((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -99,7 +102,8 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
         } else if (values.name.trim().length > 50) {
           newErrors.name = "Name cannot exceed 50 characters";
         } else if (!/^[a-zA-Z\s'-]+$/.test(values.name)) {
-          newErrors.name = "Name can only contain letters, spaces, hyphens, and apostrophes";
+          newErrors.name =
+            "Name can only contain letters, spaces, hyphens, and apostrophes";
         } else {
           delete newErrors.name;
         }
@@ -122,8 +126,13 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
           newErrors.password = "Password must be at least 8 characters";
         } else if (values.password.length > 128) {
           newErrors.password = "Password cannot exceed 128 characters";
-        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(values.password)) {
-          newErrors.password = "Password must contain uppercase, lowercase, number, and special character";
+        } else if (
+          !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(
+            values.password,
+          )
+        ) {
+          newErrors.password =
+            "Password must contain uppercase, lowercase, number, and special character";
         } else {
           delete newErrors.password;
         }
@@ -164,7 +173,13 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    setTouched({ name: true, email: true, password: true, cpassword: true, agree: true });
+    setTouched({
+      name: true,
+      email: true,
+      password: true,
+      cpassword: true,
+      agree: true,
+    });
 
     if (!validateAll()) return;
     if (isSubmitting) return;
@@ -191,8 +206,8 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
           onRegisterSuccess();
         }
 
-        // Redirect to dashboard or show verification message
-        router.push("/dashboard");
+        // Redirect to the login tab of the authentication page
+        router.push("/auth?tab=login");
       } else {
         toast({
           title: result.error || "Registration failed",
@@ -409,7 +424,12 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
 
       <Flex align="center" gap={4} pt={2}>
         <Box flex={1} h="1px" bg="gray.200" />
-        <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+        <Text
+          fontSize="xs"
+          color="gray.400"
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
           or
         </Text>
         <Box flex={1} h="1px" bg="gray.200" />

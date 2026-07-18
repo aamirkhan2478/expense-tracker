@@ -24,7 +24,6 @@ function getMjml2html() {
 async function loadOrCompile(templateName, mjmlTemplate) {
   const compiledPath = path.join(
     __dirname,
-    "templates",
     "compiled",
     `${templateName}.html`
   );

@@ -151,12 +151,84 @@ export async function POST(req) {
     const refreshToken = user.generateRefreshToken();
     await user.save({ validateBeforeSave: false });
 
+    // ── Fire login notification for new/unknown devices (async, non-blocking) ──
+    ;(async () => {
+      try {
+        const headers = req.headers;
+        const forwardedFor = headers.get("x-forwarded-for");
+        const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : "Unknown";
+        const userAgentStr = headers.get("user-agent") || "Unknown";
+
+        // Simple UA parsing using string patterns (no extra dependency needed)
+        let browser = "Unknown", os = "Unknown", device = "Desktop";
+        const ua = userAgentStr.toLowerCase();
+        // Browser
+        if (ua.includes("edg/")) browser = "Microsoft Edge";
+        else if (ua.includes("opr/") || ua.includes("opera")) browser = "Opera";
+        else if (ua.includes("chrome")) browser = "Chrome";
+        else if (ua.includes("firefox")) browser = "Firefox";
+        else if (ua.includes("safari")) browser = "Safari";
+        else if (ua.includes("msie") || ua.includes("trident")) browser = "Internet Explorer";
+        // OS
+        if (ua.includes("windows")) os = "Windows";
+        else if (ua.includes("macintosh") || ua.includes("mac os")) os = "macOS";
+        else if (ua.includes("android")) os = "Android";
+        else if (ua.includes("iphone") || ua.includes("ipad")) os = "iOS";
+        else if (ua.includes("linux")) os = "Linux";
+        // Device
+        if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) device = "Mobile";
+        else if (ua.includes("ipad") || ua.includes("tablet")) device = "Tablet";
+
+        const { connectToDB } = await import("@/utils/database");
+        await connectToDB();
+
+        const { default: UserDevice } = await import("@/models/user-device");
+        const existingDevice = await UserDevice.findOne({
+          userId: user._id,
+          browser,
+          os,
+        });
+
+        const isNewDevice = !existingDevice;
+        const locationChanged = existingDevice && existingDevice.ipAddress !== ipAddress;
+
+        // Update or insert the device record
+        await UserDevice.findOneAndUpdate(
+          { userId: user._id, browser, os },
+          { $set: { device, ipAddress, userAgent: userAgentStr, lastUsedAt: new Date(), loginMethod: "password" } },
+          { upsert: true, new: true }
+        );
+
+        // Send notification if it's a new device or the IP changed
+        if (isNewDevice || locationChanged) {
+          const { sendLoginNotificationEmail } = require("@/lib/email");
+          await sendLoginNotificationEmail(
+            user.email,
+            user.name,
+            {
+              timestamp: new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
+              device,
+              browser,
+              os,
+              location: `IP: ${ipAddress}`,
+              ipAddress,
+              loginMethod: "Password",
+            },
+            user._id.toString()
+          );
+        }
+      } catch (notifErr) {
+        console.error("[Auth Login] Login notification failed:", notifErr.message);
+      }
+    })();
+
     // ── Return response ──
     const userData = {
       id: user._id,
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
+      role: user.role,
     };
 
     const response = res.json(
@@ -191,3 +263,4 @@ export async function POST(req) {
     );
   }
 }
+
