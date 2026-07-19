@@ -15,6 +15,9 @@ import {
   Icon,
   InputLeftElement,
   FormErrorMessage,
+  Alert,
+  AlertIcon,
+  AlertDescription,
 } from "@chakra-ui/react";
 import React from "react";
 import { FiEye, FiEyeOff, FiMail, FiLock } from "react-icons/fi";
@@ -26,11 +29,43 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const MotionStack = motion(Stack);
 
+const REMEMBER_EMAIL_KEY = "spendwise_remember_email";
+const REMEMBER_PASS_KEY = "spendwise_remember_pass";
+const REMEMBER_DAYS = 30;
+
+function setCookie(name, value, days) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; Path=/; SameSite=Lax`;
+}
+
+function getCookie(name) {
+  return document.cookie.split("; ").find((r) => r.startsWith(name + "="))?.split("=")[1];
+}
+
+function deleteCookie(name) {
+  document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
 const SignIn = ({ onSwitch }) => {
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
   const [show, setShow] = useState(false);
   const toast = useToast();
+
+  // Restore saved credentials from cookies
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const savedEmail = decodeURIComponent(getCookie(REMEMBER_EMAIL_KEY) || "");
+    const savedPass = decodeURIComponent(getCookie(REMEMBER_PASS_KEY) || "");
+    if (savedEmail) {
+      setUser((prev) => ({
+        ...prev,
+        email: savedEmail,
+        password: savedPass,
+        rememberMe: true,
+      }));
+    }
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -46,6 +81,7 @@ const SignIn = ({ onSwitch }) => {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const changeHandler = (e) => {
     const { name, value, type, checked } = e.target;
@@ -56,6 +92,7 @@ const SignIn = ({ onSwitch }) => {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+    if (formError) setFormError("");
   };
 
   const validate = () => {
@@ -74,9 +111,10 @@ const SignIn = ({ onSwitch }) => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+    setFormError("");
+
     if (!validate()) return;
 
-    // Prevent duplicate submissions
     if (isSubmitting) return;
     setIsSubmitting(true);
 
@@ -88,13 +126,20 @@ const SignIn = ({ onSwitch }) => {
       });
 
       if (result.success) {
+        if (user.rememberMe) {
+          setCookie(REMEMBER_EMAIL_KEY, user.email.trim().toLowerCase(), REMEMBER_DAYS);
+          setCookie(REMEMBER_PASS_KEY, user.password, REMEMBER_DAYS);
+        } else {
+          deleteCookie(REMEMBER_EMAIL_KEY);
+          deleteCookie(REMEMBER_PASS_KEY);
+        }
+
         toast({
           title: result.data?.message || "Login successful",
           status: "success",
           isClosable: true,
         });
 
-        // Check for redirect destination
         const params = new URLSearchParams(window.location.search);
         const redirect = params.get("redirect");
         if (
@@ -107,32 +152,15 @@ const SignIn = ({ onSwitch }) => {
           router.push("/dashboard");
         }
       } else {
-        // Handle email not verified
         if (result.code === "EMAIL_NOT_VERIFIED") {
-          toast({
-            title: "Email not verified",
-            description: result.error,
-            status: "warning",
-            duration: 8000,
-            isClosable: true,
-          });
+          setFormError(result.error || "Please verify your email before signing in.");
         } else {
-          toast({
-            title: result.error || "Login failed",
-            status: "error",
-            isClosable: true,
-          });
+          setFormError(result.error || "Invalid email or password.");
         }
-
-        // Clear password on failed login
         setUser((prev) => ({ ...prev, password: "" }));
       }
     } catch (error) {
-      toast({
-        title: "An unexpected error occurred",
-        status: "error",
-        isClosable: true,
-      });
+      setFormError("Unable to connect to the server. Please check your connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -158,6 +186,12 @@ const SignIn = ({ onSwitch }) => {
       </Box>
 
       <Stack as="form" onSubmit={submitHandler} spacing={5}>
+        {formError && (
+          <Alert status="error" borderRadius="xl" fontSize="sm" py={3}>
+            <AlertIcon />
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        )}
         <FormControl isInvalid={!!errors.email}>
           <FormLabel fontSize="sm" fontWeight="medium">
             Email Address

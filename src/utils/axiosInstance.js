@@ -34,6 +34,20 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// ─── Auth Endpoints that should NEVER trigger session expiry ──────
+const AUTH_ENDPOINTS = [
+  "/api/auth/login",
+  "/api/auth", // registration
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+  "/api/auth/verify-email",
+  "/api/auth/resend-verification",
+];
+
+function isAuthEndpoint(url) {
+  return AUTH_ENDPOINTS.some((endpoint) => url?.includes(endpoint));
+}
+
 // ─── Response Interceptor ─────────────────────────────────────────
 // Track if we're currently refreshing to prevent multiple refresh requests
 let isRefreshing = false;
@@ -57,7 +71,6 @@ axiosInstance.interceptors.response.use(
 
     // Network errors (no response object)
     if (!error.response) {
-      // Check if it was aborted
       if (error.code === "ERR_CANCELED" || error.code === "ECONNABORTED") {
         return Promise.reject(error);
       }
@@ -69,11 +82,20 @@ axiosInstance.interceptors.response.use(
 
     const status = error.response.status;
 
-    // 401 Unauthorized — token expired
+    // ── Auth endpoints: never treat auth failures as session expiry ──
+    if (isAuthEndpoint(originalRequest.url)) {
+      return Promise.reject(error);
+    }
+
+    // ── 401 Unauthorized — token expired ──
     if (status === 401 && !originalRequest._retry) {
-      // Prevent infinite loops
+      // Only attempt refresh if there's actually a stored token
+      const existingToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (!existingToken) {
+        return Promise.reject(error);
+      }
+
       if (originalRequest.url?.includes("/api/auth/refresh")) {
-        // Refresh token itself failed - trigger logout via auth context
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("auth:sessionExpired"));
         }
@@ -83,7 +105,6 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       if (isRefreshing) {
-        // Wait for the current refresh to complete
         return new Promise((resolve) => {
           addRefreshSubscriber((newToken) => {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -106,23 +127,18 @@ axiosInstance.interceptors.response.use(
 
         const { token, refreshToken: newRefreshToken } = response.data;
 
-        // Store new tokens
         localStorage.setItem("token", token);
         if (newRefreshToken) {
           localStorage.setItem("refreshToken", newRefreshToken);
         }
 
-        // Update axios default header
         axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-        // Notify subscribers
         onTokenRefreshed(token);
 
-        // Retry original request
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - trigger logout
         onTokenRefreshed(null);
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("auth:sessionExpired"));
@@ -133,15 +149,16 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // 403 Forbidden — token rejected (user deleted, token revoked, etc.)
+    // ── 403 Forbidden — token rejected (only if authenticated) ──
     if (status === 403) {
-      if (typeof window !== "undefined") {
+      const existingToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (existingToken && typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("auth:sessionExpired"));
       }
       return Promise.reject(error);
     }
 
-    // 429 Too Many Requests
+    // ── 429 Too Many Requests ──
     if (status === 429) {
       return Promise.reject({
         ...error,
@@ -149,7 +166,7 @@ axiosInstance.interceptors.response.use(
       });
     }
 
-    // 423 Locked (account lockout)
+    // ── 423 Locked (account lockout) ──
     if (status === 423) {
       return Promise.reject({
         ...error,
@@ -157,7 +174,7 @@ axiosInstance.interceptors.response.use(
       });
     }
 
-    // 504 Gateway Timeout
+    // ── 504 Gateway Timeout ──
     if (status === 504) {
       return Promise.reject({
         ...error,
