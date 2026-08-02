@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "compile:emails": "node scripts/compile-email-templates.js",
-    "seed:admin": "node scripts/seed-admin.js"
+    "seed:admin": "node scripts/seed-admin.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@chakra-ui/next-js": "^2.1.5",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@types/nodemailer": "^8.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.0.1"
+    "eslint-config-next": "14.0.1",
+    "vitest": "^4.1.10"
   }
 }

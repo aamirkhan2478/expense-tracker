@@ -3,6 +3,8 @@
 import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
 import { useSettings, CURRENCIES, formatMoney } from "@/hooks/useSettings";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { formatDate, previewDate, DATE_FORMAT_KEYS } from "@/utils/formatDate";
 import { exportToJSON, exportAllData } from "@/utils/exportData";
 import axiosInstance from "@/utils/axiosInstance";
 import {
@@ -102,13 +104,16 @@ const WEEK_DAYS = [
 
 export default function SettingsPage() {
   const { settings, updateSettings, resetSettings, isReady } = useSettings();
+  const { dateFormat: serverDateFormat, itemsPerPage: serverItemsPerPage, updatePreferences } = useUserPreferences();
   const toast = useToast();
   const [localCurrency, setLocalCurrency] = useState(settings.currencyCode);
-  const [localDateFormat, setLocalDateFormat] = useState(settings.dateFormat);
-  const [localItemsPerPage, setLocalItemsPerPage] = useState(settings.itemsPerPage);
+  const [localDateFormat, setLocalDateFormat] = useState(serverDateFormat);
+  const [localItemsPerPage, setLocalItemsPerPage] = useState(serverItemsPerPage);
   const [notifPrefs, setNotifPrefs] = useState(null);
   const [notifLoading, setNotifLoading] = useState(true);
   const [savingNotif, setSavingNotif] = useState(false);
+  const [savingDateFormat, setSavingDateFormat] = useState(false);
+  const [savingItemsPerPage, setSavingItemsPerPage] = useState(false);
 
   const bgCard = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -117,10 +122,16 @@ export default function SettingsPage() {
   useEffect(() => {
     if (isReady) {
       setLocalCurrency(settings.currencyCode);
-      setLocalDateFormat(settings.dateFormat);
-      setLocalItemsPerPage(settings.itemsPerPage);
     }
-  }, [isReady, settings.currencyCode, settings.dateFormat, settings.itemsPerPage]);
+  }, [isReady, settings.currencyCode]);
+
+  useEffect(() => {
+    setLocalDateFormat(serverDateFormat);
+  }, [serverDateFormat]);
+
+  useEffect(() => {
+    setLocalItemsPerPage(serverItemsPerPage);
+  }, [serverItemsPerPage]);
 
   useEffect(() => {
     const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
@@ -136,8 +147,6 @@ export default function SettingsPage() {
     updateSettings({
       currencyCode: localCurrency,
       currency: selected?.symbol || "$",
-      dateFormat: localDateFormat,
-      itemsPerPage: Number(localItemsPerPage),
     });
     toast({
       title: "Settings saved",
@@ -152,8 +161,6 @@ export default function SettingsPage() {
   const handleReset = () => {
     resetSettings();
     setLocalCurrency("USD");
-    setLocalDateFormat("MM/DD/YYYY");
-    setLocalItemsPerPage(5);
     toast({
       title: "Settings reset",
       description: "All settings have been restored to defaults.",
@@ -333,16 +340,27 @@ export default function SettingsPage() {
                   </FormLabel>
                   <Select
                     value={localDateFormat}
-                    onChange={(e) => setLocalDateFormat(e.target.value)}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setLocalDateFormat(val);
+                      setSavingDateFormat(true);
+                      try {
+                        await updatePreferences({ dateFormat: val });
+                      } catch {
+                        toast({ title: "Failed to save date format", status: "error", duration: 3000, isClosable: true, position: "top-right" });
+                      } finally {
+                        setSavingDateFormat(false);
+                      }
+                    }}
                     borderRadius="xl"
                     focusBorderColor="teal.400"
                     size="lg"
                   >
-                    <option value="MM/DD/YYYY">MM/DD/YYYY (06/17/2026)</option>
-                    <option value="DD/MM/YYYY">DD/MM/YYYY (17/06/2026)</option>
-                    <option value="YYYY-MM-DD">YYYY-MM-DD (2026-06-17)</option>
-                    <option value="MMM DD, YYYY">MMM DD, YYYY (Jun 17, 2026)</option>
-                    <option value="DD MMM, YYYY">DD MMM, YYYY (17 Jun, 2026)</option>
+                    {DATE_FORMAT_KEYS.map((key) => (
+                      <option key={key} value={key}>
+                        {key} ({previewDate(key)})
+                      </option>
+                    ))}
                   </Select>
                 </FormControl>
                 <Box mt={4} p={3} bg="gray.50" _dark={{ bg: "gray.700" }} borderRadius="xl">
@@ -350,13 +368,14 @@ export default function SettingsPage() {
                     Preview
                   </Text>
                   <Text fontSize="lg" fontWeight="semibold">
-                    {new Date().toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {formatDate(new Date(), localDateFormat)}
                   </Text>
                 </Box>
+                {savingDateFormat && (
+                  <Text fontSize="xs" color="teal.500" mt={1}>
+                    Saving...
+                  </Text>
+                )}
               </SettingCard>
             </GridItem>
 
@@ -373,27 +392,42 @@ export default function SettingsPage() {
                   </FormLabel>
                   <Select
                     value={localItemsPerPage}
-                    onChange={(e) => setLocalItemsPerPage(Number(e.target.value))}
+                    onChange={async (e) => {
+                      const val = Number(e.target.value);
+                      setLocalItemsPerPage(val);
+                      setSavingItemsPerPage(true);
+                      try {
+                        await updatePreferences({ itemsPerPage: val });
+                      } catch {
+                        toast({ title: "Failed to save items per page", status: "error", duration: 3000, isClosable: true, position: "top-right" });
+                      } finally {
+                        setSavingItemsPerPage(false);
+                      }
+                    }}
                     borderRadius="xl"
                     focusBorderColor="teal.400"
                     size="lg"
                   >
-                    <option value={5}>5 items</option>
-                    <option value={10}>10 items</option>
-                    <option value={20}>20 items</option>
-                    <option value={50}>50 items</option>
+                    {[10, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>{n} items</option>
+                    ))}
                   </Select>
                 </FormControl>
                 <SimpleGrid columns={3} spacing={2} mt={4}>
-                  {[1, 2, 3, 4, 5].map((i) => (
+                  {[1, 2, 3, 4].map((i) => (
                     <Box
                       key={i}
                       h={2}
                       borderRadius="full"
-                      bg={i <= localItemsPerPage / 5 ? "teal.400" : "gray.200"}
+                      bg={i <= localItemsPerPage / 25 ? "teal.400" : "gray.200"}
                     />
                   ))}
                 </SimpleGrid>
+                {savingItemsPerPage && (
+                  <Text fontSize="xs" color="teal.500" mt={1}>
+                    Saving...
+                  </Text>
+                )}
               </SettingCard>
             </GridItem>
 

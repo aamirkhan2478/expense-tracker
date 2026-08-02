@@ -3,21 +3,12 @@ import { connectToDB } from "@/utils/database";
 import mongoose from "mongoose";
 import User from "@/models/user";
 import Expense from "@/models/expense";
-import Joi from "joi";
+import { expenseCreateSchema } from "@/lib/validation/transactions";
 
 export async function POST(req) {
   const body = await req.json();
-  const signupSchema = Joi.object({
-    title: Joi.string().required(),
-    amount: Joi.number().required(),
-    expenseDate: Joi.date().required(),
-    category: Joi.string().required(),
-    user: Joi.string().required(),
-    isRecurring: Joi.boolean().optional(),
-    recurringFrequency: Joi.string().valid("daily", "weekly", "monthly", "yearly").optional(),
-  });
 
-  const { error } = signupSchema.validate(body, { abortEarly: false });
+  const { error } = expenseCreateSchema.validate(body, { abortEarly: false });
   if (error) {
     return res.json(
       {

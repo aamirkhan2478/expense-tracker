@@ -1,23 +1,14 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import Income from "@/models/income";
-import Joi from "joi";
 import User from "@/models/user";
 import mongoose from "mongoose";
+import { incomeCreateSchema } from "@/lib/validation/transactions";
 
 export async function POST(req) {
   const body = await req.json();
-  const signupSchema = Joi.object({
-    companyName: Joi.string().required(),
-    title: Joi.string().required(),
-    amount: Joi.number().required(),
-    incomeDate: Joi.date().required(),
-    user: Joi.string().required(),
-    isRecurring: Joi.boolean().optional(),
-    recurringFrequency: Joi.string().valid("daily", "weekly", "monthly", "yearly").optional(),
-  });
 
-  const { error } = signupSchema.validate(body, { abortEarly: false });
+  const { error } = incomeCreateSchema.validate(body, { abortEarly: false });
   if (error) {
     return res.json(
       {

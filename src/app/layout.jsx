@@ -5,6 +5,7 @@ import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import HighlightProviderWrapper from "@/components/providers/HighlightProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AuthInitializer from "@/components/providers/AuthInitializer";
+import { PreferencesProvider } from "@/contexts/PreferencesContext";
 import { ColorModeScript } from "@chakra-ui/react";
 import theme from "@/constants/theme";
 
@@ -25,7 +26,9 @@ export default function RootLayout({ children }) {
             <HighlightProviderWrapper>
               <AuthProvider>
                 <AuthInitializer>
-                  {children}
+                  <PreferencesProvider>
+                    {children}
+                  </PreferencesProvider>
                 </AuthInitializer>
               </AuthProvider>
             </HighlightProviderWrapper>

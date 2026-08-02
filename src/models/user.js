@@ -81,6 +81,25 @@ const UserSchema = new Schema({
     type: Date,
     default: null,
   },
+  // General application preferences
+  preferences: {
+    type: {
+      dateFormat: {
+        type: String,
+        default: "MM/DD/YYYY",
+        enum: ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD MMM YYYY", "MMM DD, YYYY", "DD-MM-YYYY", "YYYY/MM/DD"],
+      },
+      itemsPerPage: {
+        type: Number,
+        default: 10,
+        enum: [10, 25, 50, 100],
+      },
+    },
+    default: () => ({
+      dateFormat: "MM/DD/YYYY",
+      itemsPerPage: 10,
+    }),
+  },
   // Notification preferences
   notificationPreferences: {
     type: {

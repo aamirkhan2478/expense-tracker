@@ -1,20 +1,12 @@
 import Income from "@/models/income";
 import { connectToDB } from "@/utils/database";
-import Joi from "joi";
+import { incomeUpdateSchema } from "@/lib/validation/transactions";
 import { NextResponse as res } from "next/server";
 
 export async function PATCH(req, { params }) {
   const body = await req.json();
-  const signupSchema = Joi.object({
-    companyName: Joi.string().required(),
-    title: Joi.string().required(),
-    amount: Joi.number().required(),
-    incomeDate: Joi.date().required(),
-    isRecurring: Joi.boolean().optional(),
-    recurringFrequency: Joi.string().valid("daily", "weekly", "monthly", "yearly").optional(),
-  });
 
-  const { error } = signupSchema.validate(body, { abortEarly: false });
+  const { error } = incomeUpdateSchema.validate(body, { abortEarly: false });
   if (error) {
     return res.json(
       {
