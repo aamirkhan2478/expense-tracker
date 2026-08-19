@@ -32,19 +32,20 @@ const incomes = ({ queryKey }) => {
   const limit = queryKey[2];
   const page = queryKey[3];
   const incomeDate = queryKey[4];
+  const isRecurring = queryKey[5];
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
   };
   return axiosInstance.get(
-    `/api/income?user=${user}&limit=${limit}&page=${page}&incomeDate=${incomeDate}`,
+    `/api/income?user=${user}&limit=${limit}&page=${page}&incomeDate=${incomeDate}&isRecurring=${isRecurring}`,
     config
   );
 };
 
-export const useShowIncome = (user, limit = "", page = "", incomeDate = "") => {
-  return useQuery(["show-incomes", user, limit, page, incomeDate], incomes, {
+export const useShowIncome = (user, limit = "", page = "", incomeDate = "", isRecurring = "") => {
+  return useQuery(["show-incomes", user, limit, page, incomeDate, isRecurring], incomes, {
     staleTime: 60000,
     refetchOnWindowFocus: false,
   });

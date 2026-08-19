@@ -13,6 +13,7 @@ import {
   useUpdateExpense,
 } from "@/hooks/useExpense";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
+import RecurringFilter from "@/components/RecurringFilter";
 import dateFormat from "@/utils/dateFormat";
 import { exportToCSV, exportToJSON, formatExpenseForExport } from "@/utils/exportData";
 import {
@@ -80,6 +81,7 @@ const ExpenseContent = () => {
     startDate: "",
     endDate: "",
     searchQuery: "",
+    isRecurring: "",
   });
 
   const router = useRouter();
@@ -89,6 +91,7 @@ const ExpenseContent = () => {
   const endDate = searchParams.get("endDate") || "";
   const currentPage = searchParams.get("page") || 1;
   const searchQuery = searchParams.get("searchQuery") || "";
+  const isRecurring = searchParams.get("isRecurring") || "";
 
   const { data, isLoading } = useShowExpense(
     id || "",
@@ -98,6 +101,7 @@ const ExpenseContent = () => {
     endDate,
     category,
     searchQuery,
+    isRecurring,
   );
   const { data: categories } = useShowCategory(id || "");
   const { mutate, isLoading: expenseLoading } = useAddExpense(
@@ -141,14 +145,14 @@ const ExpenseContent = () => {
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 300);
       setPendingHighlight(null);
-    } else if (category || startDate || endDate || searchQuery) {
+    } else if (category || startDate || endDate || searchQuery || isRecurring) {
       // Hidden by filters — clear them and go to page 1
       router.push("?page=1&highlight=" + pendingHighlight);
       // Keep pendingHighlight so we retry after navigation
     } else {
       setPendingHighlight(null);
     }
-  }, [pendingHighlight, data, category, startDate, endDate, searchQuery, router]);
+  }, [pendingHighlight, data, category, startDate, endDate, searchQuery, isRecurring, router]);
 
   const bgCard = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -173,10 +177,18 @@ const ExpenseContent = () => {
     recurringFrequency: expense?.recurringFrequency || "monthly",
   };
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
+
+  const buildExpenseUrl = (filters, page) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== "" && value !== undefined) params.set(key, value);
+    });
+    params.set("page", page);
+    return `?${params.toString()}`;
+  };
+
   const handlePageChange = (page) => {
-    router.push(
-      `?category=${filterData.category}&startDate=${filterData.startDate}&endDate=${filterData.endDate}&page=${page}&searchQuery=${filterData.searchQuery}`,
-    );
+    router.push(buildExpenseUrl(filterData, page));
   };
   const clickHandler = (values, { resetForm }) => {
     const newData = {
@@ -271,9 +283,7 @@ const ExpenseContent = () => {
 
   const filterHandler = () => {
     const newFilterData = { ...filterData, page: 1 };
-    router.push(
-      `?category=${newFilterData.category}&startDate=${newFilterData.startDate}&endDate=${newFilterData.endDate}&page=${newFilterData.page}&searchQuery=${newFilterData.searchQuery}`,
-    );
+    router.push(buildExpenseUrl(newFilterData, 1));
     setFilterData(newFilterData);
   };
 
@@ -848,6 +858,14 @@ const ExpenseContent = () => {
                           onChange={changeHandler}
                         />
                       </InputGroup>
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">Recurring</FormLabel>
+                      <RecurringFilter
+                        name="isRecurring"
+                        value={filterData.isRecurring}
+                        onChange={changeHandler}
+                      />
                     </FormControl>
                     <Flex gap={2} wrap="wrap">
                       <Button

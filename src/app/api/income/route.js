@@ -61,6 +61,7 @@ export async function GET(req) {
   const incomePage = searchParams.get("page");
   const incomeLimit = searchParams.get("limit");
   const incomeDate = searchParams.get("incomeDate");
+  const isRecurring = searchParams.get("isRecurring") || "";
 
   const page = Number(incomePage) || 1;
   const limit = Number(incomeLimit) || 5;
@@ -69,17 +70,19 @@ export async function GET(req) {
   try {
     await connectToDB();
 
-    let dateFilter = {};
+    let filter = {};
     if (incomeDate) {
       const startDate = new Date(incomeDate);
       const endDate = new Date(incomeDate);
       endDate.setMonth(endDate.getMonth() + 1);
-      dateFilter = {
-        incomeDate: {
-          $gte: startDate,
-          $lt: endDate,
-        },
+      filter.incomeDate = {
+        $gte: startDate,
+        $lt: endDate,
       };
+    }
+
+    if (isRecurring === "true" || isRecurring === "false") {
+      filter.isRecurring = isRecurring === "true";
     }
 
     if (!user) {
@@ -108,7 +111,7 @@ export async function GET(req) {
 
     const result = await Income.find({
       user,
-      ...dateFilter,
+      ...filter,
     })
       .sort("-createdAt")
       .skip(startIndex)
@@ -116,7 +119,7 @@ export async function GET(req) {
 
     const totalIncomes = await Income.countDocuments({
       user,
-      ...dateFilter,
+      ...filter,
     });
 
     const endIndex = Math.min(startIndex + limit, totalIncomes);
@@ -137,7 +140,7 @@ export async function GET(req) {
       };
     }
 
-    const incomes = await Income.find({ user });
+    const incomes = await Income.find({ user, ...filter });
     let totalAmount = 0;
     incomes.forEach((income) => {
       totalAmount += income.amount;

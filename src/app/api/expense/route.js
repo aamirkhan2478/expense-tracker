@@ -194,6 +194,7 @@ export async function GET(req) {
   const startDate = searchParams.get("startDate") || "";
   const endDate = searchParams.get("endDate") || "";
   const searchQuery = searchParams.get("searchQuery") || "";
+  const isRecurring = searchParams.get("isRecurring") || "";
 
   const page = Number(expensePage) || 1;
   const limit = Number(expenseLimit) || 5;
@@ -217,6 +218,10 @@ export async function GET(req) {
 
     if (searchQuery) {
       filter.title = new RegExp(searchQuery, "i");
+    }
+
+    if (isRecurring === "true" || isRecurring === "false") {
+      filter.isRecurring = isRecurring === "true";
     }
 
     if (!user) {

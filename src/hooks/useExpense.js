@@ -48,13 +48,14 @@ const expenses = ({ queryKey }) => {
   const endDate = queryKey[5];
   const category = queryKey[6];
   const searchQuery = queryKey[7];
+  const isRecurring = queryKey[8];
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
   };
   return axiosInstance.get(
-    `/api/expense?user=${user}&limit=${limit}&page=${page}&category=${category}&startDate=${startDate}&endDate=${endDate}&searchQuery=${searchQuery}`,
+    `/api/expense?user=${user}&limit=${limit}&page=${page}&category=${category}&startDate=${startDate}&endDate=${endDate}&searchQuery=${searchQuery}&isRecurring=${isRecurring}`,
     config
   );
 };
@@ -66,7 +67,8 @@ export const useShowExpense = (
   startDate = "",
   endDate = "",
   category = "",
-  searchQuery = ""
+  searchQuery = "",
+  isRecurring = ""
 ) => {
   return useQuery(
     [
@@ -78,6 +80,7 @@ export const useShowExpense = (
       endDate,
       category,
       searchQuery,
+      isRecurring,
     ],
     expenses,
     {

@@ -11,6 +11,7 @@ import {
   useUpdateIncome,
 } from "@/hooks/useIncome";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
+import RecurringFilter from "@/components/RecurringFilter";
 import { calculateIncome } from "@/logic/calculations";
 import dateFormat from "@/utils/dateFormat";
 import { exportToCSV, exportToJSON, formatIncomeForExport } from "@/utils/exportData";
@@ -72,12 +73,14 @@ const Income = () => {
   const { settings } = useSettings();
   const [currentPage, setCurrentPage] = useState(1);
   const [incomeDate, setIncomeDate] = useState("");
+  const [isRecurring, setIsRecurring] = useState("");
   const [pendingHighlight, setPendingHighlight] = useState(null);
   const { data, isFetching } = useShowIncome(
     id || "",
     5,
     currentPage,
     incomeDate,
+    isRecurring,
   );
   const { mutate, isLoading } = useAddIncome(onSuccess, onError);
   const { mutate: updateIncome, isLoading: updateLoading } = useUpdateIncome(
@@ -122,16 +125,17 @@ const Income = () => {
         }
       }, 300);
       setPendingHighlight(null);
-    } else if (incomeDate) {
-      // Record hidden by date filter — clear it
+    } else if (incomeDate || isRecurring) {
+      // Record hidden by filters — clear them
       setIncomeDate("");
+      setIsRecurring("");
       setCurrentPage(1);
       // Keep pendingHighlight so we scroll after re-fetch
     } else {
       // Record not found even without filters — give up
       setPendingHighlight(null);
     }
-  }, [pendingHighlight, data, incomeDate]);
+  }, [pendingHighlight, data, incomeDate, isRecurring]);
 
   const bgCard = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -699,18 +703,29 @@ const Income = () => {
             {/* List */}
             <GridItem>
               <Stack spacing={4}>
-                <Flex justify="space-between" align="center">
+                <Flex justify="space-between" align="center" gap={2} wrap="wrap">
                   <Text fontSize="lg" fontWeight="bold">
                     Recent Incomes
                   </Text>
-                  <Input
-                    type="month"
-                    onChange={(e) => setIncomeDate(e.target.value)}
-                    size="sm"
-                    w="160px"
-                    borderRadius="xl"
-                    focusBorderColor="teal.400"
-                  />
+                  <Flex gap={2} align="center">
+                    <RecurringFilter
+                      value={isRecurring}
+                      onChange={(e) => {
+                        setIsRecurring(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      size="sm"
+                      w="180px"
+                    />
+                    <Input
+                      type="month"
+                      onChange={(e) => setIncomeDate(e.target.value)}
+                      size="sm"
+                      w="160px"
+                      borderRadius="xl"
+                      focusBorderColor="teal.400"
+                    />
+                  </Flex>
                 </Flex>
 
                 {isFetching &&
