@@ -1,4 +1,5 @@
 import { NextResponse as res } from "next/server";
+import { connectToDB } from "@/utils/database";
 import { getAuthenticatedUserId } from "@/lib/auth-service";
 import { budgetSetSchema, MONTH_REGEX } from "@/lib/validation/budget";
 import {
@@ -22,6 +23,8 @@ function getCurrentMonthString() {
  */
 export async function GET(req) {
   try {
+    await connectToDB();
+
     const authResult = await getAuthenticatedUserId(req);
     if (!authResult.userId) {
       return res.json(
@@ -86,6 +89,8 @@ export async function GET(req) {
  */
 export async function POST(req) {
   try {
+    await connectToDB();
+
     const authResult = await getAuthenticatedUserId(req);
     if (!authResult.userId) {
       return res.json(
