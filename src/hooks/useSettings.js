@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { formatNumber } from "@/utils/formatNumber";
 
 const DEFAULT_SETTINGS = {
   currency: "$",
@@ -65,9 +66,7 @@ export function useSettings() {
   return { settings, updateSettings, resetSettings, isReady };
 }
 
-export function formatMoney(amount, settings) {
-  if (amount === undefined || amount === null || amount === "") return `${settings?.currency || "$"}0`;
-  const num = Number(amount);
-  if (isNaN(num)) return `${settings?.currency || "$"}0`;
-  return `${settings?.currency || "$"}${num.toLocaleString()}`;
+export function formatMoney(amount, settings, options = {}) {
+  const currency = settings?.currency || "$";
+  return `${currency}${formatNumber(amount, options)}`;
 }

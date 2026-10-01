@@ -7,7 +7,12 @@ import { useShowExpense, useBudgetSummary } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
 import { useDailyBudget, useSetDailyBudget } from "@/hooks/useDailyBudget";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
-import { exportToCSV, exportToJSON, formatIncomeForExport, formatExpenseForExport } from "@/utils/exportData";
+import {
+  exportToCSV,
+  exportToJSON,
+  formatIncomeForExport,
+  formatExpenseForExport,
+} from "@/utils/exportData";
 import { totalBalance, transactionHistory } from "@/logic/calculations";
 import { getDaysInMonth } from "@/lib/budget/budget-calculator";
 import {
@@ -109,7 +114,9 @@ const Dashboard = () => {
     if (!id) return;
     const processRecurring = async () => {
       try {
-        const response = await axiosInstance.post("/api/recurring/process", { user: id });
+        const response = await axiosInstance.post("/api/recurring/process", {
+          user: id,
+        });
         const { totalCreated, incomesCreated, expensesCreated } = response.data;
         if (totalCreated > 0) {
           toast({
@@ -136,8 +143,16 @@ const Dashboard = () => {
   }, [id, toast, queryClient]);
 
   const { settings } = useSettings();
-  const { data: expenses, isLoading: expenseFetching } = useShowExpense(id, 9999, 1);
-  const { data: incomes, isLoading: incomeFetching } = useShowIncome(id, 9999, 1);
+  const { data: expenses, isLoading: expenseFetching } = useShowExpense(
+    id,
+    9999,
+    1,
+  );
+  const { data: incomes, isLoading: incomeFetching } = useShowIncome(
+    id,
+    9999,
+    1,
+  );
   const { data: budgetData, isLoading: budgetFetching } = useBudgetSummary(id);
 
   // ── Daily Budget State & Hooks ──
@@ -146,9 +161,12 @@ const Dashboard = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
 
-  const [selectedBudgetMonth, setSelectedBudgetMonth] = useState(getCurrentMonthStr);
-  const { data: dailyBudgetRes, isLoading: dailyBudgetLoading } = useDailyBudget(selectedBudgetMonth);
-  const { mutate: setDailyBudget, isLoading: settingDailyBudget } = useSetDailyBudget();
+  const [selectedBudgetMonth, setSelectedBudgetMonth] =
+    useState(getCurrentMonthStr);
+  const { data: dailyBudgetRes, isLoading: dailyBudgetLoading } =
+    useDailyBudget(selectedBudgetMonth);
+  const { mutate: setDailyBudget, isLoading: settingDailyBudget } =
+    useSetDailyBudget();
 
   const {
     isOpen: isBudgetModalOpen,
@@ -201,15 +219,17 @@ const Dashboard = () => {
             isClosable: true,
           });
         },
-      }
+      },
     );
   };
 
   const modalParts = (modalMonth || "").split("-");
   const modalYear = parseInt(modalParts[0], 10) || new Date().getFullYear();
-  const modalMonthNum = parseInt(modalParts[1], 10) || (new Date().getMonth() + 1);
+  const modalMonthNum =
+    parseInt(modalParts[1], 10) || new Date().getMonth() + 1;
   const modalDaysCount = getDaysInMonth(modalYear, modalMonthNum);
-  const modalProjectedMonthly = (Number(modalDailyBudget) || 0) * modalDaysCount;
+  const modalProjectedMonthly =
+    (Number(modalDailyBudget) || 0) * modalDaysCount;
 
   const history = transactionHistory(
     incomes?.data?.data || [],
@@ -233,18 +253,44 @@ const Dashboard = () => {
   const noBudgetBg = useColorModeValue("teal.50", "gray.700");
   const budgetHeroBorderTeal = useColorModeValue("teal.200", "teal.800");
   const budgetHeroBorderRed = useColorModeValue("red.200", "red.800");
-  const budgetHeroBgTeal = useColorModeValue("teal.50", "rgba(49, 151, 149, 0.12)");
-  const budgetHeroBgRed = useColorModeValue("red.50", "rgba(229, 62, 62, 0.12)");
+  const budgetHeroBgTeal = useColorModeValue(
+    "teal.50",
+    "rgba(49, 151, 149, 0.12)",
+  );
+  const budgetHeroBgRed = useColorModeValue(
+    "red.50",
+    "rgba(229, 62, 62, 0.12)",
+  );
   const previewCardBg = useColorModeValue("teal.50", "gray.700");
   const previewCardBorder = useColorModeValue("teal.100", "teal.900");
   const previewCardTitleColor = useColorModeValue("teal.700", "teal.300");
 
   const StatCard = ({ title, amount, icon, colorScheme, trend, isLoading }) => {
     const colorMap = {
-      green: { bg: "green.50", iconBg: "green.500", text: "green.600", lightBg: "#ECFDF5" },
-      red: { bg: "red.50", iconBg: "red.500", text: "red.600", lightBg: "#FEF2F2" },
-      blue: { bg: "blue.50", iconBg: "blue.500", text: "blue.600", lightBg: "#EFF6FF" },
-      teal: { bg: "teal.50", iconBg: "teal.500", text: "teal.600", lightBg: "#F0FDFA" },
+      green: {
+        bg: "green.50",
+        iconBg: "green.500",
+        text: "green.600",
+        lightBg: "#ECFDF5",
+      },
+      red: {
+        bg: "red.50",
+        iconBg: "red.500",
+        text: "red.600",
+        lightBg: "#FEF2F2",
+      },
+      blue: {
+        bg: "blue.50",
+        iconBg: "blue.500",
+        text: "blue.600",
+        lightBg: "#EFF6FF",
+      },
+      teal: {
+        bg: "teal.50",
+        iconBg: "teal.500",
+        text: "teal.600",
+        lightBg: "#F0FDFA",
+      },
     };
     const theme = colorMap[colorScheme] || colorMap.blue;
 
@@ -310,7 +356,7 @@ const Dashboard = () => {
                   gap={1}
                 >
                   <Icon
- as={trend > 0 ? FiArrowUpRight : FiArrowDownRight}
+                    as={trend > 0 ? FiArrowUpRight : FiArrowDownRight}
                     boxSize={3}
                   />
                   {Math.abs(trend)}%
@@ -362,7 +408,11 @@ const Dashboard = () => {
             />
           </Flex>
           <Stack spacing={0}>
-            <Text fontWeight="semibold" fontSize="sm" color={isExpense ? "red.500" : "green.500"}>
+            <Text
+              fontWeight="semibold"
+              fontSize="sm"
+              color={isExpense ? "red.500" : "green.500"}
+            >
               {name}
             </Text>
             <Text fontSize="xs" color={mutedText}>
@@ -371,8 +421,13 @@ const Dashboard = () => {
           </Stack>
         </Flex>
         <Stack spacing={0} align="end">
-          <Text fontWeight="bold" fontSize="md" color={isExpense ? "red.500" : "green.500"}>
-            {isExpense ? "-" : "+"}{formatMoney(item.amount, settings)}
+          <Text
+            fontWeight="bold"
+            fontSize="md"
+            color={isExpense ? "red.500" : "green.500"}
+          >
+            {isExpense ? "-" : "+"}
+            {formatMoney(item.amount, settings)}
           </Text>
           <Text fontSize="xs" color={mutedText}>
             {new Date(item.createdAt).toLocaleDateString("en-US", {
@@ -409,7 +464,15 @@ const Dashboard = () => {
               {label}
             </Text>
           </Flex>
-          <Text fontSize="xs" fontWeight="bold" color={c.text} bg={c.bg} px={2} py={0.5} borderRadius="full">
+          <Text
+            fontSize="xs"
+            fontWeight="bold"
+            color={c.text}
+            bg={c.bg}
+            px={2}
+            py={0.5}
+            borderRadius="full"
+          >
             {percent}%
           </Text>
         </Flex>
@@ -464,7 +527,10 @@ const Dashboard = () => {
                     ...formatIncomeForExport(incomeAmount, settings.currency),
                     ...formatExpenseForExport(expenseAmount, settings.currency),
                   ];
-                  exportToCSV(allData, `transactions_${new Date().toISOString().split("T")[0]}`);
+                  exportToCSV(
+                    allData,
+                    `transactions_${new Date().toISOString().split("T")[0]}`,
+                  );
                 }}
                 title="Export CSV"
               />
@@ -482,7 +548,7 @@ const Dashboard = () => {
                       expenses: expenseAmount,
                       exportedAt: new Date().toISOString(),
                     },
-                    `transactions_${new Date().toISOString().split("T")[0]}`
+                    `transactions_${new Date().toISOString().split("T")[0]}`,
                   );
                 }}
                 title="Export JSON"
@@ -577,7 +643,8 @@ const Dashboard = () => {
                     Daily Budget
                   </Heading>
                   <Text fontSize="xs" color={mutedText}>
-                    Dynamic daily allowance with automated carry-forward & overspending tracking
+                    Dynamic daily allowance with automated carry-forward &
+                    overspending tracking
                   </Text>
                 </Box>
               </Flex>
@@ -598,11 +665,15 @@ const Dashboard = () => {
                   size="sm"
                   colorScheme="teal"
                   variant={dailyBudgetRes?.hasBudget ? "outline" : "solid"}
-                  leftIcon={dailyBudgetRes?.hasBudget ? <FiEdit3 /> : <FiPlus />}
+                  leftIcon={
+                    dailyBudgetRes?.hasBudget ? <FiEdit3 /> : <FiPlus />
+                  }
                   borderRadius="xl"
                   onClick={openBudgetModal}
                 >
-                  {dailyBudgetRes?.hasBudget ? "Adjust Budget" : "Set Daily Budget"}
+                  {dailyBudgetRes?.hasBudget
+                    ? "Adjust Budget"
+                    : "Set Daily Budget"}
                 </Button>
               </Flex>
             </Flex>
@@ -631,8 +702,16 @@ const Dashboard = () => {
                 <Heading size="sm" mb={2}>
                   No Daily Budget Configured for {selectedBudgetMonth}
                 </Heading>
-                <Text fontSize="sm" color={mutedText} maxW="md" mx="auto" mb={4}>
-                  Set a daily budget for this month to monitor your daily spending limit and automatically roll over unused balances or absorb overspending.
+                <Text
+                  fontSize="sm"
+                  color={mutedText}
+                  maxW="md"
+                  mx="auto"
+                  mb={4}
+                >
+                  Set a daily budget for this month to monitor your daily
+                  spending limit and automatically roll over unused balances or
+                  absorb overspending.
                 </Text>
                 <Button
                   colorScheme="teal"
@@ -651,7 +730,12 @@ const Dashboard = () => {
                 const isOverspentMonth = db.remainingMonthlyBudget < 0;
                 const monthSpentPercent =
                   db.monthlyBudget > 0
-                    ? Math.min(100, Math.round((db.spentThisMonth / db.monthlyBudget) * 100))
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (db.spentThisMonth / db.monthlyBudget) * 100,
+                        ),
+                      )
                     : 0;
 
                 return (
@@ -661,8 +745,16 @@ const Dashboard = () => {
                       p={{ base: 5, md: 6 }}
                       borderRadius="xl"
                       border="1px solid"
-                      borderColor={db.todayAvailable >= 0 ? budgetHeroBorderTeal : budgetHeroBorderRed}
-                      bg={db.todayAvailable >= 0 ? budgetHeroBgTeal : budgetHeroBgRed}
+                      borderColor={
+                        db.todayAvailable >= 0
+                          ? budgetHeroBorderTeal
+                          : budgetHeroBorderRed
+                      }
+                      bg={
+                        db.todayAvailable >= 0
+                          ? budgetHeroBgTeal
+                          : budgetHeroBgRed
+                      }
                     >
                       <Flex
                         direction={{ base: "column", md: "row" }}
@@ -677,12 +769,16 @@ const Dashboard = () => {
                               fontWeight="bold"
                               letterSpacing="wider"
                               textTransform="uppercase"
-                              color={db.todayAvailable >= 0 ? "teal.700" : "red.700"}
+                              color={
+                                db.todayAvailable >= 0 ? "teal.700" : "red.700"
+                              }
                             >
                               Today&apos;s Available Budget
                             </Text>
                             <Badge
-                              colorScheme={db.todayAvailable >= 0 ? "teal" : "red"}
+                              colorScheme={
+                                db.todayAvailable >= 0 ? "teal" : "red"
+                              }
                               borderRadius="full"
                               px={2}
                               fontSize="10px"
@@ -693,26 +789,45 @@ const Dashboard = () => {
                           <Heading
                             size="2xl"
                             fontWeight="extrabold"
-                            color={db.todayAvailable >= 0 ? "teal.600" : "red.500"}
+                            color={
+                              db.todayAvailable >= 0 ? "teal.600" : "red.500"
+                            }
                             mb={2}
                           >
                             {formatMoney(db.todayAvailable, settings)}
                           </Heading>
                           <HStack spacing={2} wrap="wrap">
-                            <Badge colorScheme="blue" variant="subtle" borderRadius="md" px={2} py={0.5}>
-                              Daily Base: {formatMoney(db.dailyBaseBudget, settings)}
-                            </Badge>
                             <Badge
-                              colorScheme={db.carriedForward >= 0 ? "green" : "red"}
+                              colorScheme="blue"
                               variant="subtle"
                               borderRadius="md"
                               px={2}
                               py={0.5}
                             >
-                              Carry Forward: {db.carriedForward >= 0 ? "+" : ""}{formatMoney(db.carriedForward, settings)}
+                              Daily Base:{" "}
+                              {formatMoney(db.dailyBaseBudget, settings)}
                             </Badge>
-                            <Badge colorScheme="purple" variant="subtle" borderRadius="md" px={2} py={0.5}>
-                              Spent Today: {formatMoney(db.spentToday, settings)}
+                            <Badge
+                              colorScheme={
+                                db.carriedForward >= 0 ? "green" : "red"
+                              }
+                              variant="subtle"
+                              borderRadius="md"
+                              px={2}
+                              py={0.5}
+                            >
+                              Carry Forward: {db.carriedForward >= 0 ? "+" : ""}
+                              {formatMoney(db.carriedForward, settings)}
+                            </Badge>
+                            <Badge
+                              colorScheme="purple"
+                              variant="subtle"
+                              borderRadius="md"
+                              px={2}
+                              py={0.5}
+                            >
+                              Spent Today:{" "}
+                              {formatMoney(db.spentToday, settings)}
                             </Badge>
                             <Badge
                               colorScheme={isOverspentToday ? "red" : "green"}
@@ -721,7 +836,8 @@ const Dashboard = () => {
                               px={2}
                               py={0.5}
                             >
-                              Remaining Today: {formatMoney(db.todayRemaining, settings)}
+                              Remaining Today:{" "}
+                              {formatMoney(db.todayRemaining, settings)}
                             </Badge>
                           </HStack>
                         </Box>
@@ -742,8 +858,17 @@ const Dashboard = () => {
                             {db.daysRemaining} days remaining in {db.monthName}
                           </Text>
                           {isOverspentToday && (
-                            <Text fontSize="xs" fontWeight="semibold" color="red.500" mt={1}>
-                              Overspent today by {formatMoney(Math.abs(db.todayRemaining), settings)}
+                            <Text
+                              fontSize="xs"
+                              fontWeight="semibold"
+                              color="red.500"
+                              mt={1}
+                            >
+                              Overspent today by{" "}
+                              {formatMoney(
+                                Math.abs(db.todayRemaining),
+                                settings,
+                              )}
                             </Text>
                           )}
                         </Box>
@@ -760,10 +885,25 @@ const Dashboard = () => {
                         p={4}
                       >
                         <Flex align="center" gap={2} mb={2}>
-                          <Flex w={7} h={7} borderRadius="md" bg="blue.50" align="center" justify="center">
-                            <Icon as={FiDollarSign} color="blue.500" boxSize={3.5} />
+                          <Flex
+                            w={7}
+                            h={7}
+                            borderRadius="md"
+                            bg="blue.50"
+                            align="center"
+                            justify="center"
+                          >
+                            <Icon
+                              as={FiDollarSign}
+                              color="blue.500"
+                              boxSize={3.5}
+                            />
                           </Flex>
-                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color={mutedText}
+                          >
                             Daily Base Budget
                           </Text>
                         </Flex>
@@ -793,23 +933,34 @@ const Dashboard = () => {
                           >
                             <Icon
                               as={FiRefreshCw}
-                              color={db.carriedForward >= 0 ? "green.500" : "red.500"}
+                              color={
+                                db.carriedForward >= 0 ? "green.500" : "red.500"
+                              }
                               boxSize={3.5}
                             />
                           </Flex>
-                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color={mutedText}
+                          >
                             Carry Forward
                           </Text>
                         </Flex>
                         <Text
                           fontSize="lg"
                           fontWeight="bold"
-                          color={db.carriedForward >= 0 ? "green.600" : "red.500"}
+                          color={
+                            db.carriedForward >= 0 ? "green.600" : "red.500"
+                          }
                         >
-                          {db.carriedForward >= 0 ? "+" : ""}{formatMoney(db.carriedForward, settings)}
+                          {db.carriedForward >= 0 ? "+" : ""}
+                          {formatMoney(db.carriedForward, settings)}
                         </Text>
                         <Text fontSize="10px" color={mutedText}>
-                          {db.carriedForward >= 0 ? "Unused rollover balance" : "Accumulated deficit rollover"}
+                          {db.carriedForward >= 0
+                            ? "Unused rollover balance"
+                            : "Accumulated deficit rollover"}
                         </Text>
                       </Box>
 
@@ -821,18 +972,38 @@ const Dashboard = () => {
                         p={4}
                       >
                         <Flex align="center" gap={2} mb={2}>
-                          <Flex w={7} h={7} borderRadius="md" bg="purple.50" align="center" justify="center">
-                            <Icon as={FiCalendar} color="purple.500" boxSize={3.5} />
+                          <Flex
+                            w={7}
+                            h={7}
+                            borderRadius="md"
+                            bg="purple.50"
+                            align="center"
+                            justify="center"
+                          >
+                            <Icon
+                              as={FiCalendar}
+                              color="purple.500"
+                              boxSize={3.5}
+                            />
                           </Flex>
-                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color={mutedText}
+                          >
                             Monthly Budget
                           </Text>
                         </Flex>
-                        <Text fontSize="lg" fontWeight="bold" color="purple.600">
+                        <Text
+                          fontSize="lg"
+                          fontWeight="bold"
+                          color="purple.600"
+                        >
                           {formatMoney(db.monthlyBudget, settings)}
                         </Text>
                         <Text fontSize="10px" color={mutedText}>
-                          {db.daysInMonth} days × {formatMoney(db.dailyBaseBudget, settings)}
+                          {db.daysInMonth} days ×{" "}
+                          {formatMoney(db.dailyBaseBudget, settings)}
                         </Text>
                       </Box>
 
@@ -844,10 +1015,25 @@ const Dashboard = () => {
                         p={4}
                       >
                         <Flex align="center" gap={2} mb={2}>
-                          <Flex w={7} h={7} borderRadius="md" bg="red.50" align="center" justify="center">
-                            <Icon as={FiTrendingDown} color="red.500" boxSize={3.5} />
+                          <Flex
+                            w={7}
+                            h={7}
+                            borderRadius="md"
+                            bg="red.50"
+                            align="center"
+                            justify="center"
+                          >
+                            <Icon
+                              as={FiTrendingDown}
+                              color="red.500"
+                              boxSize={3.5}
+                            />
                           </Flex>
-                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color={mutedText}
+                          >
                             Spent This Month
                           </Text>
                         </Flex>
@@ -881,7 +1067,11 @@ const Dashboard = () => {
                               boxSize={3.5}
                             />
                           </Flex>
-                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                          <Text
+                            fontSize="xs"
+                            fontWeight="medium"
+                            color={mutedText}
+                          >
                             Remaining Monthly
                           </Text>
                         </Flex>
@@ -893,24 +1083,38 @@ const Dashboard = () => {
                           {formatMoney(db.remainingMonthlyBudget, settings)}
                         </Text>
                         <Text fontSize="10px" color={mutedText}>
-                          {isOverspentMonth ? "Monthly budget exceeded" : "Available for rest of month"}
+                          {isOverspentMonth
+                            ? "Monthly budget exceeded"
+                            : "Available for rest of month"}
                         </Text>
                       </Box>
                     </SimpleGrid>
 
                     {/* Monthly Budget Progress Bar */}
                     <Box>
-                      <Flex justify="space-between" fontSize="xs" color={mutedText} mb={1}>
+                      <Flex
+                        justify="space-between"
+                        fontSize="xs"
+                        color={mutedText}
+                        mb={1}
+                      >
                         <Text>Monthly Budget Used: {monthSpentPercent}%</Text>
                         <Text>
-                          {formatMoney(db.spentThisMonth, settings)} / {formatMoney(db.monthlyBudget, settings)}
+                          {formatMoney(db.spentThisMonth, settings)} /{" "}
+                          {formatMoney(db.monthlyBudget, settings)}
                         </Text>
                       </Flex>
                       <Progress
                         value={monthSpentPercent}
                         size="sm"
                         borderRadius="full"
-                        colorScheme={monthSpentPercent > 100 ? "red" : monthSpentPercent > 80 ? "orange" : "teal"}
+                        colorScheme={
+                          monthSpentPercent > 100
+                            ? "red"
+                            : monthSpentPercent > 80
+                              ? "orange"
+                              : "teal"
+                        }
                         bg={progressBg}
                       />
                     </Box>
@@ -956,7 +1160,12 @@ const Dashboard = () => {
                     <Heading size="md" fontWeight="bold">
                       Recent Transactions
                     </Heading>
-                    <Text fontSize="sm" color="teal.500" fontWeight="medium" cursor="pointer">
+                    <Text
+                      fontSize="sm"
+                      color="teal.500"
+                      fontWeight="medium"
+                      cursor="pointer"
+                    >
                       View All
                     </Text>
                   </Flex>
@@ -976,9 +1185,16 @@ const Dashboard = () => {
                       border="1px dashed"
                       borderColor={borderColor}
                     >
-                      <Icon as={FiActivity} boxSize={8} mb={3} color="gray.300" />
+                      <Icon
+                        as={FiActivity}
+                        boxSize={8}
+                        mb={3}
+                        color="gray.300"
+                      />
                       <Text fontWeight="medium">No transactions yet</Text>
-                      <Text fontSize="sm">Add your first income or expense to get started</Text>
+                      <Text fontSize="sm">
+                        Add your first income or expense to get started
+                      </Text>
                     </Box>
                   ) : (
                     history.map((item) => (
@@ -1056,10 +1272,10 @@ const Dashboard = () => {
                           item.percentage >= 100
                             ? "red"
                             : item.percentage >= 80
-                            ? "orange"
-                            : item.percentage >= 50
-                            ? "yellow"
-                            : "green";
+                              ? "orange"
+                              : item.percentage >= 50
+                                ? "yellow"
+                                : "green";
                         return (
                           <Box
                             key={item.categoryId}
@@ -1075,12 +1291,21 @@ const Dashboard = () => {
                                   {item.name}
                                 </Text>
                                 {item.overBudget && (
-                                  <Badge colorScheme="red" variant="subtle" borderRadius="full" fontSize="xs">
+                                  <Badge
+                                    colorScheme="red"
+                                    variant="subtle"
+                                    borderRadius="full"
+                                    fontSize="xs"
+                                  >
                                     Over Budget
                                   </Badge>
                                 )}
                               </Flex>
-                              <Text fontSize="xs" fontWeight="bold" color={`${color}.500`}>
+                              <Text
+                                fontSize="xs"
+                                fontWeight="bold"
+                                color={`${color}.500`}
+                              >
                                 {item.percentage}%
                               </Text>
                             </Flex>
@@ -1092,13 +1317,22 @@ const Dashboard = () => {
                               bg={progressBg}
                               mb={2}
                             />
-                            <Flex justify="space-between" fontSize="xs" color={mutedText}>
-                              <Text>Spent: {formatMoney(item.spent, settings)}</Text>
-                              <Text>Budget: {formatMoney(item.budget, settings)}</Text>
+                            <Flex
+                              justify="space-between"
+                              fontSize="xs"
+                              color={mutedText}
+                            >
+                              <Text>
+                                Spent: {formatMoney(item.spent, settings)}
+                              </Text>
+                              <Text>
+                                Budget: {formatMoney(item.budget, settings)}
+                              </Text>
                             </Flex>
                             {item.remaining > 0 && (
                               <Text fontSize="xs" color="green.500" mt={1}>
-                                {formatMoney(item.remaining, settings)} remaining
+                                {formatMoney(item.remaining, settings)}{" "}
+                                remaining
                               </Text>
                             )}
                           </Box>
@@ -1123,11 +1357,21 @@ const Dashboard = () => {
                   ) : (
                     <Stack spacing={3}>
                       {(() => {
-                        const recurringIncomes = (incomes?.data?.data || []).filter((i) => i.isRecurring);
-                        const recurringExpenses = (expenses?.data?.data || []).filter((e) => e.isRecurring);
+                        const recurringIncomes = (
+                          incomes?.data?.data || []
+                        ).filter((i) => i.isRecurring);
+                        const recurringExpenses = (
+                          expenses?.data?.data || []
+                        ).filter((e) => e.isRecurring);
                         const allRecurring = [
-                          ...recurringIncomes.map((i) => ({ ...i, kind: "income" })),
-                          ...recurringExpenses.map((e) => ({ ...e, kind: "expense" })),
+                          ...recurringIncomes.map((i) => ({
+                            ...i,
+                            kind: "income",
+                          })),
+                          ...recurringExpenses.map((e) => ({
+                            ...e,
+                            kind: "expense",
+                          })),
                         ];
                         if (allRecurring.length === 0) {
                           return (
@@ -1138,7 +1382,12 @@ const Dashboard = () => {
                               border="1px dashed"
                               borderColor={borderColor}
                             >
-                              <Icon as={FiRefreshCw} boxSize={6} color="gray.300" mb={2} />
+                              <Icon
+                                as={FiRefreshCw}
+                                boxSize={6}
+                                color="gray.300"
+                                mb={2}
+                              />
                               <Text fontSize="sm" color={mutedText}>
                                 No recurring transactions
                               </Text>
@@ -1165,13 +1414,25 @@ const Dashboard = () => {
                                   w={8}
                                   h={8}
                                   borderRadius="lg"
-                                  bg={item.kind === "income" ? "green.50" : "red.50"}
+                                  bg={
+                                    item.kind === "income"
+                                      ? "green.50"
+                                      : "red.50"
+                                  }
                                   align="center"
                                   justify="center"
                                 >
                                   <Icon
-                                    as={item.kind === "income" ? FiTrendingUp : FiTrendingDown}
-                                    color={item.kind === "income" ? "green.500" : "red.500"}
+                                    as={
+                                      item.kind === "income"
+                                        ? FiTrendingUp
+                                        : FiTrendingDown
+                                    }
+                                    color={
+                                      item.kind === "income"
+                                        ? "green.500"
+                                        : "red.500"
+                                    }
                                     boxSize={3}
                                   />
                                 </Flex>
@@ -1180,7 +1441,9 @@ const Dashboard = () => {
                                     {item.title || item.companyName}
                                   </Text>
                                   <Badge
-                                    colorScheme={item.kind === "income" ? "green" : "red"}
+                                    colorScheme={
+                                      item.kind === "income" ? "green" : "red"
+                                    }
                                     variant="subtle"
                                     fontSize="10px"
                                     borderRadius="full"
@@ -1193,7 +1456,11 @@ const Dashboard = () => {
                               <Text
                                 fontWeight="bold"
                                 fontSize="sm"
-                                color={item.kind === "income" ? "green.500" : "red.500"}
+                                color={
+                                  item.kind === "income"
+                                    ? "green.500"
+                                    : "red.500"
+                                }
                               >
                                 {item.kind === "income" ? "+" : "-"}
                                 {formatMoney(item.amount, settings)}
@@ -1214,12 +1481,18 @@ const Dashboard = () => {
             {[
               {
                 label: "Min Income",
-                value: incomeAmount.length > 0 ? Math.min(...incomeAmount.map((i) => i.amount)) : 0,
+                value:
+                  incomeAmount.length > 0
+                    ? Math.min(...incomeAmount.map((i) => i.amount))
+                    : 0,
                 color: "green",
               },
               {
                 label: "Max Income",
-                value: incomeAmount.length > 0 ? Math.max(...incomeAmount.map((i) => i.amount)) : 0,
+                value:
+                  incomeAmount.length > 0
+                    ? Math.max(...incomeAmount.map((i) => i.amount))
+                    : 0,
                 color: "green",
               },
               {
@@ -1227,7 +1500,8 @@ const Dashboard = () => {
                 value:
                   expenseAmount.length > 0
                     ? Math.round(
-                        expenseAmount.reduce((a, b) => a + b.amount, 0) / expenseAmount.length
+                        expenseAmount.reduce((a, b) => a + b.amount, 0) /
+                          expenseAmount.length,
                       )
                     : 0,
                 color: "red",
@@ -1245,10 +1519,21 @@ const Dashboard = () => {
                 p={5}
                 textAlign="center"
               >
-                <Text fontSize="xs" fontWeight="medium" color={mutedText} textTransform="uppercase" letterSpacing="wider" mb={2}>
+                <Text
+                  fontSize="xs"
+                  fontWeight="medium"
+                  color={mutedText}
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  mb={2}
+                >
                   {stat.label}
                 </Text>
-                <Text fontSize="2xl" fontWeight="bold" color={stat.color === "green" ? "green.500" : "red.500"}>
+                <Text
+                  fontSize="2xl"
+                  fontWeight="bold"
+                  color={stat.color === "green" ? "green.500" : "red.500"}
+                >
                   {formatMoney(stat.value, settings)}
                 </Text>
               </MotionBox>
@@ -1256,7 +1541,11 @@ const Dashboard = () => {
           </SimpleGrid>
 
           {/* Set / Adjust Daily Budget Modal */}
-          <Modal isOpen={isBudgetModalOpen} onClose={onCloseBudgetModal} isCentered>
+          <Modal
+            isOpen={isBudgetModalOpen}
+            onClose={onCloseBudgetModal}
+            isCentered
+          >
             <ModalOverlay backdropFilter="blur(4px)" />
             <ModalContent borderRadius="2xl">
               <ModalHeader>
@@ -1303,7 +1592,10 @@ const Dashboard = () => {
                       onChange={(val) => setModalDailyBudget(val)}
                       borderRadius="xl"
                     >
-                      <NumberInputField placeholder="e.g. 600" borderRadius="xl" />
+                      <NumberInputField
+                        placeholder="e.g. 600"
+                        borderRadius="xl"
+                      />
                       <NumberInputStepper>
                         <NumberIncrementStepper />
                         <NumberDecrementStepper />
@@ -1335,22 +1627,35 @@ const Dashboard = () => {
                     </Flex>
                     <Flex justify="space-between" fontSize="sm" mb={1}>
                       <Text color={mutedText}>Daily base budget:</Text>
-                      <Text fontWeight="semibold">{formatMoney(Number(modalDailyBudget) || 0, settings)}</Text>
+                      <Text fontWeight="semibold">
+                        {formatMoney(Number(modalDailyBudget) || 0, settings)}
+                      </Text>
                     </Flex>
-                    <Flex justify="space-between" fontSize="md" pt={2} borderTop="1px dashed" borderColor={borderColor}>
+                    <Flex
+                      justify="space-between"
+                      fontSize="md"
+                      pt={2}
+                      borderTop="1px dashed"
+                      borderColor={borderColor}
+                    >
                       <Text fontWeight="bold">Projected Monthly Budget:</Text>
                       <Text fontWeight="bold" color="teal.600">
                         {formatMoney(modalProjectedMonthly, settings)}
                       </Text>
                     </Flex>
                     <Text fontSize="10px" color={mutedText} mt={2}>
-                      Unused daily allowance will automatically carry forward to the next day.
+                      Unused daily allowance will automatically carry forward to
+                      the next day.
                     </Text>
                   </Box>
                 </Stack>
               </ModalBody>
               <ModalFooter gap={2}>
-                <Button variant="ghost" borderRadius="xl" onClick={onCloseBudgetModal}>
+                <Button
+                  variant="ghost"
+                  borderRadius="xl"
+                  onClick={onCloseBudgetModal}
+                >
                   Cancel
                 </Button>
                 <Button
