@@ -125,3 +125,37 @@ export function extractToken(req) {
   }
   return null;
 }
+
+/**
+ * Extract and securely verify the authenticated user ID from request headers or cookies.
+ * Does not trust any client-supplied userId in body or query parameters.
+ * @param {Request} req
+ * @returns {Promise<{ userId: string|null, error: string|null, status: number }>}
+ */
+export async function getAuthenticatedUserId(req) {
+  let token = extractToken(req);
+
+  if (!token && req.cookies) {
+    token = req.cookies.get("token")?.value || req.cookies.get("_token")?.value;
+  }
+
+  if (!token && req.headers) {
+    const cookieHeader = req.headers.get("cookie") || "";
+    const match = cookieHeader.match(/(?:^|;\s*)(?:token|_token)=([^;]+)/);
+    if (match) {
+      token = decodeURIComponent(match[1]);
+    }
+  }
+
+  if (!token) {
+    return { userId: null, error: "Unauthorized: Authentication token is missing", status: 401 };
+  }
+
+  const { valid, payload, error } = await verifyToken(token);
+  if (!valid || !payload?.id) {
+    return { userId: null, error: error || "Unauthorized: Invalid or expired token", status: 401 };
+  }
+
+  return { userId: payload.id.toString(), error: null, status: 200 };
+}
+

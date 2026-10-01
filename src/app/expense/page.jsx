@@ -209,6 +209,7 @@ const ExpenseContent = () => {
 
   function onSuccess(data) {
     queryClient.invalidateQueries(["show-expenses", id]);
+    queryClient.invalidateQueries(["daily-budget"]);
     toast({
       title: data?.data?.msg,
       status: "success",
@@ -259,6 +260,7 @@ const ExpenseContent = () => {
   function onSuccessDelete(data) {
     onClose();
     queryClient.invalidateQueries(["show-expenses", id]);
+    queryClient.invalidateQueries(["daily-budget"]);
     toast({
       title: data?.data?.msg,
       status: "success",

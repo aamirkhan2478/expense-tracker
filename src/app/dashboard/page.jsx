@@ -5,9 +5,11 @@ import CustomBox from "@/components/CustomBox";
 import Layout from "@/components/Layout";
 import { useShowExpense, useBudgetSummary } from "@/hooks/useExpense";
 import { useShowIncome } from "@/hooks/useIncome";
+import { useDailyBudget, useSetDailyBudget } from "@/hooks/useDailyBudget";
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import { exportToCSV, exportToJSON, formatIncomeForExport, formatExpenseForExport } from "@/utils/exportData";
 import { totalBalance, transactionHistory } from "@/logic/calculations";
+import { getDaysInMonth } from "@/lib/budget/budget-calculator";
 import {
   Box,
   Flex,
@@ -24,7 +26,26 @@ import {
   Avatar,
   Badge,
   IconButton,
+  Button,
   useToast,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Input,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  HStack,
+  Tooltip,
 } from "@chakra-ui/react";
 import { motion } from "framer-motion";
 import {
@@ -40,6 +61,11 @@ import {
   FiDownload,
   FiFileText,
   FiRefreshCw,
+  FiEdit3,
+  FiPlus,
+  FiCalendar,
+  FiCheckCircle,
+  FiAlertCircle,
 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
@@ -99,6 +125,7 @@ const Dashboard = () => {
           queryClient.invalidateQueries(["show-expenses", id]);
           queryClient.invalidateQueries(["budget-summary", id]);
           queryClient.invalidateQueries(["expenses-by-category", id]);
+          queryClient.invalidateQueries(["daily-budget"]);
         }
       } catch (err) {
         // Silently fail — we don't want to block the dashboard if recurring processing fails
@@ -112,6 +139,77 @@ const Dashboard = () => {
   const { data: expenses, isLoading: expenseFetching } = useShowExpense(id, 9999, 1);
   const { data: incomes, isLoading: incomeFetching } = useShowIncome(id, 9999, 1);
   const { data: budgetData, isLoading: budgetFetching } = useBudgetSummary(id);
+
+  // ── Daily Budget State & Hooks ──
+  const getCurrentMonthStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  const [selectedBudgetMonth, setSelectedBudgetMonth] = useState(getCurrentMonthStr);
+  const { data: dailyBudgetRes, isLoading: dailyBudgetLoading } = useDailyBudget(selectedBudgetMonth);
+  const { mutate: setDailyBudget, isLoading: settingDailyBudget } = useSetDailyBudget();
+
+  const {
+    isOpen: isBudgetModalOpen,
+    onOpen: onOpenBudgetModal,
+    onClose: onCloseBudgetModal,
+  } = useDisclosure();
+
+  const [modalMonth, setModalMonth] = useState(getCurrentMonthStr);
+  const [modalDailyBudget, setModalDailyBudget] = useState(600);
+
+  const openBudgetModal = () => {
+    setModalMonth(selectedBudgetMonth);
+    setModalDailyBudget(dailyBudgetRes?.data?.dailyBudget || 600);
+    onOpenBudgetModal();
+  };
+
+  const handleSaveBudget = () => {
+    const num = Number(modalDailyBudget);
+    if (isNaN(num) || num <= 0) {
+      toast({
+        title: "Invalid daily budget",
+        description: "Please enter an amount greater than 0",
+        status: "warning",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setDailyBudget(
+      { month: modalMonth, dailyBudget: num },
+      {
+        onSuccess: (data) => {
+          toast({
+            title: "Daily budget saved",
+            description: `Configured ${formatMoney(num, settings)}/day for ${data?.data?.monthName || modalMonth}`,
+            status: "success",
+            duration: 4000,
+            isClosable: true,
+          });
+          setSelectedBudgetMonth(modalMonth);
+          onCloseBudgetModal();
+        },
+        onError: (err) => {
+          toast({
+            title: "Failed to save daily budget",
+            description: err.response?.data?.error || "An error occurred",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        },
+      }
+    );
+  };
+
+  const modalParts = (modalMonth || "").split("-");
+  const modalYear = parseInt(modalParts[0], 10) || new Date().getFullYear();
+  const modalMonthNum = parseInt(modalParts[1], 10) || (new Date().getMonth() + 1);
+  const modalDaysCount = getDaysInMonth(modalYear, modalMonthNum);
+  const modalProjectedMonthly = (Number(modalDailyBudget) || 0) * modalDaysCount;
 
   const history = transactionHistory(
     incomes?.data?.data || [],
@@ -131,6 +229,15 @@ const Dashboard = () => {
   const borderColor = useColorModeValue("gray.100", "gray.700");
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const progressBg = useColorModeValue("gray.100", "gray.700");
+  const noBudgetBorder = useColorModeValue("teal.200", "teal.700");
+  const noBudgetBg = useColorModeValue("teal.50", "gray.700");
+  const budgetHeroBorderTeal = useColorModeValue("teal.200", "teal.800");
+  const budgetHeroBorderRed = useColorModeValue("red.200", "red.800");
+  const budgetHeroBgTeal = useColorModeValue("teal.50", "rgba(49, 151, 149, 0.12)");
+  const budgetHeroBgRed = useColorModeValue("red.50", "rgba(229, 62, 62, 0.12)");
+  const previewCardBg = useColorModeValue("teal.50", "gray.700");
+  const previewCardBorder = useColorModeValue("teal.100", "teal.900");
+  const previewCardTitleColor = useColorModeValue("teal.700", "teal.300");
 
   const StatCard = ({ title, amount, icon, colorScheme, trend, isLoading }) => {
     const colorMap = {
@@ -431,6 +538,387 @@ const Dashboard = () => {
               isLoading={isLoading}
             />
           </SimpleGrid>
+
+          {/* Daily Budget & Carry Forward Section */}
+          <MotionBox
+            variants={fadeInUp}
+            initial="initial"
+            animate="animate"
+            transition={{ duration: 0.4 }}
+            bg={bg}
+            border="1px solid"
+            borderColor={borderColor}
+            boxShadow="sm"
+            p={{ base: 5, md: 6 }}
+            borderRadius="2xl"
+          >
+            {/* Header row with Title and Month Controls */}
+            <Flex
+              direction={{ base: "column", sm: "row" }}
+              justify="space-between"
+              align={{ base: "start", sm: "center" }}
+              gap={4}
+              mb={6}
+            >
+              <Flex align="center" gap={3}>
+                <Flex
+                  w={10}
+                  h={10}
+                  align="center"
+                  justify="center"
+                  borderRadius="xl"
+                  bg="teal.50"
+                  color="teal.600"
+                >
+                  <Icon as={FiTarget} w={5} h={5} />
+                </Flex>
+                <Box>
+                  <Heading size="md" fontWeight="bold">
+                    Daily Budget
+                  </Heading>
+                  <Text fontSize="xs" color={mutedText}>
+                    Dynamic daily allowance with automated carry-forward & overspending tracking
+                  </Text>
+                </Box>
+              </Flex>
+
+              <Flex align="center" gap={2} wrap="wrap">
+                <Input
+                  type="month"
+                  size="sm"
+                  w="160px"
+                  borderRadius="xl"
+                  bg={bg}
+                  borderColor={borderColor}
+                  value={selectedBudgetMonth}
+                  onChange={(e) => setSelectedBudgetMonth(e.target.value)}
+                  title="Select month"
+                />
+                <Button
+                  size="sm"
+                  colorScheme="teal"
+                  variant={dailyBudgetRes?.hasBudget ? "outline" : "solid"}
+                  leftIcon={dailyBudgetRes?.hasBudget ? <FiEdit3 /> : <FiPlus />}
+                  borderRadius="xl"
+                  onClick={openBudgetModal}
+                >
+                  {dailyBudgetRes?.hasBudget ? "Adjust Budget" : "Set Daily Budget"}
+                </Button>
+              </Flex>
+            </Flex>
+
+            {dailyBudgetLoading ? (
+              <Stack spacing={4}>
+                <Skeleton height="100px" borderRadius="xl" />
+                <SimpleGrid columns={{ base: 1, sm: 2, lg: 5 }} spacing={4}>
+                  <Skeleton height="80px" borderRadius="xl" />
+                  <Skeleton height="80px" borderRadius="xl" />
+                  <Skeleton height="80px" borderRadius="xl" />
+                  <Skeleton height="80px" borderRadius="xl" />
+                  <Skeleton height="80px" borderRadius="xl" />
+                </SimpleGrid>
+              </Stack>
+            ) : !dailyBudgetRes?.hasBudget ? (
+              <Box
+                p={{ base: 6, md: 8 }}
+                textAlign="center"
+                borderRadius="xl"
+                border="1px dashed"
+                borderColor={noBudgetBorder}
+                bg={noBudgetBg}
+              >
+                <Icon as={FiTarget} boxSize={8} color="teal.500" mb={3} />
+                <Heading size="sm" mb={2}>
+                  No Daily Budget Configured for {selectedBudgetMonth}
+                </Heading>
+                <Text fontSize="sm" color={mutedText} maxW="md" mx="auto" mb={4}>
+                  Set a daily budget for this month to monitor your daily spending limit and automatically roll over unused balances or absorb overspending.
+                </Text>
+                <Button
+                  colorScheme="teal"
+                  size="sm"
+                  borderRadius="xl"
+                  leftIcon={<FiPlus />}
+                  onClick={openBudgetModal}
+                >
+                  Set Daily Budget for {selectedBudgetMonth}
+                </Button>
+              </Box>
+            ) : (
+              (() => {
+                const db = dailyBudgetRes.data;
+                const isOverspentToday = db.todayRemaining < 0;
+                const isOverspentMonth = db.remainingMonthlyBudget < 0;
+                const monthSpentPercent =
+                  db.monthlyBudget > 0
+                    ? Math.min(100, Math.round((db.spentThisMonth / db.monthlyBudget) * 100))
+                    : 0;
+
+                return (
+                  <Stack spacing={5}>
+                    {/* Hero Card: Today's Available Budget */}
+                    <Box
+                      p={{ base: 5, md: 6 }}
+                      borderRadius="xl"
+                      border="1px solid"
+                      borderColor={db.todayAvailable >= 0 ? budgetHeroBorderTeal : budgetHeroBorderRed}
+                      bg={db.todayAvailable >= 0 ? budgetHeroBgTeal : budgetHeroBgRed}
+                    >
+                      <Flex
+                        direction={{ base: "column", md: "row" }}
+                        justify="space-between"
+                        align={{ base: "start", md: "center" }}
+                        gap={4}
+                      >
+                        <Box>
+                          <Flex align="center" gap={2} mb={1}>
+                            <Text
+                              fontSize="xs"
+                              fontWeight="bold"
+                              letterSpacing="wider"
+                              textTransform="uppercase"
+                              color={db.todayAvailable >= 0 ? "teal.700" : "red.700"}
+                            >
+                              Today&apos;s Available Budget
+                            </Text>
+                            <Badge
+                              colorScheme={db.todayAvailable >= 0 ? "teal" : "red"}
+                              borderRadius="full"
+                              px={2}
+                              fontSize="10px"
+                            >
+                              {db.todayAvailable >= 0 ? "Available" : "Deficit"}
+                            </Badge>
+                          </Flex>
+                          <Heading
+                            size="2xl"
+                            fontWeight="extrabold"
+                            color={db.todayAvailable >= 0 ? "teal.600" : "red.500"}
+                            mb={2}
+                          >
+                            {formatMoney(db.todayAvailable, settings)}
+                          </Heading>
+                          <HStack spacing={2} wrap="wrap">
+                            <Badge colorScheme="blue" variant="subtle" borderRadius="md" px={2} py={0.5}>
+                              Daily Base: {formatMoney(db.dailyBaseBudget, settings)}
+                            </Badge>
+                            <Badge
+                              colorScheme={db.carriedForward >= 0 ? "green" : "red"}
+                              variant="subtle"
+                              borderRadius="md"
+                              px={2}
+                              py={0.5}
+                            >
+                              Carry Forward: {db.carriedForward >= 0 ? "+" : ""}{formatMoney(db.carriedForward, settings)}
+                            </Badge>
+                            <Badge colorScheme="purple" variant="subtle" borderRadius="md" px={2} py={0.5}>
+                              Spent Today: {formatMoney(db.spentToday, settings)}
+                            </Badge>
+                            <Badge
+                              colorScheme={isOverspentToday ? "red" : "green"}
+                              variant="solid"
+                              borderRadius="md"
+                              px={2}
+                              py={0.5}
+                            >
+                              Remaining Today: {formatMoney(db.todayRemaining, settings)}
+                            </Badge>
+                          </HStack>
+                        </Box>
+
+                        <Box textAlign={{ base: "left", md: "right" }}>
+                          <Badge
+                            colorScheme="gray"
+                            variant="subtle"
+                            borderRadius="full"
+                            px={3}
+                            py={1}
+                            fontSize="xs"
+                            mb={1}
+                          >
+                            Day {db.currentDay} of {db.daysInMonth}
+                          </Badge>
+                          <Text fontSize="xs" color={mutedText}>
+                            {db.daysRemaining} days remaining in {db.monthName}
+                          </Text>
+                          {isOverspentToday && (
+                            <Text fontSize="xs" fontWeight="semibold" color="red.500" mt={1}>
+                              Overspent today by {formatMoney(Math.abs(db.todayRemaining), settings)}
+                            </Text>
+                          )}
+                        </Box>
+                      </Flex>
+                    </Box>
+
+                    {/* 5 Supporting Metric Cards */}
+                    <SimpleGrid columns={{ base: 1, sm: 2, lg: 5 }} spacing={4}>
+                      <Box
+                        bg={bg}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        borderRadius="xl"
+                        p={4}
+                      >
+                        <Flex align="center" gap={2} mb={2}>
+                          <Flex w={7} h={7} borderRadius="md" bg="blue.50" align="center" justify="center">
+                            <Icon as={FiDollarSign} color="blue.500" boxSize={3.5} />
+                          </Flex>
+                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                            Daily Base Budget
+                          </Text>
+                        </Flex>
+                        <Text fontSize="lg" fontWeight="bold" color="blue.600">
+                          {formatMoney(db.dailyBaseBudget, settings)}
+                        </Text>
+                        <Text fontSize="10px" color={mutedText}>
+                          Configured daily allowance
+                        </Text>
+                      </Box>
+
+                      <Box
+                        bg={bg}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        borderRadius="xl"
+                        p={4}
+                      >
+                        <Flex align="center" gap={2} mb={2}>
+                          <Flex
+                            w={7}
+                            h={7}
+                            borderRadius="md"
+                            bg={db.carriedForward >= 0 ? "green.50" : "red.50"}
+                            align="center"
+                            justify="center"
+                          >
+                            <Icon
+                              as={FiRefreshCw}
+                              color={db.carriedForward >= 0 ? "green.500" : "red.500"}
+                              boxSize={3.5}
+                            />
+                          </Flex>
+                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                            Carry Forward
+                          </Text>
+                        </Flex>
+                        <Text
+                          fontSize="lg"
+                          fontWeight="bold"
+                          color={db.carriedForward >= 0 ? "green.600" : "red.500"}
+                        >
+                          {db.carriedForward >= 0 ? "+" : ""}{formatMoney(db.carriedForward, settings)}
+                        </Text>
+                        <Text fontSize="10px" color={mutedText}>
+                          {db.carriedForward >= 0 ? "Unused rollover balance" : "Accumulated deficit rollover"}
+                        </Text>
+                      </Box>
+
+                      <Box
+                        bg={bg}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        borderRadius="xl"
+                        p={4}
+                      >
+                        <Flex align="center" gap={2} mb={2}>
+                          <Flex w={7} h={7} borderRadius="md" bg="purple.50" align="center" justify="center">
+                            <Icon as={FiCalendar} color="purple.500" boxSize={3.5} />
+                          </Flex>
+                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                            Monthly Budget
+                          </Text>
+                        </Flex>
+                        <Text fontSize="lg" fontWeight="bold" color="purple.600">
+                          {formatMoney(db.monthlyBudget, settings)}
+                        </Text>
+                        <Text fontSize="10px" color={mutedText}>
+                          {db.daysInMonth} days × {formatMoney(db.dailyBaseBudget, settings)}
+                        </Text>
+                      </Box>
+
+                      <Box
+                        bg={bg}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        borderRadius="xl"
+                        p={4}
+                      >
+                        <Flex align="center" gap={2} mb={2}>
+                          <Flex w={7} h={7} borderRadius="md" bg="red.50" align="center" justify="center">
+                            <Icon as={FiTrendingDown} color="red.500" boxSize={3.5} />
+                          </Flex>
+                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                            Spent This Month
+                          </Text>
+                        </Flex>
+                        <Text fontSize="lg" fontWeight="bold" color="red.600">
+                          {formatMoney(db.spentThisMonth, settings)}
+                        </Text>
+                        <Text fontSize="10px" color={mutedText}>
+                          {monthSpentPercent}% of total monthly budget
+                        </Text>
+                      </Box>
+
+                      <Box
+                        bg={bg}
+                        border="1px solid"
+                        borderColor={borderColor}
+                        borderRadius="xl"
+                        p={4}
+                      >
+                        <Flex align="center" gap={2} mb={2}>
+                          <Flex
+                            w={7}
+                            h={7}
+                            borderRadius="md"
+                            bg={isOverspentMonth ? "red.50" : "teal.50"}
+                            align="center"
+                            justify="center"
+                          >
+                            <Icon
+                              as={FiPieChart}
+                              color={isOverspentMonth ? "red.500" : "teal.500"}
+                              boxSize={3.5}
+                            />
+                          </Flex>
+                          <Text fontSize="xs" fontWeight="medium" color={mutedText}>
+                            Remaining Monthly
+                          </Text>
+                        </Flex>
+                        <Text
+                          fontSize="lg"
+                          fontWeight="bold"
+                          color={isOverspentMonth ? "red.500" : "teal.600"}
+                        >
+                          {formatMoney(db.remainingMonthlyBudget, settings)}
+                        </Text>
+                        <Text fontSize="10px" color={mutedText}>
+                          {isOverspentMonth ? "Monthly budget exceeded" : "Available for rest of month"}
+                        </Text>
+                      </Box>
+                    </SimpleGrid>
+
+                    {/* Monthly Budget Progress Bar */}
+                    <Box>
+                      <Flex justify="space-between" fontSize="xs" color={mutedText} mb={1}>
+                        <Text>Monthly Budget Used: {monthSpentPercent}%</Text>
+                        <Text>
+                          {formatMoney(db.spentThisMonth, settings)} / {formatMoney(db.monthlyBudget, settings)}
+                        </Text>
+                      </Flex>
+                      <Progress
+                        value={monthSpentPercent}
+                        size="sm"
+                        borderRadius="full"
+                        colorScheme={monthSpentPercent > 100 ? "red" : monthSpentPercent > 80 ? "orange" : "teal"}
+                        bg={progressBg}
+                      />
+                    </Box>
+                  </Stack>
+                );
+              })()
+            )}
+          </MotionBox>
 
           {/* Main Content Grid */}
           <Grid
@@ -766,6 +1254,116 @@ const Dashboard = () => {
               </MotionBox>
             ))}
           </SimpleGrid>
+
+          {/* Set / Adjust Daily Budget Modal */}
+          <Modal isOpen={isBudgetModalOpen} onClose={onCloseBudgetModal} isCentered>
+            <ModalOverlay backdropFilter="blur(4px)" />
+            <ModalContent borderRadius="2xl">
+              <ModalHeader>
+                <Flex align="center" gap={2}>
+                  <Flex
+                    w={8}
+                    h={8}
+                    align="center"
+                    justify="center"
+                    borderRadius="lg"
+                    bg="teal.50"
+                    color="teal.600"
+                  >
+                    <Icon as={FiTarget} w={4} h={4} />
+                  </Flex>
+                  <Text fontSize="lg" fontWeight="bold">
+                    Set Daily Budget
+                  </Text>
+                </Flex>
+              </ModalHeader>
+              <ModalCloseButton />
+              <ModalBody>
+                <Stack spacing={4}>
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="semibold">
+                      Month
+                    </FormLabel>
+                    <Input
+                      type="month"
+                      value={modalMonth}
+                      onChange={(e) => setModalMonth(e.target.value)}
+                      borderRadius="xl"
+                    />
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="semibold">
+                      Daily Budget ({settings?.currency || "USD"})
+                    </FormLabel>
+                    <NumberInput
+                      min={1}
+                      step={50}
+                      value={modalDailyBudget}
+                      onChange={(val) => setModalDailyBudget(val)}
+                      borderRadius="xl"
+                    >
+                      <NumberInputField placeholder="e.g. 600" borderRadius="xl" />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </FormControl>
+
+                  {/* Dynamic calculation preview card */}
+                  <Box
+                    p={4}
+                    borderRadius="xl"
+                    bg={previewCardBg}
+                    border="1px solid"
+                    borderColor={previewCardBorder}
+                  >
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color={previewCardTitleColor}
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                      mb={2}
+                    >
+                      Projected Monthly Calculation
+                    </Text>
+                    <Flex justify="space-between" fontSize="sm" mb={1}>
+                      <Text color={mutedText}>Days in month:</Text>
+                      <Text fontWeight="semibold">{modalDaysCount} days</Text>
+                    </Flex>
+                    <Flex justify="space-between" fontSize="sm" mb={1}>
+                      <Text color={mutedText}>Daily base budget:</Text>
+                      <Text fontWeight="semibold">{formatMoney(Number(modalDailyBudget) || 0, settings)}</Text>
+                    </Flex>
+                    <Flex justify="space-between" fontSize="md" pt={2} borderTop="1px dashed" borderColor={borderColor}>
+                      <Text fontWeight="bold">Projected Monthly Budget:</Text>
+                      <Text fontWeight="bold" color="teal.600">
+                        {formatMoney(modalProjectedMonthly, settings)}
+                      </Text>
+                    </Flex>
+                    <Text fontSize="10px" color={mutedText} mt={2}>
+                      Unused daily allowance will automatically carry forward to the next day.
+                    </Text>
+                  </Box>
+                </Stack>
+              </ModalBody>
+              <ModalFooter gap={2}>
+                <Button variant="ghost" borderRadius="xl" onClick={onCloseBudgetModal}>
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="teal"
+                  borderRadius="xl"
+                  isLoading={settingDailyBudget}
+                  onClick={handleSaveBudget}
+                >
+                  Save Budget
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
         </Stack>
       </CustomBox>
     </Layout>

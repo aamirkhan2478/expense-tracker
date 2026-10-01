@@ -51,6 +51,8 @@ const ExpenseSchema = new Schema(
   }
 );
 
+ExpenseSchema.index({ user: 1, expenseDate: 1 });
+
 const Expense = models.Expense || model("Expense", ExpenseSchema);
 
 export default Expense;
