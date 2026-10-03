@@ -39,6 +39,7 @@ export async function GET(req) {
       {
         $match: {
           user: userExist._id,
+          includeInBudget: true,
           expenseDate: {
             $gte: startOfMonth,
             $lte: endOfMonth,

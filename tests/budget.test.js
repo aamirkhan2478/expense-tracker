@@ -172,9 +172,9 @@ describe("Daily Budget Feature - Unit & Scenario Tests", () => {
   describe("Scenario 6: Multiple expenses on the same day", () => {
     it("sums multiple expenses on Day 1 accurately for Day 2 carry-forward", () => {
       const expenses = [
-        { amount: 100, expenseDate: "2026-10-01T08:00:00Z" },
-        { amount: 150, expenseDate: "2026-10-01T12:30:00Z" },
-        { amount: 50, expenseDate: "2026-10-01T19:00:00Z" },
+        { amount: 100, expenseDate: "2026-10-01T08:00:00Z", includeInBudget: true },
+        { amount: 150, expenseDate: "2026-10-01T12:30:00Z", includeInBudget: true },
+        { amount: 50, expenseDate: "2026-10-01T19:00:00Z", includeInBudget: true },
       ];
 
       const summary = calculateBudgetFromExpenses({
@@ -198,7 +198,7 @@ describe("Daily Budget Feature - Unit & Scenario Tests", () => {
       const initial = calculateBudgetFromExpenses({
         dailyBudget: 600,
         month: "2026-10",
-        expenses: [{ amount: 300, expenseDate: "2026-10-01T12:00:00Z" }],
+        expenses: [{ amount: 300, expenseDate: "2026-10-01T12:00:00Z", includeInBudget: true }],
         referenceDate: new Date("2026-10-02T10:00:00Z"),
       });
       expect(initial.todayAvailable).toBe(900);
@@ -207,7 +207,7 @@ describe("Daily Budget Feature - Unit & Scenario Tests", () => {
       const afterEdit = calculateBudgetFromExpenses({
         dailyBudget: 600,
         month: "2026-10",
-        expenses: [{ amount: 500, expenseDate: "2026-10-01T12:00:00Z" }],
+        expenses: [{ amount: 500, expenseDate: "2026-10-01T12:00:00Z", includeInBudget: true }],
         referenceDate: new Date("2026-10-02T10:00:00Z"),
       });
       expect(afterEdit.carriedForward).toBe(100); // 600 - 500 = 100
@@ -249,7 +249,7 @@ describe("Daily Budget Feature - Unit & Scenario Tests", () => {
       const afterBackdate = calculateBudgetFromExpenses({
         dailyBudget: 600,
         month: "2026-10",
-        expenses: [{ amount: 400, expenseDate: "2026-10-01T12:00:00Z" }],
+        expenses: [{ amount: 400, expenseDate: "2026-10-01T12:00:00Z", includeInBudget: true }],
         referenceDate: new Date("2026-10-03T10:00:00Z"),
       });
       expect(afterBackdate.spentBeforeToday).toBe(400);
@@ -365,8 +365,8 @@ describe("Daily Budget Feature - Unit & Scenario Tests", () => {
   // ── Scenario 15: Multiple users with separate budgets ──
   describe("Scenario 15: Multi-user mathematical isolation", () => {
     it("calculates distinct budgets and summaries for User A and User B independently", () => {
-      const userAExpenses = [{ amount: 300, expenseDate: "2026-10-01T10:00:00Z" }];
-      const userBExpenses = [{ amount: 750, expenseDate: "2026-10-01T10:00:00Z" }];
+      const userAExpenses = [{ amount: 300, expenseDate: "2026-10-01T10:00:00Z", includeInBudget: true }];
+      const userBExpenses = [{ amount: 750, expenseDate: "2026-10-01T10:00:00Z", includeInBudget: true }];
 
       const userASummary = calculateBudgetFromExpenses({
         dailyBudget: 600,
@@ -393,6 +393,90 @@ describe("Daily Budget Feature - Unit & Scenario Tests", () => {
       expect(userBSummary.carriedForward).toBe(250);
       expect(userBSummary.todayAvailable).toBe(1250);
       expect(userBSummary.monthlyBudget).toBe(31000);
+    });
+  });
+
+  // ── Scenario 16: includeInBudget filtering ──
+  describe("Scenario 16: includeInBudget field filtering", () => {
+    it("excludes expenses where includeInBudget is false", () => {
+      const expenses = [
+        { amount: 500, expenseDate: "2026-10-01T10:00:00Z", includeInBudget: true },
+        { amount: 300, expenseDate: "2026-10-01T14:00:00Z", includeInBudget: false },
+      ];
+
+      const summary = calculateBudgetFromExpenses({
+        dailyBudget: 600,
+        month: "2026-10",
+        expenses,
+        referenceDate: new Date("2026-10-02T10:00:00Z"),
+      });
+
+      // Only the 500 expense (includeInBudget: true) should be counted
+      expect(summary.spentBeforeToday).toBe(500);
+      expect(summary.spentThisMonth).toBe(500);
+      expect(summary.carriedForward).toBe(100); // 600 - 500
+      expect(summary.todayAvailable).toBe(700); // 600 + 100
+    });
+
+    it("excludes expenses where includeInBudget is missing (undefined)", () => {
+      const expenses = [
+        { amount: 200, expenseDate: "2026-10-01T10:00:00Z" }, // no includeInBudget field
+        { amount: 400, expenseDate: "2026-10-01T14:00:00Z", includeInBudget: true },
+      ];
+
+      const summary = calculateBudgetFromExpenses({
+        dailyBudget: 600,
+        month: "2026-10",
+        expenses,
+        referenceDate: new Date("2026-10-02T10:00:00Z"),
+      });
+
+      // Only the 400 expense should be counted
+      expect(summary.spentBeforeToday).toBe(400);
+      expect(summary.spentThisMonth).toBe(400);
+      expect(summary.carriedForward).toBe(200); // 600 - 400
+    });
+
+    it("returns zero spending when all expenses have includeInBudget: false", () => {
+      const expenses = [
+        { amount: 100, expenseDate: "2026-10-01T10:00:00Z", includeInBudget: false },
+        { amount: 200, expenseDate: "2026-10-01T14:00:00Z", includeInBudget: false },
+      ];
+
+      const summary = calculateBudgetFromExpenses({
+        dailyBudget: 600,
+        month: "2026-10",
+        expenses,
+        referenceDate: new Date("2026-10-02T10:00:00Z"),
+      });
+
+      expect(summary.spentBeforeToday).toBe(0);
+      expect(summary.spentToday).toBe(0);
+      expect(summary.spentThisMonth).toBe(0);
+      expect(summary.carriedForward).toBe(600);
+      expect(summary.todayAvailable).toBe(1200);
+    });
+
+    it("toggling includeInBudget from false to true includes expense in budget", () => {
+      // Before toggle: expense excluded
+      const before = calculateBudgetFromExpenses({
+        dailyBudget: 600,
+        month: "2026-10",
+        expenses: [{ amount: 300, expenseDate: "2026-10-01T12:00:00Z", includeInBudget: false }],
+        referenceDate: new Date("2026-10-02T10:00:00Z"),
+      });
+      expect(before.spentBeforeToday).toBe(0);
+      expect(before.todayAvailable).toBe(1200);
+
+      // After toggle: same expense now included
+      const after = calculateBudgetFromExpenses({
+        dailyBudget: 600,
+        month: "2026-10",
+        expenses: [{ amount: 300, expenseDate: "2026-10-01T12:00:00Z", includeInBudget: true }],
+        referenceDate: new Date("2026-10-02T10:00:00Z"),
+      });
+      expect(after.spentBeforeToday).toBe(300);
+      expect(after.todayAvailable).toBe(900);
     });
   });
 });

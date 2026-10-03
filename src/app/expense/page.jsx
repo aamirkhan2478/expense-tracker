@@ -175,6 +175,7 @@ const ExpenseContent = () => {
     category: expense?.category?._id || "",
     isRecurring: expense?.isRecurring || false,
     recurringFrequency: expense?.recurringFrequency || "monthly",
+    includeInBudget: expense?.includeInBudget || false,
   };
   const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
 
@@ -199,6 +200,7 @@ const ExpenseContent = () => {
       user: id,
       isRecurring: values.isRecurring,
       recurringFrequency: values.isRecurring ? values.recurringFrequency : null,
+      includeInBudget: values.includeInBudget,
     };
     mutate(newData, {
       onSuccess: () => {
@@ -248,6 +250,7 @@ const ExpenseContent = () => {
       category: values.category,
       isRecurring: values.isRecurring,
       recurringFrequency: values.isRecurring ? values.recurringFrequency : null,
+      includeInBudget: values.includeInBudget,
     };
 
     updateExpense(newData, {
@@ -500,6 +503,21 @@ const ExpenseContent = () => {
                       </FormControl>
                     )}
 
+                    <FormControl>
+                      <Flex align="center" gap={3}>
+                        <Field
+                          as={Switch}
+                          name="includeInBudget"
+                          colorScheme="teal"
+                          isChecked={values.includeInBudget}
+                          onChange={handleChange("includeInBudget")}
+                        />
+                        <FormLabel htmlFor="includeInBudget" mb={0} fontSize="sm" fontWeight="medium">
+                          Include in Budget
+                        </FormLabel>
+                      </Flex>
+                    </FormControl>
+
                     <Flex gap={3} pt={2}>
                       <Button onClick={onCloseDialog} variant="ghost" flex={1} borderRadius="xl">
                         Cancel
@@ -615,7 +633,7 @@ const ExpenseContent = () => {
                   Add New Expense
                 </Text>
                 <Formik
-                  initialValues={{ title: "", amount: "", expenseDate: "", category: "", isRecurring: false, recurringFrequency: "monthly" }}
+                  initialValues={{ title: "", amount: "", expenseDate: "", category: "", isRecurring: false, recurringFrequency: "monthly", includeInBudget: false }}
                   onSubmit={clickHandler}
                   validationSchema={object({
                     title: string()
@@ -760,6 +778,21 @@ const ExpenseContent = () => {
                             </Field>
                           </FormControl>
                         )}
+
+                        <FormControl>
+                          <Flex align="center" gap={3}>
+                            <Field
+                              as={Switch}
+                              name="includeInBudget"
+                              colorScheme="teal"
+                              isChecked={values.includeInBudget}
+                              onChange={handleChange("includeInBudget")}
+                            />
+                            <FormLabel htmlFor="includeInBudget" mb={0} fontSize="sm" fontWeight="medium">
+                              Include in Budget
+                            </FormLabel>
+                          </Flex>
+                        </FormControl>
 
                         <Button
                           leftIcon={<FiPlus />}

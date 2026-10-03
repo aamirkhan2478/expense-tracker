@@ -204,6 +204,8 @@ export function calculateBudgetFromExpenses({
 
   for (const exp of expenses) {
     if (!exp.expenseDate || typeof exp.amount !== "number") continue;
+    // Only count expenses explicitly included in budget
+    if (exp.includeInBudget !== true) continue;
     const d = new Date(exp.expenseDate);
 
     // Only count expenses within the month

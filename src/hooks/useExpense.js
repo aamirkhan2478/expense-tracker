@@ -105,6 +105,7 @@ const updateExpense = (values) => {
       category: values.category,
       isRecurring: values.isRecurring,
       recurringFrequency: values.recurringFrequency,
+      includeInBudget: values.includeInBudget,
     },
     config
   );

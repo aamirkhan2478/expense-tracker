@@ -55,6 +55,7 @@ export async function getBudgetSummaryForUser({ userId, month, referenceDate = n
     {
       $match: {
         user: userObjectId,
+        includeInBudget: true,
         expenseDate: {
           $gte: startOfMonth,
           $lte: endOfMonth,

@@ -25,6 +25,7 @@ export const expenseCreateSchema = Joi.object({
   user: Joi.string().required(),
   isRecurring: Joi.boolean().optional(),
   recurringFrequency: recurringFrequencyField,
+  includeInBudget: Joi.boolean().optional(),
 });
 
 export const expenseUpdateSchema = Joi.object({
@@ -34,6 +35,7 @@ export const expenseUpdateSchema = Joi.object({
   category: Joi.string().required(),
   isRecurring: Joi.boolean().optional(),
   recurringFrequency: recurringFrequencyField,
+  includeInBudget: Joi.boolean().optional(),
 });
 
 export const incomeCreateSchema = Joi.object({

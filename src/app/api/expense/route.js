@@ -21,7 +21,7 @@ export async function POST(req) {
     );
   }
 
-  const { title, amount, expenseDate, category, user, isRecurring, recurringFrequency } = body;
+  const { title, amount, expenseDate, category, user, isRecurring, recurringFrequency, includeInBudget } = body;
 
   try {
     await connectToDB();
@@ -46,6 +46,7 @@ export async function POST(req) {
       isRecurring: isRecurring || false,
       recurringFrequency: isRecurring ? recurringFrequency : null,
       lastProcessedAt: isRecurring ? expenseDate : null,
+      includeInBudget: includeInBudget || false,
     });
     await expense.save();
 
@@ -90,6 +91,7 @@ export async function POST(req) {
               $match: {
                 user: userExist._id,
                 category: cat._id,
+                includeInBudget: true,
                 expenseDate: { $gte: startOfMonth, $lte: endOfMonth },
               },
             },

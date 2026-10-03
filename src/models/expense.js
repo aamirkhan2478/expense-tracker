@@ -41,6 +41,10 @@ const ExpenseSchema = new Schema(
       type: Date,
       default: null,
     },
+    includeInBudget: {
+      type: Boolean,
+      default: false,
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: UserModel.modelName,

@@ -19,7 +19,7 @@ export async function PATCH(req, { params }) {
     );
   }
 
-  const { title, amount, expenseDate, category, isRecurring, recurringFrequency } = body;
+  const { title, amount, expenseDate, category, isRecurring, recurringFrequency, includeInBudget } = body;
 
   const { id } = params;
 
@@ -30,6 +30,7 @@ export async function PATCH(req, { params }) {
       amount,
       expenseDate,
       category,
+      includeInBudget: includeInBudget || false,
     };
     if (isRecurring !== undefined) {
       updateData.isRecurring = isRecurring;
