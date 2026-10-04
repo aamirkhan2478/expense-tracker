@@ -168,26 +168,26 @@ export default function HeroSection() {
             >
               <Stack spacing={0}>
                 <Text fontWeight="bold" fontSize="2xl" color="teal.500">
-                  10k+
+                  Self-Hosted
                 </Text>
                 <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
-                  Active Users
+                  Your data, your server
                 </Text>
               </Stack>
               <Stack spacing={0}>
                 <Text fontWeight="bold" fontSize="2xl" color="teal.500">
-                  $2M+
+                  Daily &amp; Monthly
                 </Text>
                 <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
-                  Tracked Monthly
+                  Budgets that carry forward
                 </Text>
               </Stack>
               <Stack spacing={0}>
                 <Text fontWeight="bold" fontSize="2xl" color="teal.500">
-                  4.9/5
+                  CSV &amp; JSON
                 </Text>
                 <Text fontSize="sm" color={useColorModeValue("gray.500", "gray.400")}>
-                  User Rating
+                  Import and export anytime
                 </Text>
               </Stack>
             </MotionFlex>

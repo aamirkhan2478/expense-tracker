@@ -18,12 +18,7 @@ import {
   IconButton,
   Avatar,
 } from "@chakra-ui/react";
-import {
-  FiMenu,
-  FiX,
-  FiChevronDown,
-  FiChevronRight,
-} from "react-icons/fi";
+import { FiMenu, FiX, FiChevronDown, FiChevronRight } from "react-icons/fi";
 import NextLink from "next/link";
 import { useState, useEffect } from "react";
 
@@ -80,7 +75,11 @@ export default function Navbar() {
             aria-label={"Toggle Navigation"}
           />
         </Flex>
-        <Flex flex={{ base: 1 }} justify={{ base: "center", md: "start" }} align="center">
+        <Flex
+          flex={{ base: 1 }}
+          justify={{ base: "center", md: "start" }}
+          align="center"
+        >
           <Text
             textAlign={useBreakpointValue({ base: "center", md: "left" })}
             fontFamily={"heading"}
@@ -283,7 +282,12 @@ const MobileNav = ({ items, isLoggedIn, user }) => {
               Dashboard
             </Button>
             <Flex align="center" gap={3} px={2}>
-              <Avatar size="sm" name={user?.name || "User"} bg="teal.500" color="white" />
+              <Avatar
+                size="sm"
+                name={user?.name || "User"}
+                bg="teal.500"
+                color="white"
+              />
               <Text fontSize="sm" fontWeight="medium">
                 {user?.name || "User"}
               </Text>
@@ -291,7 +295,12 @@ const MobileNav = ({ items, isLoggedIn, user }) => {
           </>
         ) : (
           <>
-            <Button as={NextLink} href="/auth" variant="link" justifyContent="start">
+            <Button
+              as={NextLink}
+              href="/auth"
+              variant="link"
+              justifyContent="start"
+            >
               Sign In
             </Button>
             <Button
@@ -368,11 +377,19 @@ function getNavItems(isLoggedIn) {
   const items = [
     {
       label: "Features",
-      href: "#features",
+      href: "/#features",
     },
     {
       label: "How It Works",
-      href: "#how-it-works",
+      href: "/#how-it-works",
+    },
+    {
+      label: "About",
+      href: "/about",
+    },
+    {
+      label: "Contact",
+      href: "/contact",
     },
   ];
 

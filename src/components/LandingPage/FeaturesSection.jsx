@@ -17,7 +17,7 @@ import {
   FiPieChart,
   FiTag,
   FiBarChart2,
-  FiShield,
+  FiCalendar,
   FiSmartphone,
 } from "react-icons/fi";
 
@@ -49,9 +49,9 @@ const features = [
     color: "purple",
   },
   {
-    title: "Secure & Private",
-    text: "Your financial data is protected with industry-standard security and authentication.",
-    icon: FiShield,
+    title: "Daily Budget",
+    text: "Set one monthly allowance and see what you can spend today, with unspent days and overspending carried forward automatically.",
+    icon: FiCalendar,
     color: "orange",
   },
   {

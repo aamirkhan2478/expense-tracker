@@ -55,17 +55,72 @@ import {
 const MotionBox = motion(Box);
 
 const NOTIFICATION_TYPES = [
-  { key: "loginNotification", label: "Login Notification", description: "Alert on new device login", icon: "🔐" },
-  { key: "largeExpenseAlert", label: "Large Expense Alert", description: "Single expense over threshold", icon: "💸" },
-  { key: "upcomingReminder", label: "Upcoming Reminder", description: "Recurring payment due soon", icon: "📅" },
-  { key: "weeklySummary", label: "Weekly Summary", description: "Weekly financial activity", icon: "📈" },
-  { key: "budgetWarning", label: "Budget Warning", description: "80% category budget used", icon: "⚠️" },
-  { key: "budgetExceeded", label: "Budget Exceeded", description: "Category budget exceeded", icon: "🔴" },
-  { key: "recurringBatchSummary", label: "Recurring Batch", description: "After recurring transactions process", icon: "🔄" },
-  { key: "overspendingAlert", label: "Overspending Alert", description: "Unusual spending patterns", icon: "⚡" },
-  { key: "savingsMilestone", label: "Savings Milestone", description: "Savings goal celebration", icon: "🎉" },
-  { key: "bulkImportSummary", label: "Bulk Import", description: "CSV/Excel import result", icon: "📥" },
-  { key: "failedLogin", label: "Failed Login Alert", description: "Failed login attempt", icon: "🚫" },
+  {
+    key: "loginNotification",
+    label: "Login Notification",
+    description: "Alert on new device login",
+    icon: "🔐",
+  },
+  {
+    key: "largeExpenseAlert",
+    label: "Large Expense Alert",
+    description: "Single expense over threshold",
+    icon: "💸",
+  },
+  {
+    key: "upcomingReminder",
+    label: "Upcoming Reminder",
+    description: "Recurring payment due soon",
+    icon: "📅",
+  },
+  {
+    key: "weeklySummary",
+    label: "Weekly Summary",
+    description: "Weekly financial activity",
+    icon: "📈",
+  },
+  {
+    key: "budgetWarning",
+    label: "Budget Warning",
+    description: "80% category budget used",
+    icon: "⚠️",
+  },
+  {
+    key: "budgetExceeded",
+    label: "Budget Exceeded",
+    description: "Category budget exceeded",
+    icon: "🔴",
+  },
+  {
+    key: "recurringBatchSummary",
+    label: "Recurring Batch",
+    description: "After recurring transactions process",
+    icon: "🔄",
+  },
+  {
+    key: "overspendingAlert",
+    label: "Overspending Alert",
+    description: "Unusual spending patterns",
+    icon: "⚡",
+  },
+  {
+    key: "savingsMilestone",
+    label: "Savings Milestone",
+    description: "Savings goal celebration",
+    icon: "🎉",
+  },
+  {
+    key: "bulkImportSummary",
+    label: "Bulk Import",
+    description: "CSV/Excel import result",
+    icon: "📥",
+  },
+  {
+    key: "failedLogin",
+    label: "Failed Login Alert",
+    description: "Failed login attempt",
+    icon: "🚫",
+  },
 ];
 
 const TIMEZONES = [
@@ -104,11 +159,16 @@ const WEEK_DAYS = [
 
 export default function SettingsPage() {
   const { settings, updateSettings, resetSettings, isReady } = useSettings();
-  const { dateFormat: serverDateFormat, itemsPerPage: serverItemsPerPage, updatePreferences } = useUserPreferences();
+  const {
+    dateFormat: serverDateFormat,
+    itemsPerPage: serverItemsPerPage,
+    updatePreferences,
+  } = useUserPreferences();
   const toast = useToast();
   const [localCurrency, setLocalCurrency] = useState(settings.currencyCode);
   const [localDateFormat, setLocalDateFormat] = useState(serverDateFormat);
-  const [localItemsPerPage, setLocalItemsPerPage] = useState(serverItemsPerPage);
+  const [localItemsPerPage, setLocalItemsPerPage] =
+    useState(serverItemsPerPage);
   const [notifPrefs, setNotifPrefs] = useState(null);
   const [notifLoading, setNotifLoading] = useState(true);
   const [savingNotif, setSavingNotif] = useState(false);
@@ -134,13 +194,28 @@ export default function SettingsPage() {
   }, [serverItemsPerPage]);
 
   useEffect(() => {
-    const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
-    if (!user?.id) { setNotifLoading(false); return; }
-    axiosInstance.get(`/api/user/preferences?user=${user.id}`)
+    const user =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("user") || "{}")
+        : {};
+    if (!user?.id) {
+      setNotifLoading(false);
+      return;
+    }
+    axiosInstance
+      .get(`/api/user/preferences?user=${user.id}`)
       .then((r) => setNotifPrefs(r.data.preferences || {}))
-      .catch(() => toast({ title: "Failed to load notification preferences", status: "error", duration: 3000, isClosable: true, position: "top-right" }))
+      .catch(() =>
+        toast({
+          title: "Failed to load notification preferences",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+          position: "top-right",
+        }),
+      )
       .finally(() => setNotifLoading(false));
-  }, []);
+  }, [toast]);
 
   const handleSave = () => {
     const selected = CURRENCIES.find((c) => c.code === localCurrency);
@@ -172,14 +247,32 @@ export default function SettingsPage() {
   };
 
   const handleSaveNotif = async () => {
-    const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
+    const user =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("user") || "{}")
+        : {};
     if (!user?.id) return;
     setSavingNotif(true);
     try {
-      await axiosInstance.post("/api/user/preferences", { user: user.id, preferences: notifPrefs });
-      toast({ title: "Notification preferences saved", status: "success", duration: 3000, isClosable: true, position: "top-right" });
+      await axiosInstance.post("/api/user/preferences", {
+        user: user.id,
+        preferences: notifPrefs,
+      });
+      toast({
+        title: "Notification preferences saved",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
     } catch {
-      toast({ title: "Failed to save notification preferences", status: "error", duration: 3000, isClosable: true, position: "top-right" });
+      toast({
+        title: "Failed to save notification preferences",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+      });
     } finally {
       setSavingNotif(false);
     }
@@ -191,10 +284,17 @@ export default function SettingsPage() {
 
   const handleExportAll = async () => {
     try {
-      const user = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}") : {};
+      const user =
+        typeof window !== "undefined"
+          ? JSON.parse(localStorage.getItem("user") || "{}")
+          : {};
       const [incomeRes, expenseRes, categoryRes] = await Promise.all([
-        axiosInstance.get(`/api/income?user=${user.id || ""}&limit=9999&page=1`),
-        axiosInstance.get(`/api/expense?user=${user.id || ""}&limit=9999&page=1`),
+        axiosInstance.get(
+          `/api/income?user=${user.id || ""}&limit=9999&page=1`,
+        ),
+        axiosInstance.get(
+          `/api/expense?user=${user.id || ""}&limit=9999&page=1`,
+        ),
         axiosInstance.get(`/api/category?user=${user.id || ""}`),
       ]);
 
@@ -316,12 +416,22 @@ export default function SettingsPage() {
                     ))}
                   </Select>
                 </FormControl>
-                <Box mt={4} p={3} bg="gray.50" _dark={{ bg: "gray.700" }} borderRadius="xl">
+                <Box
+                  mt={4}
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: "gray.700" }}
+                  borderRadius="xl"
+                >
                   <Text fontSize="xs" color={mutedText} mb={1}>
                     Preview
                   </Text>
                   <Text fontSize="2xl" fontWeight="bold" color="teal.500">
-                    {formatMoney(1250.5, { currency: CURRENCIES.find((c) => c.code === localCurrency)?.symbol || "$" })}
+                    {formatMoney(1250.5, {
+                      currency:
+                        CURRENCIES.find((c) => c.code === localCurrency)
+                          ?.symbol || "$",
+                    })}
                   </Text>
                 </Box>
               </SettingCard>
@@ -347,7 +457,13 @@ export default function SettingsPage() {
                       try {
                         await updatePreferences({ dateFormat: val });
                       } catch {
-                        toast({ title: "Failed to save date format", status: "error", duration: 3000, isClosable: true, position: "top-right" });
+                        toast({
+                          title: "Failed to save date format",
+                          status: "error",
+                          duration: 3000,
+                          isClosable: true,
+                          position: "top-right",
+                        });
                       } finally {
                         setSavingDateFormat(false);
                       }
@@ -363,7 +479,13 @@ export default function SettingsPage() {
                     ))}
                   </Select>
                 </FormControl>
-                <Box mt={4} p={3} bg="gray.50" _dark={{ bg: "gray.700" }} borderRadius="xl">
+                <Box
+                  mt={4}
+                  p={3}
+                  bg="gray.50"
+                  _dark={{ bg: "gray.700" }}
+                  borderRadius="xl"
+                >
                   <Text fontSize="xs" color={mutedText} mb={1}>
                     Preview
                   </Text>
@@ -399,7 +521,13 @@ export default function SettingsPage() {
                       try {
                         await updatePreferences({ itemsPerPage: val });
                       } catch {
-                        toast({ title: "Failed to save items per page", status: "error", duration: 3000, isClosable: true, position: "top-right" });
+                        toast({
+                          title: "Failed to save items per page",
+                          status: "error",
+                          duration: 3000,
+                          isClosable: true,
+                          position: "top-right",
+                        });
                       } finally {
                         setSavingItemsPerPage(false);
                       }
@@ -409,7 +537,9 @@ export default function SettingsPage() {
                     size="lg"
                   >
                     {[10, 25, 50, 100].map((n) => (
-                      <option key={n} value={n}>{n} items</option>
+                      <option key={n} value={n}>
+                        {n} items
+                      </option>
                     ))}
                   </Select>
                 </FormControl>
@@ -524,12 +654,21 @@ export default function SettingsPage() {
 
             {notifLoading ? (
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {[...Array(6)].map((_, i) => <Skeleton key={i} height="100px" borderRadius="2xl" />)}
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} height="100px" borderRadius="2xl" />
+                ))}
               </SimpleGrid>
             ) : notifPrefs ? (
               <Stack spacing={6}>
                 {/* Notification Type Toggles */}
-                <Grid templateColumns={{ base: "1fr", md: "1fr 1fr", lg: "repeat(3, 1fr)" }} gap={4}>
+                <Grid
+                  templateColumns={{
+                    base: "1fr",
+                    md: "1fr 1fr",
+                    lg: "repeat(3, 1fr)",
+                  }}
+                  gap={4}
+                >
                   {NOTIFICATION_TYPES.map((nt) => (
                     <MotionBox
                       key={nt.key}
@@ -548,8 +687,12 @@ export default function SettingsPage() {
                         <Flex align="center" gap={3}>
                           <Text fontSize="20px">{nt.icon}</Text>
                           <Box>
-                            <Text fontWeight="600" fontSize="sm">{nt.label}</Text>
-                            <Text fontSize="11px" color={mutedText}>{nt.description}</Text>
+                            <Text fontWeight="600" fontSize="sm">
+                              {nt.label}
+                            </Text>
+                            <Text fontSize="11px" color={mutedText}>
+                              {nt.description}
+                            </Text>
                           </Box>
                         </Flex>
                         <Switch
@@ -565,50 +708,97 @@ export default function SettingsPage() {
 
                 {/* Configuration Fields */}
                 <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
-                  <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="2xl" p={6} boxShadow="sm">
-                    <Text fontWeight="700" mb={4}>💸 Thresholds</Text>
+                  <Box
+                    bg={bgCard}
+                    border="1px solid"
+                    borderColor={borderColor}
+                    borderRadius="2xl"
+                    p={6}
+                    boxShadow="sm"
+                  >
+                    <Text fontWeight="700" mb={4}>
+                      💸 Thresholds
+                    </Text>
                     <Stack spacing={4}>
                       <FormControl>
-                        <FormLabel fontSize="sm">Spending Alert Threshold ($)</FormLabel>
+                        <FormLabel fontSize="sm">
+                          Spending Alert Threshold ($)
+                        </FormLabel>
                         <NumberInput
                           value={notifPrefs.spendingAlertThreshold ?? 1000}
                           min={1}
-                          onChange={(_, val) => setNotifPrefs((p) => ({ ...p, spendingAlertThreshold: val }))}
+                          onChange={(_, val) =>
+                            setNotifPrefs((p) => ({
+                              ...p,
+                              spendingAlertThreshold: val,
+                            }))
+                          }
                         >
-                          <NumberInputField borderRadius="xl" focusBorderColor="teal.400" />
+                          <NumberInputField
+                            borderRadius="xl"
+                            focusBorderColor="teal.400"
+                          />
                           <NumberInputStepper>
                             <NumberIncrementStepper />
                             <NumberDecrementStepper />
                           </NumberInputStepper>
                         </NumberInput>
-                        <Text fontSize="xs" color={mutedText} mt={1}>Triggers overspending alert beyond this amount</Text>
+                        <Text fontSize="xs" color={mutedText} mt={1}>
+                          Triggers overspending alert beyond this amount
+                        </Text>
                       </FormControl>
                       <FormControl>
-                        <FormLabel fontSize="sm">Large Expense Threshold ($)</FormLabel>
+                        <FormLabel fontSize="sm">
+                          Large Expense Threshold ($)
+                        </FormLabel>
                         <NumberInput
                           value={notifPrefs.largeExpenseThreshold ?? 500}
                           min={1}
-                          onChange={(_, val) => setNotifPrefs((p) => ({ ...p, largeExpenseThreshold: val }))}
+                          onChange={(_, val) =>
+                            setNotifPrefs((p) => ({
+                              ...p,
+                              largeExpenseThreshold: val,
+                            }))
+                          }
                         >
-                          <NumberInputField borderRadius="xl" focusBorderColor="teal.400" />
+                          <NumberInputField
+                            borderRadius="xl"
+                            focusBorderColor="teal.400"
+                          />
                           <NumberInputStepper>
                             <NumberIncrementStepper />
                             <NumberDecrementStepper />
                           </NumberInputStepper>
                         </NumberInput>
-                        <Text fontSize="xs" color={mutedText} mt={1}>Single expenses above this trigger an alert</Text>
+                        <Text fontSize="xs" color={mutedText} mt={1}>
+                          Single expenses above this trigger an alert
+                        </Text>
                       </FormControl>
                     </Stack>
                   </Box>
 
-                  <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="2xl" p={6} boxShadow="sm">
-                    <Text fontWeight="700" mb={4}>⏱️ Timing & Scheduling</Text>
+                  <Box
+                    bg={bgCard}
+                    border="1px solid"
+                    borderColor={borderColor}
+                    borderRadius="2xl"
+                    p={6}
+                    boxShadow="sm"
+                  >
+                    <Text fontWeight="700" mb={4}>
+                      ⏱️ Timing & Scheduling
+                    </Text>
                     <Stack spacing={4}>
                       <FormControl>
                         <FormLabel fontSize="sm">Reminder Timing</FormLabel>
                         <Select
                           value={notifPrefs.reminderDaysBefore ?? 3}
-                          onChange={(e) => setNotifPrefs((p) => ({ ...p, reminderDaysBefore: Number(e.target.value) }))}
+                          onChange={(e) =>
+                            setNotifPrefs((p) => ({
+                              ...p,
+                              reminderDaysBefore: Number(e.target.value),
+                            }))
+                          }
                           borderRadius="xl"
                           focusBorderColor="teal.400"
                         >
@@ -616,35 +806,55 @@ export default function SettingsPage() {
                           <option value={3}>3 days before</option>
                           <option value={7}>7 days before</option>
                         </Select>
-                        <Text fontSize="xs" color={mutedText} mt={1}>How early to remind about upcoming payments</Text>
+                        <Text fontSize="xs" color={mutedText} mt={1}>
+                          How early to remind about upcoming payments
+                        </Text>
                       </FormControl>
                       <FormControl>
                         <FormLabel fontSize="sm">Weekly Summary Day</FormLabel>
                         <Select
                           value={notifPrefs.weeklySummaryDay ?? 1}
-                          onChange={(e) => setNotifPrefs((p) => ({ ...p, weeklySummaryDay: Number(e.target.value) }))}
+                          onChange={(e) =>
+                            setNotifPrefs((p) => ({
+                              ...p,
+                              weeklySummaryDay: Number(e.target.value),
+                            }))
+                          }
                           borderRadius="xl"
                           focusBorderColor="teal.400"
                         >
                           {WEEK_DAYS.map((d) => (
-                            <option key={d.value} value={d.value}>{d.label}</option>
+                            <option key={d.value} value={d.value}>
+                              {d.label}
+                            </option>
                           ))}
                         </Select>
-                        <Text fontSize="xs" color={mutedText} mt={1}>Day of the week for your weekly summary email</Text>
+                        <Text fontSize="xs" color={mutedText} mt={1}>
+                          Day of the week for your weekly summary email
+                        </Text>
                       </FormControl>
                       <FormControl>
                         <FormLabel fontSize="sm">Timezone</FormLabel>
                         <Select
                           value={notifPrefs.timezone || "UTC"}
-                          onChange={(e) => setNotifPrefs((p) => ({ ...p, timezone: e.target.value }))}
+                          onChange={(e) =>
+                            setNotifPrefs((p) => ({
+                              ...p,
+                              timezone: e.target.value,
+                            }))
+                          }
                           borderRadius="xl"
                           focusBorderColor="teal.400"
                         >
                           {TIMEZONES.map((tz) => (
-                            <option key={tz} value={tz}>{tz}</option>
+                            <option key={tz} value={tz}>
+                              {tz}
+                            </option>
                           ))}
                         </Select>
-                        <Text fontSize="xs" color={mutedText} mt={1}>Used for scheduling email delivery times</Text>
+                        <Text fontSize="xs" color={mutedText} mt={1}>
+                          Used for scheduling email delivery times
+                        </Text>
                       </FormControl>
                     </Stack>
                   </Box>
@@ -669,7 +879,9 @@ export default function SettingsPage() {
                 </Flex>
               </Stack>
             ) : (
-              <Text fontSize="sm" color={mutedText}>Could not load notification preferences. Please try again later.</Text>
+              <Text fontSize="sm" color={mutedText}>
+                Could not load notification preferences. Please try again later.
+              </Text>
             )}
           </Box>
 

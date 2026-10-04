@@ -16,11 +16,13 @@ import {
   InputLeftElement,
   FormErrorMessage,
   Progress,
+  Link,
 } from "@chakra-ui/react";
 import React from "react";
 import { FiEye, FiEyeOff, FiMail, FiLock, FiUser } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import NextLink from "next/link";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -392,13 +394,27 @@ const SignUp = ({ onRegisterSuccess, onSwitch }) => {
           >
             <Text fontSize="sm" color="gray.500">
               I agree to the{" "}
-              <Text as="span" color="teal.500" fontWeight="medium">
+              <Link
+                as={NextLink}
+                href="/terms"
+                onClick={(event) => event.stopPropagation()}
+                color="teal.500"
+                fontWeight="medium"
+                textDecoration="underline"
+              >
                 Terms of Service
-              </Text>{" "}
+              </Link>{" "}
               and{" "}
-              <Text as="span" color="teal.500" fontWeight="medium">
+              <Link
+                as={NextLink}
+                href="/privacy"
+                onClick={(event) => event.stopPropagation()}
+                color="teal.500"
+                fontWeight="medium"
+                textDecoration="underline"
+              >
                 Privacy Policy
-              </Text>
+              </Link>
             </Text>
           </Checkbox>
           <FormErrorMessage>{errors.agree}</FormErrorMessage>

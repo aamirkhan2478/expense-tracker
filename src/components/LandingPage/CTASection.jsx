@@ -73,8 +73,8 @@ export default function CTASection() {
               color="whiteAlpha.900"
               maxW="2xl"
             >
-              Join thousands of users who are already saving more and spending
-              smarter with SpendWise. It is free to get started.
+              Start with an honest record of where your money goes, then let the
+              daily budget tell you what you can comfortably spend today.
             </Text>
 
             <Flex
@@ -107,7 +107,7 @@ export default function CTASection() {
               color="whiteAlpha.900"
               fontSize="sm"
             >
-              {["No credit card required", "Free forever plan", "Cancel anytime"].map(
+              {["No credit card required", "No paid plans", "Export your data anytime"].map(
                 (item) => (
                   <Flex key={item} align="center" gap={2}>
                     <Icon as={FiCheckCircle} />
