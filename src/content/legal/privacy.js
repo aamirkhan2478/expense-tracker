@@ -135,7 +135,7 @@ export const privacyPolicy = {
         },
         {
           type: "p",
-          text: "Email delivery logs, including the rendered content of sent emails, are retained until an administrator clears them or the database is removed. Verification and reset tokens expire automatically after 24 hours and 1 hour respectively. Signing out clears your authentication cookies immediately.",
+          text: "Email delivery logs, including the rendered content of sent emails, are automatically deleted 90 days after they are created. Verification and reset tokens expire automatically after 24 hours and 1 hour respectively. Signing out clears your authentication cookies immediately.",
         },
         {
           type: "p",

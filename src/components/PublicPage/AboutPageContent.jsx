@@ -34,7 +34,7 @@ const whatItIsNot = [
     items: [
       "It is not a bank. It never holds, safeguards, or moves money, and it does not connect to bank accounts or card networks.",
       "It is not an investment, insurance, tax, or accounting product, and it does not give financial advice.",
-      "It is not a subscription product. There are no paid plans, no credits, and no payment details are ever collected.",
+      "It is a record-keeping tool, not a money manager. It shows you what you entered and helps you plan from it; it cannot move, hold, or reconcile funds on your behalf.",
       "It is not an analytics service. Your finances are not used for advertising, profiling, or AI training.",
     ],
   },

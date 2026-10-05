@@ -1,48 +1,59 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
-import mongoose from "mongoose";
 import User from "@/models/user";
 import Expense from "@/models/expense";
+import Category from "@/models/category";
+import { requireUser } from "@/lib/auth-middleware";
 import { expenseCreateSchema } from "@/lib/validation/transactions";
 
 export async function POST(req) {
-  const body = await req.json();
-
-  const { error } = expenseCreateSchema.validate(body, { abortEarly: false });
-  if (error) {
-    return res.json(
-      {
-        success: false,
-        error: error.details[0].message,
-      },
-      {
-        status: 400,
-      }
-    );
-  }
-
-  const { title, amount, expenseDate, category, user, isRecurring, recurringFrequency, includeInBudget } = body;
-
   try {
     await connectToDB();
-    let userExist = await User.findById(user);
+
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
+    const userExist = await User.findById(userId)
+      .select("email name notificationPreferences")
+      .lean();
     if (!userExist) {
+      return res.json({ success: false, error: "User not found" }, { status: 404 });
+    }
+
+    const body = await req.json();
+    // The owning user is derived from the token — drop any client-supplied "user".
+    const { user: _clientUser, ...payload } = body;
+
+    const { error, value } = expenseCreateSchema.validate(payload, { abortEarly: false });
+    if (error) {
       return res.json(
         {
           success: false,
-          error: "User not found",
+          error: error.details[0].message,
         },
         {
           status: 400,
         }
       );
     }
+
+    const { title, amount, expenseDate, category, isRecurring, recurringFrequency, includeInBudget } = value;
+
+    // The category must belong to the authenticated user.
+    const cat = await Category.findOne({ _id: category, user: userId })
+      .select("_id name budget")
+      .lean();
+    if (!cat) {
+      return res.json({ success: false, error: "Category not found" }, { status: 404 });
+    }
+
     const expense = new Expense({
       title,
       amount,
       expenseDate,
       category,
-      user,
+      user: userId,
       isRecurring: isRecurring || false,
       recurringFrequency: isRecurring ? recurringFrequency : null,
       lastProcessedAt: isRecurring ? expenseDate : null,
@@ -54,9 +65,6 @@ export async function POST(req) {
     ;(async () => {
       try {
         const { sendBudgetWarningEmail, sendBudgetExceededEmail, sendLargeExpenseAlertEmail, sendOverspendingAlertEmail } = require("@/lib/email");
-        const Category = require("@/models/category").default;
-
-        const cat = await Category.findById(category);
 
         // ── Large Expense Alert ──
         const prefs = userExist.notificationPreferences || {};
@@ -189,7 +197,6 @@ export async function POST(req) {
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const user = searchParams.get("user");
   const expensePage = searchParams.get("page");
   const expenseLimit = searchParams.get("limit");
   const category = searchParams.get("category") || "";
@@ -204,6 +211,11 @@ export async function GET(req) {
 
   try {
     await connectToDB();
+
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const user = auth.user.id;
 
     let filter = {};
 
@@ -224,30 +236,6 @@ export async function GET(req) {
 
     if (isRecurring === "true" || isRecurring === "false") {
       filter.isRecurring = isRecurring === "true";
-    }
-
-    if (!user) {
-      return res.json(
-        {
-          success: false,
-          error: "User not found",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(user)) {
-      return res.json(
-        {
-          success: false,
-          error: "Invalid user id",
-        },
-        {
-          status: 400,
-        }
-      );
     }
 
     const result = await Expense.find({
@@ -282,11 +270,13 @@ export async function GET(req) {
       };
     }
 
-    const filteredExpenses = await Expense.find({ user, ...filter });
-    let totalAmount = 0;
-    filteredExpenses.forEach((expense) => {
-      totalAmount += expense.amount;
-    });
+    // Aggregate the filtered total in the database rather than loading every
+    // matching document into memory.
+    const [totalAgg] = await Expense.aggregate([
+      { $match: { user, ...filter } },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+    ]);
+    const totalAmount = totalAgg?.totalAmount || 0;
 
     return res.json(
       {

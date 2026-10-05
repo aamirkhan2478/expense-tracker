@@ -3,7 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Income from "@/models/income";
 import Expense from "@/models/expense";
 import Category from "@/models/category";
-import mongoose from "mongoose";
+import { requireUser } from "@/lib/auth-middleware";
 
 const PAGE_SIZE_INCOME = 5;
 const PAGE_SIZE_EXPENSE = 5;
@@ -57,16 +57,7 @@ function highlightText(text, query) {
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const user = searchParams.get("user");
   const q = searchParams.get("q") || "";
-
-  if (!user) {
-    return res.json({ success: false, error: "User not found" }, { status: 400 });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(user)) {
-    return res.json({ success: false, error: "Invalid user id" }, { status: 400 });
-  }
 
   const query = q.trim();
   if (!query) {
@@ -76,12 +67,18 @@ export async function GET(req) {
   try {
     await connectToDB();
 
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    // Search is always scoped to the authenticated owner.
+    const user = auth.user.id;
+
     const qLower = query.toLowerCase();
     const isNumber = !isNaN(query) && query !== "";
     const numValue = isNumber ? Number(query) : null;
 
-    // Convert userId string to ObjectId for reliable matching
-    const userObjectId = new mongoose.Types.ObjectId(user);
+    // Mongoose casts the string id when matching.
+    const userObjectId = user;
 
     // Date range filter
     let dateFilter = null;

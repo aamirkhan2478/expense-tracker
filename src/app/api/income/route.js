@@ -1,48 +1,43 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import Income from "@/models/income";
-import User from "@/models/user";
-import mongoose from "mongoose";
+import { requireUser } from "@/lib/auth-middleware";
 import { incomeCreateSchema } from "@/lib/validation/transactions";
 
 export async function POST(req) {
-  const body = await req.json();
-
-  const { error } = incomeCreateSchema.validate(body, { abortEarly: false });
-  if (error) {
-    return res.json(
-      {
-        success: false,
-        error: error.details[0].message,
-      },
-      {
-        status: 400,
-      }
-    );
-  }
-
-  const { companyName, title, amount, incomeDate, user, isRecurring, recurringFrequency } = body;
-
   try {
     await connectToDB();
-    let userExist = await User.findById(user);
-    if (!userExist) {
+
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
+
+    const body = await req.json();
+    // The owning user is derived from the token — drop any client-supplied "user".
+    const { user: _clientUser, ...payload } = body;
+
+    const { error, value } = incomeCreateSchema.validate(payload, { abortEarly: false });
+    if (error) {
       return res.json(
         {
           success: false,
-          error: "User not found",
+          error: error.details[0].message,
         },
         {
           status: 400,
         }
       );
     }
+
+    const { companyName, title, amount, incomeDate, isRecurring, recurringFrequency } = value;
+
     const income = new Income({
       companyName,
       title,
       amount,
       incomeDate,
-      user,
+      user: userId,
       isRecurring: isRecurring || false,
       recurringFrequency: isRecurring ? recurringFrequency : null,
       lastProcessedAt: isRecurring ? incomeDate : null,
@@ -57,7 +52,6 @@ export async function POST(req) {
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const user = searchParams.get("user");
   const incomePage = searchParams.get("page");
   const incomeLimit = searchParams.get("limit");
   const incomeDate = searchParams.get("incomeDate");
@@ -69,6 +63,11 @@ export async function GET(req) {
 
   try {
     await connectToDB();
+
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const user = auth.user.id;
 
     let filter = {};
     if (incomeDate) {
@@ -83,30 +82,6 @@ export async function GET(req) {
 
     if (isRecurring === "true" || isRecurring === "false") {
       filter.isRecurring = isRecurring === "true";
-    }
-
-    if (!user) {
-      return res.json(
-        {
-          success: false,
-          error: "User not found",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(user)) {
-      return res.json(
-        {
-          success: false,
-          error: "Invalid user id",
-        },
-        {
-          status: 400,
-        }
-      );
     }
 
     const result = await Income.find({
@@ -140,11 +115,13 @@ export async function GET(req) {
       };
     }
 
-    const incomes = await Income.find({ user, ...filter });
-    let totalAmount = 0;
-    incomes.forEach((income) => {
-      totalAmount += income.amount;
-    });
+    // Aggregate the filtered total in the database rather than loading every
+    // matching document into memory.
+    const [totalAgg] = await Income.aggregate([
+      { $match: { user, ...filter } },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+    ]);
+    const totalAmount = totalAgg?.totalAmount || 0;
 
     return res.json(
       {

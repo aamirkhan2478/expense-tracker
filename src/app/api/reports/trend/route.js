@@ -2,30 +2,19 @@ import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import Expense from "@/models/expense";
 import Income from "@/models/income";
-import User from "@/models/user";
+import { requireUser } from "@/lib/auth-middleware";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user");
   const yearParam = searchParams.get("year");
-
-  if (!userId) {
-    return res.json(
-      { success: false, error: "User ID is required" },
-      { status: 400 }
-    );
-  }
 
   try {
     await connectToDB();
 
-    const userExist = await User.findById(userId);
-    if (!userExist) {
-      return res.json(
-        { success: false, error: "User not found" },
-        { status: 400 }
-      );
-    }
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
 
     const year = parseInt(yearParam) || new Date().getFullYear();
     const startDate = new Date(Date.UTC(year, 0, 1));
@@ -35,7 +24,7 @@ export async function GET(req) {
     const incomeByMonth = await Income.aggregate([
       {
         $match: {
-          user: userExist._id,
+          user: userId,
           incomeDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -52,7 +41,7 @@ export async function GET(req) {
     const expenseByMonth = await Expense.aggregate([
       {
         $match: {
-          user: userExist._id,
+          user: userId,
           expenseDate: { $gte: startDate, $lte: endDate },
         },
       },

@@ -4,23 +4,24 @@ const IncomeSchema = new Schema(
   {
     companyName: {
       type: String,
-      require: [true, "Title is required"],
+      required: [true, "Company name is required"],
     },
     title: {
       type: String,
-      require: [true, "Title is required"],
+      required: [true, "Title is required"],
     },
     amount: {
       type: Number,
-      require: [true, "Amount is required"],
+      required: [true, "Amount is required"],
+      min: [0.01, "Amount must be greater than zero"],
     },
     incomeDate: {
       type: Date,
-      require: [true, "Income Date is required"],
+      required: [true, "Income Date is required"],
     },
     type: {
       type: String,
-      require: [true, "Type is required"],
+      required: [true, "Type is required"],
       default: "income",
     },
     isRecurring: {
@@ -45,6 +46,8 @@ const IncomeSchema = new Schema(
     timestamps: true,
   }
 );
+
+IncomeSchema.index({ user: 1, incomeDate: 1 });
 
 const Income = models.Income || model("Income", IncomeSchema);
 

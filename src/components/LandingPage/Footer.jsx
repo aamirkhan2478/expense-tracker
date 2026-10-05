@@ -77,9 +77,9 @@ export default function Footer() {
               </Text>
             </Box>
             <Text fontSize="sm" lineHeight="tall" maxW="sm">
-              A self-hosted tracker for expenses, income, and budgets. There are no
-              paid plans, no bank connections, and no third-party tracking — you or
-              your instance operator holds the data.
+              A self-hosted tracker for expenses, income, and budgets. No bank
+              connections, no third-party tracking — you or your instance operator
+              holds the data.
             </Text>
           </Stack>
           <Stack align="flex-start" spacing={2}>

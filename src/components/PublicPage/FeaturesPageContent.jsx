@@ -284,9 +284,9 @@ export default function FeaturesPageContent() {
         </Heading>
         <Text color={mutedColor} mb={6} maxW="3xl" lineHeight="tall">
           Being clear about the edges is as useful as listing the features. There
-          are no paid plans, no bank connections, no advertising or analytics, and
-          no AI analysis of your finances. Everything you see is calculated from
-          records you entered.
+          are no bank connections, no advertising or analytics, and no AI analysis
+          of your finances. Everything you see is calculated from records you
+          entered.
         </Text>
         <Stack direction={{ base: "column", sm: "row" }} spacing={3}>
           <Button as={NextLink} href="/auth?tab=signup" colorScheme="teal" rounded="full">

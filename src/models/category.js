@@ -7,11 +7,11 @@ const CategorySchema = new Schema(
   {
     name: {
       type: String,
-      require: [true, "Name is required"],
+      required: [true, "Name is required"],
     },
     icon: {
       type: String,
-      require: [true, "Icon is required"],
+      required: [true, "Icon is required"],
     },
     budget: {
       type: Number,
@@ -26,6 +26,8 @@ const CategorySchema = new Schema(
     timestamps: true,
   }
 );
+
+CategorySchema.index({ user: 1 });
 
 const Category = models.Category || model("Category", CategorySchema);
 

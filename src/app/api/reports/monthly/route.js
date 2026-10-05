@@ -3,25 +3,21 @@ import { connectToDB } from "@/utils/database";
 import User from "@/models/user";
 import Expense from "@/models/expense";
 import Income from "@/models/income";
+import { requireUser } from "@/lib/auth-middleware";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user");
   const sendEmail = searchParams.get("sendEmail") === "true";
   const year = parseInt(searchParams.get("year") || new Date().getFullYear());
   const month = parseInt(searchParams.get("month") || new Date().getMonth());
 
-  if (!userId) {
-    return res.json(
-      { success: false, error: "User ID is required" },
-      { status: 400 }
-    );
-  }
-
   try {
     await connectToDB();
 
-    const user = await User.findById(userId);
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const user = await User.findById(auth.user.id);
     if (!user) {
       return res.json(
         { success: false, error: "User not found" },

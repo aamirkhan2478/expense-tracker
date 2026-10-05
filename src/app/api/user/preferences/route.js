@@ -1,23 +1,20 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import User from "@/models/user";
+import { requireUser } from "@/lib/auth-middleware";
 
 /**
  * GET /api/user/preferences
- * Returns the current user's notification preferences.
- * Query: ?user=<userId>
+ * Returns the authenticated user's notification preferences.
  */
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("user");
-
-    if (!userId) {
-      return res.json({ success: false, error: "User ID is required" }, { status: 400 });
-    }
-
     await connectToDB();
-    const user = await User.findById(userId).select("notificationPreferences").lean();
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    const user = await User.findById(auth.user.id).select("notificationPreferences").lean();
     if (!user) {
       return res.json({ success: false, error: "User not found" }, { status: 404 });
     }
@@ -34,20 +31,25 @@ export async function GET(request) {
 
 /**
  * POST /api/user/preferences
- * Updates the current user's notification preferences.
- * Body: { user: string, preferences: Partial<NotificationPreferences> }
+ * Updates the authenticated user's notification preferences.
+ * Body: { preferences: Partial<NotificationPreferences> }
  */
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { user: userId, preferences } = body;
+    // The owning user is derived from the token — drop any client-supplied "user".
+    const { user: _clientUser, preferences } = body;
 
-    if (!userId || !preferences) {
-      return res.json({ success: false, error: "User ID and preferences are required" }, { status: 400 });
+    if (!preferences || typeof preferences !== "object") {
+      return res.json({ success: false, error: "Preferences are required" }, { status: 400 });
     }
 
     await connectToDB();
-    const user = await User.findById(userId);
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    const user = await User.findById(auth.user.id);
     if (!user) {
       return res.json({ success: false, error: "User not found" }, { status: 404 });
     }

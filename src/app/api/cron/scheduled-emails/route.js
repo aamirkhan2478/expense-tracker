@@ -1,8 +1,44 @@
 import { NextResponse as res } from "next/server";
+import crypto from "crypto";
 import { connectToDB } from "@/utils/database";
 import User from "@/models/user";
 import Expense from "@/models/expense";
 import Income from "@/models/income";
+
+/**
+ * The secret is only optional for local development. In any deployed environment
+ * a missing CRON_SECRET must fail closed rather than silently falling back to a
+ * well-known value that anyone could send.
+ */
+function getExpectedCronSecret() {
+  const secret = process.env.CRON_SECRET;
+
+  if (secret && secret.trim().length > 0) {
+    return secret.trim();
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  return "dev-cron-secret";
+}
+
+function isValidCronRequest(request, expectedSecret) {
+  if (!expectedSecret) return false;
+
+  const authHeader = request.headers.get("authorization") || "";
+  const providedSecret = authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length)
+    : "";
+
+  const provided = Buffer.from(providedSecret);
+  const expected = Buffer.from(expectedSecret);
+
+  if (provided.length !== expected.length) return false;
+
+  return crypto.timingSafeEqual(provided, expected);
+}
 
 /**
  * POST /api/cron/scheduled-emails
@@ -16,9 +52,13 @@ import Income from "@/models/income";
 export async function POST(request) {
   try {
     // ── Security: validate cron secret ──
-    const authHeader = request.headers.get("authorization");
-    const expectedSecret = process.env.CRON_SECRET || "dev-cron-secret";
-    if (authHeader !== `Bearer ${expectedSecret}`) {
+    const expectedSecret = getExpectedCronSecret();
+    if (!expectedSecret) {
+      console.error("[Cron] CRON_SECRET is not configured; refusing to run.");
+      return res.json({ success: false, error: "Server misconfigured" }, { status: 500 });
+    }
+
+    if (!isValidCronRequest(request, expectedSecret)) {
       return res.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 

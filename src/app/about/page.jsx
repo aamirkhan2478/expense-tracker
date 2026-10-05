@@ -4,7 +4,7 @@ import { createMetadata, breadcrumbJsonLd } from "@/lib/seo";
 import { SITE } from "@/constants/site";
 
 const title = "About";
-const description = `What SpendWise is, who it is built for, the reasoning behind its daily budget model, and the boundaries it deliberately keeps — no bank connections, no paid plans, no analytics.`;
+const description = `What SpendWise is, who it is built for, the reasoning behind its daily budget model, and the boundaries it deliberately keeps — no bank connections, no advertising, no profiling.`;
 
 export const metadata = createMetadata({
   title,

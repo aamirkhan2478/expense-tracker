@@ -9,19 +9,20 @@ const ExpenseSchema = new Schema(
   {
     title: {
       type: String,
-      require: [true, "Title is required"],
+      required: [true, "Title is required"],
     },
     amount: {
       type: Number,
-      require: [true, "Amount is required"],
+      required: [true, "Amount is required"],
+      min: [0.01, "Amount must be greater than zero"],
     },
     expenseDate: {
       type: Date,
-      require: [true, "Expense Date is required"],
+      required: [true, "Expense Date is required"],
     },
     type: {
       type: String,
-      require: [true, "Type is required"],
+      required: [true, "Type is required"],
       default: "expense",
     },
     category: {

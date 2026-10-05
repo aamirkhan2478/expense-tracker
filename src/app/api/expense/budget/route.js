@@ -2,29 +2,16 @@ import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import Expense from "@/models/expense";
 import Category from "@/models/category";
-import User from "@/models/user";
+import { requireUser } from "@/lib/auth-middleware";
 
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user");
-
-  if (!userId) {
-    return res.json(
-      { success: false, error: "User ID is required" },
-      { status: 400 }
-    );
-  }
-
   try {
     await connectToDB();
 
-    const userExist = await User.findById(userId);
-    if (!userExist) {
-      return res.json(
-        { success: false, error: "User not found" },
-        { status: 400 }
-      );
-    }
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
 
     // Get current month start and end dates (UTC to match stored dates)
     const now = new Date();
@@ -38,7 +25,7 @@ export async function GET(req) {
     const expenseAggregation = await Expense.aggregate([
       {
         $match: {
-          user: userExist._id,
+          user: userId,
           includeInBudget: true,
           expenseDate: {
             $gte: startOfMonth,

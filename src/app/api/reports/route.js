@@ -3,31 +3,20 @@ import { connectToDB } from "@/utils/database";
 import Expense from "@/models/expense";
 import Income from "@/models/income";
 import Category from "@/models/category";
-import User from "@/models/user";
+import { requireUser } from "@/lib/auth-middleware";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("user");
   const yearParam = searchParams.get("year");
   const monthParam = searchParams.get("month");
-
-  if (!userId) {
-    return res.json(
-      { success: false, error: "User ID is required" },
-      { status: 400 }
-    );
-  }
 
   try {
     await connectToDB();
 
-    const userExist = await User.findById(userId);
-    if (!userExist) {
-      return res.json(
-        { success: false, error: "User not found" },
-        { status: 400 }
-      );
-    }
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
 
     const year = parseInt(yearParam) || new Date().getFullYear();
     const month = monthParam ? parseInt(monthParam) : null;
@@ -45,7 +34,7 @@ export async function GET(req) {
     const incomeAgg = await Income.aggregate([
       {
         $match: {
-          user: userExist._id,
+          user: userId,
           incomeDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -65,7 +54,7 @@ export async function GET(req) {
     const expenseAgg = await Expense.aggregate([
       {
         $match: {
-          user: userExist._id,
+          user: userId,
           expenseDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -90,7 +79,7 @@ export async function GET(req) {
     const categoryAgg = await Expense.aggregate([
       {
         $match: {
-          user: userExist._id,
+          user: userId,
           expenseDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -121,21 +110,21 @@ export async function GET(req) {
 
     // Highest and lowest transactions
     const highestIncome = await Income.findOne({
-      user: userExist._id,
+      user: userId,
       incomeDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: -1 })
       .select("title amount incomeDate companyName");
 
     const lowestIncome = await Income.findOne({
-      user: userExist._id,
+      user: userId,
       incomeDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: 1 })
       .select("title amount incomeDate companyName");
 
     const highestExpense = await Expense.findOne({
-      user: userExist._id,
+      user: userId,
       expenseDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: -1 })
@@ -143,7 +132,7 @@ export async function GET(req) {
       .select("title amount expenseDate category");
 
     const lowestExpense = await Expense.findOne({
-      user: userExist._id,
+      user: userId,
       expenseDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: 1 })

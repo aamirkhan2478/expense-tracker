@@ -107,7 +107,7 @@ export default function CTASection() {
               color="whiteAlpha.900"
               fontSize="sm"
             >
-              {["No credit card required", "No paid plans", "Export your data anytime"].map(
+              {["No credit card required", "Self-hostable", "Export your data anytime"].map(
                 (item) => (
                   <Flex key={item} align="center" gap={2}>
                     <Icon as={FiCheckCircle} />

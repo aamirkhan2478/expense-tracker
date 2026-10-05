@@ -1,25 +1,23 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
-import mongoose from "mongoose";
 import SavingsGoal from "@/models/savings-goal";
 import User from "@/models/user";
+import { requireUser } from "@/lib/auth-middleware";
 
 const MILESTONE_THRESHOLDS = [25, 50, 75, 100];
 
 /**
- * GET /api/savings-goals?user=<userId>
+ * GET /api/savings-goals
+ * Returns the authenticated user's goals.
  */
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("user");
-
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      return res.json({ success: false, error: "Valid User ID is required" }, { status: 400 });
-    }
-
     await connectToDB();
-    const goals = await SavingsGoal.find({ user: userId }).sort("-createdAt").lean();
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    const goals = await SavingsGoal.find({ user: auth.user.id }).sort("-createdAt").lean();
 
     // Compute progress percentages
     const goalsWithProgress = goals.map((g) => ({
@@ -39,18 +37,20 @@ export async function GET(request) {
 /**
  * POST /api/savings-goals
  * Create a new goal or update progress on an existing goal.
- * Body: { user, name, targetAmount, currentAmount?, targetDate?, notes?, goalId? }
+ * Body: { name, targetAmount, currentAmount?, targetDate?, notes?, goalId? }
  */
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { user: userId, goalId, ...fields } = body;
-
-    if (!userId) {
-      return res.json({ success: false, error: "User ID is required" }, { status: 400 });
-    }
+    // The owning user is derived from the token — drop any client-supplied "user".
+    const { user: _clientUser, goalId, ...fields } = body;
 
     await connectToDB();
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
     const userDoc = await User.findById(userId);
     if (!userDoc) {
       return res.json({ success: false, error: "User not found" }, { status: 404 });
@@ -139,20 +139,27 @@ export async function POST(request) {
 }
 
 /**
- * DELETE /api/savings-goals?user=<userId>&goal=<goalId>
+ * DELETE /api/savings-goals?goal=<goalId>
  */
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("user");
     const goalId = searchParams.get("goal");
 
-    if (!userId || !goalId) {
-      return res.json({ success: false, error: "User ID and Goal ID are required" }, { status: 400 });
+    if (!goalId) {
+      return res.json({ success: false, error: "Goal ID is required" }, { status: 400 });
     }
 
     await connectToDB();
-    await SavingsGoal.findOneAndDelete({ _id: goalId, user: userId });
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    // Scoped to the authenticated owner.
+    const result = await SavingsGoal.findOneAndDelete({ _id: goalId, user: auth.user.id });
+    if (!result) {
+      return res.json({ success: false, error: "Goal not found" }, { status: 404 });
+    }
 
     return res.json({ success: true, message: "Savings goal deleted" });
   } catch (err) {

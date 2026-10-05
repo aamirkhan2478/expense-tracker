@@ -3,27 +3,36 @@ import { connectToDB } from "@/utils/database";
 import User from "@/models/user";
 import Expense from "@/models/expense";
 import Income from "@/models/income";
+import { requireUser } from "@/lib/auth-middleware";
 
 /**
  * POST /api/import
  * Accepts a JSON body with array of transaction records to bulk import.
- * Body: { user: string, records: Array<{ title, amount, date, type, category? }> }
+ * The owning user is derived from the access token; a client-supplied "user"
+ * is ignored.
+ * Body: { records: Array<{ title, amount, date, type, category? }> }
  */
 export async function POST(request) {
   const startTime = Date.now();
 
   try {
     const body = await request.json();
-    const { user: userId, records } = body;
+    // The owning user is derived from the token — drop any client-supplied "user".
+    const { user: _clientUser, records } = body;
 
-    if (!userId || !Array.isArray(records) || records.length === 0) {
+    if (!Array.isArray(records) || records.length === 0) {
       return res.json(
-        { success: false, error: "User ID and a non-empty records array are required" },
+        { success: false, error: "A non-empty records array is required" },
         { status: 400 }
       );
     }
 
     await connectToDB();
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    const userId = auth.user.id;
     const userDoc = await User.findById(userId);
     if (!userDoc) {
       return res.json({ success: false, error: "User not found" }, { status: 404 });

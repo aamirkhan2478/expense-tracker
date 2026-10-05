@@ -12,12 +12,12 @@ export const faqCategories = [
       {
         question: "How much does SpendWise cost?",
         answer:
-          "There are no paid plans, subscriptions, or usage credits. SpendWise has no billing system at all, so there is nothing to pay and no payment details to enter.",
+          "SpendWise is a self-hosted application: if you run your own instance, running it costs no more than the server and database you host it on. If you use a hosted instance, the operator of that instance sets the terms, and any paid options or fees would be described by them. No billing details are required to use the features described on this site.",
       },
       {
         question: "Do I need a credit card to sign up?",
         answer:
-          "No. Registration asks only for a name, email address, and a password of at least 8 characters. SpendWise never asks for card details.",
+          "No. Registration asks only for a name, email address, and a password of at least 8 characters.",
       },
       {
         question: "Why do I have to verify my email address?",

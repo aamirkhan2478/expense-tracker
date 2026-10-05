@@ -1,21 +1,19 @@
 import { NextResponse as res } from "next/server";
 import { connectToDB } from "@/utils/database";
 import User from "@/models/user";
+import { requireUser } from "@/lib/auth-middleware";
 
 const VALID_DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD MMM YYYY", "MMM DD, YYYY", "DD-MM-YYYY", "YYYY/MM/DD"];
 const VALID_ITEMS_PER_PAGE = [10, 25, 50, 100];
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("user");
-
-    if (!userId) {
-      return res.json({ success: false, error: "User ID is required" }, { status: 400 });
-    }
-
     await connectToDB();
-    const user = await User.findById(userId).select("preferences").lean();
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
+    const user = await User.findById(auth.user.id).select("preferences").lean();
     if (!user) {
       return res.json({ success: false, error: "User not found" }, { status: 404 });
     }
@@ -33,10 +31,11 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { user: userId, preferences } = body;
+    // The owning user is derived from the token — drop any client-supplied "user".
+    const { user: _clientUser, preferences } = body;
 
-    if (!userId || !preferences) {
-      return res.json({ success: false, error: "User ID and preferences are required" }, { status: 400 });
+    if (!preferences || typeof preferences !== "object") {
+      return res.json({ success: false, error: "Preferences are required" }, { status: 400 });
     }
 
     const update = {};
@@ -58,8 +57,12 @@ export async function POST(request) {
     }
 
     await connectToDB();
+
+    const auth = await requireUser(request);
+    if (auth.error) return auth.error;
+
     const user = await User.findByIdAndUpdate(
-      userId,
+      auth.user.id,
       { $set: update },
       { new: true, select: "preferences" }
     );

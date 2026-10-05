@@ -1,5 +1,19 @@
 const { Schema, model, models } = require("mongoose");
 
+/**
+ * Email logs contain the recipient address, the rendered HTML body, and delivery
+ * metadata. That is personal data, so it is not kept indefinitely: a TTL index
+ * removes each log once it ages out.
+ *
+ * The rendered HTML is retained for the same window because retryEmail() needs it
+ * to re-send a failed message; failed mail is retried within hours or days, well
+ * inside this window.
+ */
+const RETENTION_DAYS = (() => {
+  const parsed = parseInt(process.env.EMAIL_LOG_RETENTION_DAYS || "90", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 90;
+})();
+
 const EmailLogSchema = new Schema(
   {
     jobId: { type: String, required: true, index: true },
@@ -20,6 +34,12 @@ const EmailLogSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Admin log browsing filters by user and orders by recency.
+EmailLogSchema.index({ userId: 1, createdAt: -1 });
+
+// Mongo expires each document this many seconds after its createdAt.
+EmailLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: RETENTION_DAYS * 24 * 60 * 60 });
 
 const EmailLog = models.EmailLog || model("EmailLog", EmailLogSchema);
 

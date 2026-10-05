@@ -4,10 +4,23 @@ import User from "@/models/user";
 
 /**
  * Verify a JWT token and check if it's blacklisted.
+ *
+ * Signature, expiry, issuer and audience are always validated, so a token minted
+ * for a different audience cannot be replayed against this API.
+ *
+ * Pass requiredType to restrict which kind of token is accepted. Access tokens are
+ * short-lived and refresh tokens are long-lived, so anything guarding a data route
+ * should require an "access" token - otherwise a refresh token would keep working
+ * after the access token expired. Sign-out omits requiredType so it can revoke
+ * either kind.
+ *
  * @param {string} token
+ * @param {{requiredType?: "access"|"refresh"}} [options]
  * @returns {Promise<{valid: boolean, payload: object|null, error: string|null}>}
  */
-export async function verifyToken(token) {
+export async function verifyToken(token, options = {}) {
+  const { requiredType } = options;
+
   try {
     if (!token) {
       return { valid: false, payload: null, error: "No token provided" };
@@ -19,8 +32,16 @@ export async function verifyToken(token) {
       return { valid: false, payload: null, error: "Token has been revoked" };
     }
 
-    // Verify JWT signature and expiry
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify JWT signature, expiry, issuer and audience
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: "spendwise",
+      audience: "spendwise-client",
+    });
+
+    // Reject the wrong kind of token, e.g. a long-lived refresh token on a data route
+    if (requiredType && payload.type !== requiredType) {
+      return { valid: false, payload: null, error: `Expected a ${requiredType} token` };
+    }
 
     // Check if user still exists
     const user = await User.findById(payload.id);
@@ -43,6 +64,7 @@ export async function verifyToken(token) {
 /**
  * Blacklist a token (logout/revocation).
  * @param {string} token
+ * @param {{requiredType?: "access"|"refresh"}} [options]
  * @param {string} userId
  * @param {string} reason
  * @returns {Promise<boolean>}
@@ -151,7 +173,7 @@ export async function getAuthenticatedUserId(req) {
     return { userId: null, error: "Unauthorized: Authentication token is missing", status: 401 };
   }
 
-  const { valid, payload, error } = await verifyToken(token);
+  const { valid, payload, error } = await verifyToken(token, { requiredType: "access" });
   if (!valid || !payload?.id) {
     return { userId: null, error: error || "Unauthorized: Invalid or expired token", status: 401 };
   }

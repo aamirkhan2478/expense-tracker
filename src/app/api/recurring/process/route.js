@@ -3,7 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Income from "@/models/income";
 import Expense from "@/models/expense";
 import User from "@/models/user";
-import mongoose from "mongoose";
+import { requireUser } from "@/lib/auth-middleware";
 
 function getNextDueDate(date, frequency) {
   const next = new Date(date);
@@ -25,31 +25,20 @@ function getNextDueDate(date, frequency) {
 }
 
 export async function POST(req) {
-  const body = await req.json();
-  const { user } = body;
-
-  if (!user) {
-    return res.json(
-      { success: false, error: "User not found" },
-      { status: 400 }
-    );
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(user)) {
-    return res.json(
-      { success: false, error: "Invalid user id" },
-      { status: 400 }
-    );
-  }
-
   try {
     await connectToDB();
+
+    const auth = await requireUser(req);
+    if (auth.error) return auth.error;
+
+    // Recurring entries are only ever processed for the authenticated owner.
+    const user = auth.user.id;
 
     let userExist = await User.findById(user);
     if (!userExist) {
       return res.json(
         { success: false, error: "User not found" },
-        { status: 400 }
+        { status: 404 }
       );
     }
 

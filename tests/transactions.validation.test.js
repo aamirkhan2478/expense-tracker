@@ -12,7 +12,6 @@ const baseExpense = {
   amount: 120,
   expenseDate: "2026-08-01",
   category: "60a1b2c3d4e5f6a7b8c9d0e1",
-  user: "60a1b2c3d4e5f6a7b8c9d0e2",
 };
 
 const baseIncome = {
@@ -20,7 +19,6 @@ const baseIncome = {
   title: "Salary",
   amount: 5000,
   incomeDate: "2026-08-01",
-  user: "60a1b2c3d4e5f6a7b8c9d0e2",
 };
 
 const baseExpenseUpdate = {
@@ -68,6 +66,68 @@ describe("recurringFrequency is optional for non-recurring transactions", () => 
     ["income update", incomeUpdateSchema, baseIncomeUpdate],
   ])("%s ignores recurringFrequency entirely when not recurring", (_, schema, payload) => {
     expect(validate(schema, { ...payload, isRecurring: false, recurringFrequency: "banana" })).toBeNull();
+  });
+});
+
+describe("the owning user is server-derived and never accepted from the client", () => {
+  it.each([
+    ["expense create", expenseCreateSchema, baseExpense],
+    ["income create", incomeCreateSchema, baseIncome],
+  ])("%s rejects a client-supplied user field", (_, schema, payload) => {
+    const message = validate(schema, {
+      ...payload,
+      user: "60a1b2c3d4e5f6a7b8c9d0e2",
+    });
+    expect(message).toContain("user");
+  });
+
+  it.each([
+    ["expense update", expenseUpdateSchema, baseExpenseUpdate],
+    ["income update", incomeUpdateSchema, baseIncomeUpdate],
+  ])("%s rejects a client-supplied user field", (_, schema, payload) => {
+    const message = validate(schema, {
+      ...payload,
+      user: "60a1b2c3d4e5f6a7b8c9d0e2",
+    });
+    expect(message).toContain("user");
+  });
+});
+
+describe("monetary amounts must be positive and bounded", () => {
+  it.each([
+    ["expense create", expenseCreateSchema, baseExpense],
+    ["expense update", expenseUpdateSchema, baseExpenseUpdate],
+    ["income create", incomeCreateSchema, baseIncome],
+    ["income update", incomeUpdateSchema, baseIncomeUpdate],
+  ])("%s rejects a zero amount", (_, schema, payload) => {
+    expect(validate(schema, { ...payload, amount: 0 })).toContain("Amount must be greater than zero");
+  });
+
+  it.each([
+    ["expense create", expenseCreateSchema, baseExpense],
+    ["expense update", expenseUpdateSchema, baseExpenseUpdate],
+    ["income create", incomeCreateSchema, baseIncome],
+    ["income update", incomeUpdateSchema, baseIncomeUpdate],
+  ])("%s rejects a negative amount", (_, schema, payload) => {
+    expect(validate(schema, { ...payload, amount: -50 })).toContain("Amount must be greater than zero");
+  });
+
+  it.each([
+    ["expense create", expenseCreateSchema, baseExpense],
+    ["expense update", expenseUpdateSchema, baseExpenseUpdate],
+    ["income create", incomeCreateSchema, baseIncome],
+    ["income update", incomeUpdateSchema, baseIncomeUpdate],
+  ])("%s rejects an absurdly large amount", (_, schema, payload) => {
+    expect(validate(schema, { ...payload, amount: 1e15 })).toContain("Amount is unrealistically large");
+  });
+
+  it.each([
+    ["expense create", expenseCreateSchema, baseExpense],
+    ["expense update", expenseUpdateSchema, baseExpenseUpdate],
+    ["income create", incomeCreateSchema, baseIncome],
+    ["income update", incomeUpdateSchema, baseIncomeUpdate],
+  ])("%s accepts the smallest valid amount", (_, schema, payload) => {
+    expect(validate(schema, { ...payload, amount: 0.01 })).toBeNull();
   });
 });
 
