@@ -32,6 +32,13 @@ export async function verifyToken(token, options = {}) {
       return { valid: false, payload: null, error: "Token has been revoked" };
     }
 
+    // Without a secret every token fails to verify and the caller sees a
+    // misleading "Invalid token". Surface the real configuration problem instead.
+    if (!process.env.JWT_SECRET) {
+      console.error("[auth] JWT_SECRET is not set; cannot verify tokens.");
+      return { valid: false, payload: null, error: "Server misconfigured" };
+    }
+
     // Verify JWT signature, expiry, issuer and audience
     const payload = jwt.verify(token, process.env.JWT_SECRET, {
       issuer: "spendwise",

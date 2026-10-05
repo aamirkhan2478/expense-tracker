@@ -1,9 +1,19 @@
 import axios from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
+/**
+ * Requests are sent relative to the origin the app is being served from, so the
+ * browser always talks to whichever instance actually served the page.
+ *
+ * Pinning this to NEXT_PUBLIC_APP_URL broke the whole app whenever the dev
+ * server fell back to a different port (for example when 3000 was already taken
+ * and Next.js moved to 3001): the page loaded fine but every API call still went
+ * to the dead port and failed with a network error.
+ *
+ * NEXT_PUBLIC_APP_URL is still used for absolute URLs that must live outside the
+ * request path (canonical metadata, sitemap, links in emails) — see
+ * src/constants/site.js.
+ */
 const axiosInstance = axios.create({
-  baseURL,
   timeout: 30000, // 30 second timeout
   headers: {
     "Content-Type": "application/json",
