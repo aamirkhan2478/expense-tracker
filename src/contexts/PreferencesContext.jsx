@@ -31,7 +31,7 @@ export function PreferencesProvider({ children }) {
     lastUserIdRef.current = userId;
     setLoading(true);
     try {
-      const res = await axiosInstance.get(`/api/user/preferences/settings?user=${userId}`);
+      const res = await axiosInstance.get(`/api/user/preferences/settings`);
       if (res.data?.preferences) {
         setPreferences({ ...DEFAULT_PREFERENCES, ...res.data.preferences });
       }
@@ -77,7 +77,6 @@ export function PreferencesProvider({ children }) {
     if (!userId) return false;
     try {
       const res = await axiosInstance.post("/api/user/preferences/settings", {
-        user: userId,
         preferences: updates,
       });
       if (res.data?.preferences) {

@@ -168,7 +168,6 @@ const Income = () => {
       title: values.title,
       amount: values.amount,
       incomeDate: values.incomeDate,
-      user: id,
       isRecurring: values.isRecurring,
       recurringFrequency: values.isRecurring ? values.recurringFrequency : null,
     };

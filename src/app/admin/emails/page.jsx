@@ -79,7 +79,7 @@ export default function AdminEmailsPage() {
     if (!user?.id) return;
     setLogsLoading(true);
     try {
-      const params = new URLSearchParams({ user: user.id, page: logPage, limit: 20 });
+      const params = new URLSearchParams({ page: logPage, limit: 20 });
       if (logFilter.status) params.set("status", logFilter.status);
       if (logFilter.type) params.set("type", logFilter.type);
       const r = await axiosInstance.get(`/api/admin/emails?${params}`);
@@ -147,7 +147,7 @@ export default function AdminEmailsPage() {
   const handleTestEmail = async (templateKey) => {
     if (!user?.id) return;
     try {
-      await axiosInstance.post(`/api/admin/emails?user=${user.id}`, {
+      await axiosInstance.post(`/api/admin/emails`, {
         action: "test",
         templateType: templateKey,
         testEmail: testEmail || user.email,
@@ -161,7 +161,7 @@ export default function AdminEmailsPage() {
   const handleRetry = async (jobId) => {
     if (!user?.id) return;
     try {
-      await axiosInstance.post(`/api/admin/emails?user=${user.id}`, { action: "retry", jobId });
+      await axiosInstance.post(`/api/admin/emails`, { action: "retry", jobId });
       toast({ title: "Email queued for retry", status: "success", duration: 2000, isClosable: true, position: "top-right" });
       fetchLogs();
     } catch {
@@ -172,7 +172,7 @@ export default function AdminEmailsPage() {
   const handleRetryAll = async () => {
     if (!user?.id) return;
     try {
-      const r = await axiosInstance.post(`/api/admin/emails?user=${user.id}`, { action: "retry-all-failed" });
+      const r = await axiosInstance.post(`/api/admin/emails`, { action: "retry-all-failed" });
       toast({ title: r.data.message, status: "success", duration: 3000, isClosable: true, position: "top-right" });
       fetchLogs();
     } catch {

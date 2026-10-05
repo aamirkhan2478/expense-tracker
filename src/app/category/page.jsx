@@ -119,7 +119,6 @@ const Category = () => {
     const newData = {
       name: values.name,
       icon: values.icon,
-      user: id,
       budget: values.budget ? Number(values.budget) : 0,
     };
     mutate(newData);

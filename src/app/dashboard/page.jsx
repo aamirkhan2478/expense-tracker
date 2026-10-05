@@ -114,9 +114,8 @@ const Dashboard = () => {
     if (!id) return;
     const processRecurring = async () => {
       try {
-        const response = await axiosInstance.post("/api/recurring/process", {
-          user: id,
-        });
+        // No user id is sent: the route derives ownership from the access token.
+        const response = await axiosInstance.post("/api/recurring/process", {});
         const { totalCreated, incomesCreated, expensesCreated } = response.data;
         if (totalCreated > 0) {
           toast({

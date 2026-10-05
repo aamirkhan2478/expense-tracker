@@ -203,7 +203,7 @@ export default function SettingsPage() {
       return;
     }
     axiosInstance
-      .get(`/api/user/preferences?user=${user.id}`)
+      .get(`/api/user/preferences`)
       .then((r) => setNotifPrefs(r.data.preferences || {}))
       .catch(() =>
         toast({
@@ -255,7 +255,6 @@ export default function SettingsPage() {
     setSavingNotif(true);
     try {
       await axiosInstance.post("/api/user/preferences", {
-        user: user.id,
         preferences: notifPrefs,
       });
       toast({
@@ -284,18 +283,11 @@ export default function SettingsPage() {
 
   const handleExportAll = async () => {
     try {
-      const user =
-        typeof window !== "undefined"
-          ? JSON.parse(localStorage.getItem("user") || "{}")
-          : {};
+      // No user id is sent: each route derives ownership from the access token.
       const [incomeRes, expenseRes, categoryRes] = await Promise.all([
-        axiosInstance.get(
-          `/api/income?user=${user.id || ""}&limit=9999&page=1`,
-        ),
-        axiosInstance.get(
-          `/api/expense?user=${user.id || ""}&limit=9999&page=1`,
-        ),
-        axiosInstance.get(`/api/category?user=${user.id || ""}`),
+        axiosInstance.get(`/api/income?limit=9999&page=1`),
+        axiosInstance.get(`/api/expense?limit=9999&page=1`),
+        axiosInstance.get(`/api/category`),
       ]);
 
       exportAllData({

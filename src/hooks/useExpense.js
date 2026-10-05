@@ -41,7 +41,6 @@ export const useDeleteExpense = (onError, onSuccess) => {
 };
 
 const expenses = ({ queryKey }) => {
-  const user = queryKey[1];
   const limit = queryKey[2];
   const page = queryKey[3];
   const startDate = queryKey[4];
@@ -54,8 +53,9 @@ const expenses = ({ queryKey }) => {
       "Content-Type": "application/json",
     },
   };
+  // No user id is sent: the route derives ownership from the access token.
   return axiosInstance.get(
-    `/api/expense?user=${user}&limit=${limit}&page=${page}&category=${category}&startDate=${startDate}&endDate=${endDate}&searchQuery=${searchQuery}&isRecurring=${isRecurring}`,
+    `/api/expense?limit=${limit}&page=${page}&category=${category}&startDate=${startDate}&endDate=${endDate}&searchQuery=${searchQuery}&isRecurring=${isRecurring}`,
     config,
   );
 };
@@ -116,14 +116,13 @@ export const useUpdateExpense = (onSuccess, onError) => {
 };
 
 // Budget summary hook
-const budgetSummary = ({ queryKey }) => {
-  const user = queryKey[1];
+const budgetSummary = () => {
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
   };
-  return axiosInstance.get(`/api/expense/budget?user=${user}`, config);
+  return axiosInstance.get(`/api/expense/budget`, config);
 };
 
 export const useBudgetSummary = (user) => {
@@ -134,14 +133,13 @@ export const useBudgetSummary = (user) => {
 };
 
 // Expenses grouped by category hook
-const byCategory = ({ queryKey }) => {
-  const user = queryKey[1];
+const byCategory = () => {
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
   };
-  return axiosInstance.get(`/api/expense/by-category?user=${user}`, config);
+  return axiosInstance.get(`/api/expense/by-category`, config);
 };
 
 export const useExpensesByCategory = (user) => {

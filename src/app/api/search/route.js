@@ -91,26 +91,27 @@ export async function GET(req) {
       dateFilter = { $gte: startOfDay, $lte: endOfDay };
     }
 
-    // Build text conditions
-    const textConditions = [
-      { title: { $regex: query, $options: "i" } },
-      { companyName: { $regex: query, $options: "i" } },
-    ];
+    // Build text conditions per model. Income has a companyName field and Expense
+    // does not. Mongoose strips query paths that are absent from the schema, so a
+    // shared companyName clause would collapse to {} on Expense and match every
+    // row, ignoring the search term entirely.
+    const titleCondition = { title: { $regex: query, $options: "i" } };
+    const incomeConditions = [titleCondition, { companyName: { $regex: query, $options: "i" } }];
+    const expenseConditions = [titleCondition];
     if (isNumber) {
-      textConditions.push({ amount: numValue });
+      incomeConditions.push({ amount: numValue });
+      expenseConditions.push({ amount: numValue });
+    }
+    if (dateFilter) {
+      incomeConditions.push({ incomeDate: dateFilter });
+      expenseConditions.push({ expenseDate: dateFilter });
     }
 
     // Income search
-    const incomeFilter = { user: userObjectId, $or: textConditions };
-    if (dateFilter) {
-      incomeFilter.$or.push({ incomeDate: dateFilter });
-    }
+    const incomeFilter = { user: userObjectId, $or: incomeConditions };
 
     // Expense search
-    const expenseFilter = { user: userObjectId, $or: textConditions };
-    if (dateFilter) {
-      expenseFilter.$or.push({ expenseDate: dateFilter });
-    }
+    const expenseFilter = { user: userObjectId, $or: expenseConditions };
 
     // Category search
     const categoryFilter = { user: userObjectId, name: { $regex: query, $options: "i" } };

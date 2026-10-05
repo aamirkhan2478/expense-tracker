@@ -151,7 +151,7 @@ export default function AdminDashboard() {
     try {
       const [settingsRes, logsRes] = await Promise.all([
         axiosInstance.get("/api/admin/emails/settings"),
-        axiosInstance.get(`/api/admin/emails?user=${user.id}&limit=50&page=1`),
+        axiosInstance.get(`/api/admin/emails?limit=50&page=1`),
       ]);
       setSettings(settingsRes.data.settings || {});
       setLogs(logsRes.data.data || []);
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
   const handleRetry = async (jobId) => {
     if (!user?.id) return;
     try {
-      await axiosInstance.post(`/api/admin/emails?user=${user.id}`, {
+      await axiosInstance.post(`/api/admin/emails`, {
         action: "retry",
         jobId,
       });
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
   const handleRetryAll = async () => {
     if (!user?.id) return;
     try {
-      const r = await axiosInstance.post(`/api/admin/emails?user=${user.id}`, {
+      const r = await axiosInstance.post(`/api/admin/emails`, {
         action: "retry-all-failed",
       });
       toast({

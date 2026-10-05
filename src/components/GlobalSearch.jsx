@@ -194,12 +194,9 @@ const GlobalSearch = () => {
 
       setIsLoading(true);
       try {
-        const user =
-          typeof window !== "undefined"
-            ? JSON.parse(localStorage.getItem("user") || "{}")
-            : {};
+        // No user id is sent: the route derives ownership from the access token.
         const response = await axiosInstance.get(
-          `/api/search?user=${user.id || ""}&q=${encodeURIComponent(query.trim())}`,
+          `/api/search?q=${encodeURIComponent(query.trim())}`,
           { signal: controller.signal },
         );
         const data = response.data;

@@ -27,14 +27,14 @@ export const useDeleteCategory = (onError, onSuccess) => {
   return useMutation((id) => deleteCategory(id), { onError, onSuccess });
 };
 
-const categories = ({ queryKey }) => {
-  const user = queryKey[1];
+const categories = () => {
   const config = {
     headers: {
       "Content-Type": "application/json",
     },
   };
-  return axiosInstance.get(`/api/category?user=${user}`, config);
+  // No user id is sent: the route derives ownership from the access token.
+  return axiosInstance.get(`/api/category`, config);
 };
 
 export const useShowCategory = (user) => {

@@ -28,7 +28,6 @@ export const useDeleteIncome = (onError, onSuccess) => {
 };
 
 const incomes = ({ queryKey }) => {
-  const user = queryKey[1];
   const limit = queryKey[2];
   const page = queryKey[3];
   const incomeDate = queryKey[4];
@@ -38,8 +37,9 @@ const incomes = ({ queryKey }) => {
       "Content-Type": "application/json",
     },
   };
+  // No user id is sent: the route derives ownership from the access token.
   return axiosInstance.get(
-    `/api/income?user=${user}&limit=${limit}&page=${page}&incomeDate=${incomeDate}&isRecurring=${isRecurring}`,
+    `/api/income?limit=${limit}&page=${page}&incomeDate=${incomeDate}&isRecurring=${isRecurring}`,
     config
   );
 };

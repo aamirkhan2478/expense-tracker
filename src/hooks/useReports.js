@@ -2,13 +2,13 @@ import axiosInstance from "@/utils/axiosInstance";
 import { useQuery } from "react-query";
 
 const reportSummary = ({ queryKey }) => {
-  const user = queryKey[1];
   const year = queryKey[2];
   const month = queryKey[3];
   const config = {
     headers: { "Content-Type": "application/json" },
   };
-  let url = `/api/reports?user=${user}&year=${year}`;
+  // No user id is sent: the route derives ownership from the access token.
+  let url = `/api/reports?year=${year}`;
   if (month !== null && month !== undefined && month !== "") {
     url += `&month=${month}`;
   }
@@ -24,12 +24,12 @@ export const useReportSummary = (user, year, month) => {
 };
 
 const reportTrend = ({ queryKey }) => {
-  const user = queryKey[1];
   const year = queryKey[2];
   const config = {
     headers: { "Content-Type": "application/json" },
   };
-  return axiosInstance.get(`/api/reports/trend?user=${user}&year=${year}`, config);
+  // No user id is sent: the route derives ownership from the access token.
+  return axiosInstance.get(`/api/reports/trend?year=${year}`, config);
 };
 
 export const useReportTrend = (user, year) => {
