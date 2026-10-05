@@ -3,6 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Income from "@/models/income";
 import { requireUser } from "@/lib/auth-middleware";
 import { incomeCreateSchema } from "@/lib/validation/transactions";
+import { toObjectId } from "@/utils/mongo";
 
 export async function POST(req) {
   try {
@@ -116,9 +117,10 @@ export async function GET(req) {
     }
 
     // Aggregate the filtered total in the database rather than loading every
-    // matching document into memory.
+    // matching document into memory. The id must be an ObjectId because
+    // aggregate() does not cast a string id the way find() does.
     const [totalAgg] = await Income.aggregate([
-      { $match: { user, ...filter } },
+      { $match: { user: toObjectId(user), ...filter } },
       { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
     ]);
     const totalAmount = totalAgg?.totalAmount || 0;

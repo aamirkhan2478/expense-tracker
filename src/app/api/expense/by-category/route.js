@@ -3,6 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Expense from "@/models/expense";
 import Category from "@/models/category";
 import { requireUser } from "@/lib/auth-middleware";
+import { toObjectId } from "@/utils/mongo";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -14,6 +15,8 @@ export async function GET(req) {
     if (auth.error) return auth.error;
 
     const userId = auth.user.id;
+    // aggregate() does not cast ids, so keep an ObjectId alongside the string.
+    const userObjectId = toObjectId(userId);
 
     // Default to current month if no dates provided
     const startDateParam = searchParams.get("startDate");
@@ -34,7 +37,7 @@ export async function GET(req) {
     const aggregation = await Expense.aggregate([
       {
         $match: {
-          user: userId,
+          user: userObjectId,
           expenseDate: {
             $gte: startDate,
             $lte: endDate,

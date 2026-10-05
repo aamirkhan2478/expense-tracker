@@ -3,6 +3,7 @@ import { connectToDB } from "@/utils/database";
 import Expense from "@/models/expense";
 import Category from "@/models/category";
 import { requireUser } from "@/lib/auth-middleware";
+import { toObjectId } from "@/utils/mongo";
 
 export async function GET(req) {
   try {
@@ -12,6 +13,8 @@ export async function GET(req) {
     if (auth.error) return auth.error;
 
     const userId = auth.user.id;
+    // aggregate() does not cast ids, so keep an ObjectId alongside the string.
+    const userObjectId = toObjectId(userId);
 
     // Get current month start and end dates (UTC to match stored dates)
     const now = new Date();
@@ -19,13 +22,13 @@ export async function GET(req) {
     const endOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59));
 
     // Get all categories for user with budget
-    const categories = await Category.find({ user: userId }).select("name icon budget");
+    const categories = await Category.find({ user: userObjectId }).select("name icon budget");
 
     // Aggregate expenses by category for current month
     const expenseAggregation = await Expense.aggregate([
       {
         $match: {
-          user: userId,
+          user: userObjectId,
           includeInBudget: true,
           expenseDate: {
             $gte: startOfMonth,

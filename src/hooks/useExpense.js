@@ -56,7 +56,7 @@ const expenses = ({ queryKey }) => {
   };
   return axiosInstance.get(
     `/api/expense?user=${user}&limit=${limit}&page=${page}&category=${category}&startDate=${startDate}&endDate=${endDate}&searchQuery=${searchQuery}&isRecurring=${isRecurring}`,
-    config
+    config,
   );
 };
 
@@ -68,7 +68,7 @@ export const useShowExpense = (
   endDate = "",
   category = "",
   searchQuery = "",
-  isRecurring = ""
+  isRecurring = "",
 ) => {
   return useQuery(
     [
@@ -86,7 +86,7 @@ export const useShowExpense = (
     {
       staleTime: 60000,
       refetchOnWindowFocus: false,
-    }
+    },
   );
 };
 
@@ -107,7 +107,7 @@ const updateExpense = (values) => {
       recurringFrequency: values.recurringFrequency,
       includeInBudget: values.includeInBudget,
     },
-    config
+    config,
   );
 };
 

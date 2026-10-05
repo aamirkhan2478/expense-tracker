@@ -4,6 +4,7 @@ import Expense from "@/models/expense";
 import Income from "@/models/income";
 import Category from "@/models/category";
 import { requireUser } from "@/lib/auth-middleware";
+import { toObjectId } from "@/utils/mongo";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -17,6 +18,8 @@ export async function GET(req) {
     if (auth.error) return auth.error;
 
     const userId = auth.user.id;
+    // aggregate() does not cast ids, so keep an ObjectId alongside the string.
+    const userObjectId = toObjectId(userId);
 
     const year = parseInt(yearParam) || new Date().getFullYear();
     const month = monthParam ? parseInt(monthParam) : null;
@@ -34,7 +37,7 @@ export async function GET(req) {
     const incomeAgg = await Income.aggregate([
       {
         $match: {
-          user: userId,
+          user: userObjectId,
           incomeDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -54,7 +57,7 @@ export async function GET(req) {
     const expenseAgg = await Expense.aggregate([
       {
         $match: {
-          user: userId,
+          user: userObjectId,
           expenseDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -79,7 +82,7 @@ export async function GET(req) {
     const categoryAgg = await Expense.aggregate([
       {
         $match: {
-          user: userId,
+          user: userObjectId,
           expenseDate: { $gte: startDate, $lte: endDate },
         },
       },
@@ -110,21 +113,21 @@ export async function GET(req) {
 
     // Highest and lowest transactions
     const highestIncome = await Income.findOne({
-      user: userId,
+      user: userObjectId,
       incomeDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: -1 })
       .select("title amount incomeDate companyName");
 
     const lowestIncome = await Income.findOne({
-      user: userId,
+      user: userObjectId,
       incomeDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: 1 })
       .select("title amount incomeDate companyName");
 
     const highestExpense = await Expense.findOne({
-      user: userId,
+      user: userObjectId,
       expenseDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: -1 })
@@ -132,7 +135,7 @@ export async function GET(req) {
       .select("title amount expenseDate category");
 
     const lowestExpense = await Expense.findOne({
-      user: userId,
+      user: userObjectId,
       expenseDate: { $gte: startDate, $lte: endDate },
     })
       .sort({ amount: 1 })

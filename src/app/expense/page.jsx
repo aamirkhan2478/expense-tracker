@@ -15,7 +15,11 @@ import {
 import { useSettings, formatMoney } from "@/hooks/useSettings";
 import RecurringFilter from "@/components/RecurringFilter";
 import dateFormat from "@/utils/dateFormat";
-import { exportToCSV, exportToJSON, formatExpenseForExport } from "@/utils/exportData";
+import {
+  exportToCSV,
+  exportToJSON,
+  formatExpenseForExport,
+} from "@/utils/exportData";
 import {
   Box,
   Button,
@@ -130,7 +134,7 @@ const ExpenseContent = () => {
       setPendingHighlight(highlightParam);
       setHighlightId(highlightParam);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // When data loads, check if highlighted record is visible.
@@ -152,7 +156,16 @@ const ExpenseContent = () => {
     } else {
       setPendingHighlight(null);
     }
-  }, [pendingHighlight, data, category, startDate, endDate, searchQuery, isRecurring, router]);
+  }, [
+    pendingHighlight,
+    data,
+    category,
+    startDate,
+    endDate,
+    searchQuery,
+    isRecurring,
+    router,
+  ]);
 
   const bgCard = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.100", "gray.700");
@@ -303,18 +316,31 @@ const ExpenseContent = () => {
       skipEmptyLines: true,
       complete: (result) => {
         const data = result.data.map((item) => {
-          if (!item.title || !item.amount || !item.expenseDate || !item.category) {
+          if (
+            !item.title ||
+            !item.amount ||
+            !item.expenseDate ||
+            !item.category
+          ) {
             toast({ title: "Invalid data", status: "error", isClosable: true });
           }
           let cat = categories?.data?.categories?.find(
             (category) => category.name === item.category,
           );
           if (!cat) {
-            toast({ title: `Category ${item.category} not found!`, status: "error", isClosable: true });
+            toast({
+              title: `Category ${item.category} not found!`,
+              status: "error",
+              isClosable: true,
+            });
             return;
           }
           if (cat?._id === undefined) {
-            toast({ title: "Invalid category", status: "error", isClosable: true });
+            toast({
+              title: "Invalid category",
+              status: "error",
+              isClosable: true,
+            });
             return;
           }
           return {
@@ -323,12 +349,19 @@ const ExpenseContent = () => {
             expenseDate: new Date(item.expenseDate).toISOString(),
             category: cat?._id,
             user: id,
+            isRecurring: item.isRecurring || false,
+            recurringFrequency: item.recurringFrequency || null,
+            includeInBudget: item.includeInBudget || false,
           };
         });
 
         addManyExpense(data, {
           onSuccess: (data) => {
-            toast({ title: data?.data?.msg, status: "success", isClosable: true });
+            toast({
+              title: data?.data?.msg,
+              status: "success",
+              isClosable: true,
+            });
           },
         });
       },
@@ -337,7 +370,15 @@ const ExpenseContent = () => {
 
   const downloadSample = () => {
     const csv = Papa.unparse([
-      { title: "Title", amount: "100", expenseDate: "2022-12-31", category: "Category Name" },
+      {
+        title: "Title",
+        amount: "100",
+        expenseDate: "2022-12-31",
+        category: "Category Name",
+        isRecurring: "false",
+        recurringFrequency: "",
+        includeInBudget: "false",
+      },
     ]);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -387,10 +428,18 @@ const ExpenseContent = () => {
               }) => (
                 <Form>
                   <Stack spacing={4}>
-                    <FormControl isInvalid={Boolean(errors.title) && Boolean(touched.title)}>
-                      <FormLabel fontSize="sm" fontWeight="medium">Expense Title</FormLabel>
+                    <FormControl
+                      isInvalid={
+                        Boolean(errors.title) && Boolean(touched.title)
+                      }
+                    >
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Expense Title
+                      </FormLabel>
                       <InputGroup size="lg">
-                        <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                        <InputLeftElement pointerEvents="none">
+                          <Icon as={FiTag} color="gray.400" />
+                        </InputLeftElement>
                         <Field
                           as={Input}
                           type="text"
@@ -399,7 +448,9 @@ const ExpenseContent = () => {
                           borderRadius="xl"
                           focusBorderColor="teal.400"
                           pl={10}
-                          isInvalid={Boolean(errors.title) && Boolean(touched.title)}
+                          isInvalid={
+                            Boolean(errors.title) && Boolean(touched.title)
+                          }
                           onBlur={handleBlur}
                           onChange={handleChange("title")}
                           value={values.title || ""}
@@ -408,10 +459,18 @@ const ExpenseContent = () => {
                       <FormErrorMessage>{errors.title}</FormErrorMessage>
                     </FormControl>
 
-                    <FormControl isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}>
-                      <FormLabel fontSize="sm" fontWeight="medium">Amount</FormLabel>
+                    <FormControl
+                      isInvalid={
+                        Boolean(errors.amount) && Boolean(touched.amount)
+                      }
+                    >
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Amount
+                      </FormLabel>
                       <InputGroup size="lg">
-                        <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                        <InputLeftElement pointerEvents="none">
+                          <Icon as={FiDollarSign} color="gray.400" />
+                        </InputLeftElement>
                         <Field
                           as={Input}
                           type="text"
@@ -420,7 +479,9 @@ const ExpenseContent = () => {
                           borderRadius="xl"
                           focusBorderColor="teal.400"
                           pl={10}
-                          isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}
+                          isInvalid={
+                            Boolean(errors.amount) && Boolean(touched.amount)
+                          }
                           onBlur={handleBlur}
                           onChange={handleChange("amount")}
                           value={values.amount || ""}
@@ -429,10 +490,19 @@ const ExpenseContent = () => {
                       <FormErrorMessage>{errors.amount}</FormErrorMessage>
                     </FormControl>
 
-                    <FormControl isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}>
-                      <FormLabel fontSize="sm" fontWeight="medium">Date</FormLabel>
+                    <FormControl
+                      isInvalid={
+                        Boolean(errors.expenseDate) &&
+                        Boolean(touched.expenseDate)
+                      }
+                    >
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Date
+                      </FormLabel>
                       <InputGroup size="lg">
-                        <InputLeftElement pointerEvents="none"><Icon as={FiCalendar} color="gray.400" /></InputLeftElement>
+                        <InputLeftElement pointerEvents="none">
+                          <Icon as={FiCalendar} color="gray.400" />
+                        </InputLeftElement>
                         <Field
                           as={Input}
                           type="date"
@@ -440,7 +510,10 @@ const ExpenseContent = () => {
                           borderRadius="xl"
                           focusBorderColor="teal.400"
                           pl={10}
-                          isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}
+                          isInvalid={
+                            Boolean(errors.expenseDate) &&
+                            Boolean(touched.expenseDate)
+                          }
                           onBlur={handleBlur}
                           onChange={handleChange("expenseDate")}
                           value={values.expenseDate || ""}
@@ -449,13 +522,21 @@ const ExpenseContent = () => {
                       <FormErrorMessage>{errors.expenseDate}</FormErrorMessage>
                     </FormControl>
 
-                    <FormControl isInvalid={Boolean(errors.category) && Boolean(touched.category)}>
-                      <FormLabel fontSize="sm" fontWeight="medium">Category</FormLabel>
+                    <FormControl
+                      isInvalid={
+                        Boolean(errors.category) && Boolean(touched.category)
+                      }
+                    >
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Category
+                      </FormLabel>
                       <Select
                         placeholder="Select Category"
                         borderRadius="xl"
                         focusBorderColor="teal.400"
-                        isInvalid={Boolean(errors.category) && Boolean(touched.category)}
+                        isInvalid={
+                          Boolean(errors.category) && Boolean(touched.category)
+                        }
                         onBlur={handleBlur}
                         onChange={handleChange("category")}
                         value={values.category || ""}
@@ -478,7 +559,12 @@ const ExpenseContent = () => {
                           isChecked={values.isRecurring}
                           onChange={handleChange("isRecurring")}
                         />
-                        <FormLabel htmlFor="isRecurring" mb={0} fontSize="sm" fontWeight="medium">
+                        <FormLabel
+                          htmlFor="isRecurring"
+                          mb={0}
+                          fontSize="sm"
+                          fontWeight="medium"
+                        >
                           Recurring Expense
                         </FormLabel>
                       </Flex>
@@ -486,7 +572,9 @@ const ExpenseContent = () => {
 
                     {values.isRecurring && (
                       <FormControl>
-                        <FormLabel fontSize="sm" fontWeight="medium">Frequency</FormLabel>
+                        <FormLabel fontSize="sm" fontWeight="medium">
+                          Frequency
+                        </FormLabel>
                         <Field
                           as={Select}
                           name="recurringFrequency"
@@ -512,14 +600,24 @@ const ExpenseContent = () => {
                           isChecked={values.includeInBudget}
                           onChange={handleChange("includeInBudget")}
                         />
-                        <FormLabel htmlFor="includeInBudget" mb={0} fontSize="sm" fontWeight="medium">
+                        <FormLabel
+                          htmlFor="includeInBudget"
+                          mb={0}
+                          fontSize="sm"
+                          fontWeight="medium"
+                        >
                           Include in Budget
                         </FormLabel>
                       </Flex>
                     </FormControl>
 
                     <Flex gap={3} pt={2}>
-                      <Button onClick={onCloseDialog} variant="ghost" flex={1} borderRadius="xl">
+                      <Button
+                        onClick={onCloseDialog}
+                        variant="ghost"
+                        flex={1}
+                        borderRadius="xl"
+                      >
                         Cancel
                       </Button>
                       <Button
@@ -553,7 +651,9 @@ const ExpenseContent = () => {
         onClick={deleteHandler}
         colorScheme={"red"}
         alertHeader={"Delete Expense"}
-        alertBody={"Are you sure you want to delete this expense? This action cannot be undone."}
+        alertBody={
+          "Are you sure you want to delete this expense? This action cannot be undone."
+        }
         confirmButtonText={"Delete"}
         isLoading={deleteLoading}
       />
@@ -561,7 +661,12 @@ const ExpenseContent = () => {
       <CustomBox>
         <Stack spacing={8}>
           {/* Header */}
-          <Flex justify="space-between" align={{ base: "start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+          <Flex
+            justify="space-between"
+            align={{ base: "start", md: "center" }}
+            direction={{ base: "column", md: "row" }}
+            gap={4}
+          >
             <Box>
               <Heading size="lg" fontWeight="bold" mb={1}>
                 Expenses
@@ -579,8 +684,14 @@ const ExpenseContent = () => {
                 borderRadius="full"
                 aria-label="Export CSV"
                 onClick={() => {
-                  const rows = formatExpenseForExport(data?.data?.data || [], settings.currency);
-                  exportToCSV(rows, `expenses_${new Date().toISOString().split("T")[0]}`);
+                  const rows = formatExpenseForExport(
+                    data?.data?.data || [],
+                    settings.currency,
+                  );
+                  exportToCSV(
+                    rows,
+                    `expenses_${new Date().toISOString().split("T")[0]}`,
+                  );
                 }}
                 title="Export CSV"
               />
@@ -592,7 +703,10 @@ const ExpenseContent = () => {
                 borderRadius="full"
                 aria-label="Export JSON"
                 onClick={() => {
-                  exportToJSON(data?.data?.data || [], `expenses_${new Date().toISOString().split("T")[0]}`);
+                  exportToJSON(
+                    data?.data?.data || [],
+                    `expenses_${new Date().toISOString().split("T")[0]}`,
+                  );
                 }}
                 title="Export JSON"
               />
@@ -609,13 +723,18 @@ const ExpenseContent = () => {
               >
                 <Icon as={FiTrendingDown} />
                 <Skeleton isLoaded={!isLoading}>
-                  <Text fontWeight="bold">{formatMoney(data?.data?.totalAmount || 0, settings)}</Text>
+                  <Text fontWeight="bold">
+                    {formatMoney(data?.data?.totalAmount || 0, settings)}
+                  </Text>
                 </Skeleton>
               </Badge>
             </Flex>
           </Flex>
 
-          <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={{ base: 6, md: 8 }}>
+          <Grid
+            templateColumns={{ base: "1fr", lg: "1fr 1fr" }}
+            gap={{ base: 6, md: 8 }}
+          >
             {/* Form */}
             <GridItem>
               <MotionBox
@@ -633,7 +752,15 @@ const ExpenseContent = () => {
                   Add New Expense
                 </Text>
                 <Formik
-                  initialValues={{ title: "", amount: "", expenseDate: "", category: "", isRecurring: false, recurringFrequency: "monthly", includeInBudget: false }}
+                  initialValues={{
+                    title: "",
+                    amount: "",
+                    expenseDate: "",
+                    category: "",
+                    isRecurring: false,
+                    recurringFrequency: "monthly",
+                    includeInBudget: false,
+                  }}
                   onSubmit={clickHandler}
                   validationSchema={object({
                     title: string()
@@ -663,10 +790,18 @@ const ExpenseContent = () => {
                   }) => (
                     <Form>
                       <Stack spacing={4}>
-                        <FormControl isInvalid={Boolean(errors.title) && Boolean(touched.title)}>
-                          <FormLabel fontSize="sm" fontWeight="medium">Title</FormLabel>
+                        <FormControl
+                          isInvalid={
+                            Boolean(errors.title) && Boolean(touched.title)
+                          }
+                        >
+                          <FormLabel fontSize="sm" fontWeight="medium">
+                            Title
+                          </FormLabel>
                           <InputGroup size="lg">
-                            <InputLeftElement pointerEvents="none"><Icon as={FiTag} color="gray.400" /></InputLeftElement>
+                            <InputLeftElement pointerEvents="none">
+                              <Icon as={FiTag} color="gray.400" />
+                            </InputLeftElement>
                             <Field
                               as={Input}
                               type="text"
@@ -675,7 +810,9 @@ const ExpenseContent = () => {
                               borderRadius="xl"
                               focusBorderColor="teal.400"
                               pl={10}
-                              isInvalid={Boolean(errors.title) && Boolean(touched.title)}
+                              isInvalid={
+                                Boolean(errors.title) && Boolean(touched.title)
+                              }
                               onBlur={handleBlur}
                               onChange={handleChange("title")}
                               value={values.title || ""}
@@ -684,10 +821,18 @@ const ExpenseContent = () => {
                           <FormErrorMessage>{errors.title}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}>
-                          <FormLabel fontSize="sm" fontWeight="medium">Amount</FormLabel>
+                        <FormControl
+                          isInvalid={
+                            Boolean(errors.amount) && Boolean(touched.amount)
+                          }
+                        >
+                          <FormLabel fontSize="sm" fontWeight="medium">
+                            Amount
+                          </FormLabel>
                           <InputGroup size="lg">
-                            <InputLeftElement pointerEvents="none"><Icon as={FiDollarSign} color="gray.400" /></InputLeftElement>
+                            <InputLeftElement pointerEvents="none">
+                              <Icon as={FiDollarSign} color="gray.400" />
+                            </InputLeftElement>
                             <Field
                               as={Input}
                               type="text"
@@ -696,7 +841,10 @@ const ExpenseContent = () => {
                               borderRadius="xl"
                               focusBorderColor="teal.400"
                               pl={10}
-                              isInvalid={Boolean(errors.amount) && Boolean(touched.amount)}
+                              isInvalid={
+                                Boolean(errors.amount) &&
+                                Boolean(touched.amount)
+                              }
                               onBlur={handleBlur}
                               onChange={handleChange("amount")}
                               value={values.amount || ""}
@@ -705,10 +853,19 @@ const ExpenseContent = () => {
                           <FormErrorMessage>{errors.amount}</FormErrorMessage>
                         </FormControl>
 
-                        <FormControl isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}>
-                          <FormLabel fontSize="sm" fontWeight="medium">Date</FormLabel>
+                        <FormControl
+                          isInvalid={
+                            Boolean(errors.expenseDate) &&
+                            Boolean(touched.expenseDate)
+                          }
+                        >
+                          <FormLabel fontSize="sm" fontWeight="medium">
+                            Date
+                          </FormLabel>
                           <InputGroup size="lg">
-                            <InputLeftElement pointerEvents="none"><Icon as={FiCalendar} color="gray.400" /></InputLeftElement>
+                            <InputLeftElement pointerEvents="none">
+                              <Icon as={FiCalendar} color="gray.400" />
+                            </InputLeftElement>
                             <Field
                               as={Input}
                               type="date"
@@ -716,22 +873,37 @@ const ExpenseContent = () => {
                               borderRadius="xl"
                               focusBorderColor="teal.400"
                               pl={10}
-                              isInvalid={Boolean(errors.expenseDate) && Boolean(touched.expenseDate)}
+                              isInvalid={
+                                Boolean(errors.expenseDate) &&
+                                Boolean(touched.expenseDate)
+                              }
                               onBlur={handleBlur}
                               onChange={handleChange("expenseDate")}
                               value={values.expenseDate || ""}
                             />
                           </InputGroup>
-                          <FormErrorMessage>{errors.expenseDate}</FormErrorMessage>
+                          <FormErrorMessage>
+                            {errors.expenseDate}
+                          </FormErrorMessage>
                         </FormControl>
 
-                        <FormControl isInvalid={Boolean(errors.category) && Boolean(touched.category)}>
-                          <FormLabel fontSize="sm" fontWeight="medium">Category</FormLabel>
+                        <FormControl
+                          isInvalid={
+                            Boolean(errors.category) &&
+                            Boolean(touched.category)
+                          }
+                        >
+                          <FormLabel fontSize="sm" fontWeight="medium">
+                            Category
+                          </FormLabel>
                           <Select
                             placeholder="Select Category"
                             borderRadius="xl"
                             focusBorderColor="teal.400"
-                            isInvalid={Boolean(errors.category) && Boolean(touched.category)}
+                            isInvalid={
+                              Boolean(errors.category) &&
+                              Boolean(touched.category)
+                            }
                             onBlur={handleBlur}
                             onChange={handleChange("category")}
                             value={values.category || ""}
@@ -754,7 +926,12 @@ const ExpenseContent = () => {
                               isChecked={values.isRecurring}
                               onChange={handleChange("isRecurring")}
                             />
-                            <FormLabel htmlFor="isRecurring" mb={0} fontSize="sm" fontWeight="medium">
+                            <FormLabel
+                              htmlFor="isRecurring"
+                              mb={0}
+                              fontSize="sm"
+                              fontWeight="medium"
+                            >
                               Recurring Expense
                             </FormLabel>
                           </Flex>
@@ -762,7 +939,9 @@ const ExpenseContent = () => {
 
                         {values.isRecurring && (
                           <FormControl>
-                            <FormLabel fontSize="sm" fontWeight="medium">Frequency</FormLabel>
+                            <FormLabel fontSize="sm" fontWeight="medium">
+                              Frequency
+                            </FormLabel>
                             <Field
                               as={Select}
                               name="recurringFrequency"
@@ -788,7 +967,12 @@ const ExpenseContent = () => {
                               isChecked={values.includeInBudget}
                               onChange={handleChange("includeInBudget")}
                             />
-                            <FormLabel htmlFor="includeInBudget" mb={0} fontSize="sm" fontWeight="medium">
+                            <FormLabel
+                              htmlFor="includeInBudget"
+                              mb={0}
+                              fontSize="sm"
+                              fontWeight="medium"
+                            >
                               Include in Budget
                             </FormLabel>
                           </Flex>
@@ -799,7 +983,10 @@ const ExpenseContent = () => {
                           size="lg"
                           bg="teal.500"
                           color="white"
-                          _hover={{ bg: "teal.400", transform: "translateY(-1px)" }}
+                          _hover={{
+                            bg: "teal.400",
+                            transform: "translateY(-1px)",
+                          }}
                           _active={{ bg: "teal.600" }}
                           isDisabled={!isValid || !dirty}
                           type="submit"
@@ -832,13 +1019,20 @@ const ExpenseContent = () => {
                 >
                   <Flex align="center" gap={2} mb={4}>
                     <Icon as={FiFilter} color="teal.500" />
-                    <Text fontSize="sm" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">
+                    <Text
+                      fontSize="sm"
+                      fontWeight="bold"
+                      textTransform="uppercase"
+                      letterSpacing="wider"
+                    >
                       Filters
                     </Text>
                   </Flex>
                   <Stack spacing={3}>
                     <FormControl>
-                      <FormLabel fontSize="sm" fontWeight="medium">Category</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Category
+                      </FormLabel>
                       <Select
                         placeholder="All Categories"
                         borderRadius="xl"
@@ -856,7 +1050,9 @@ const ExpenseContent = () => {
                     </FormControl>
                     <Flex gap={3}>
                       <FormControl>
-                        <FormLabel fontSize="sm" fontWeight="medium">Start Date</FormLabel>
+                        <FormLabel fontSize="sm" fontWeight="medium">
+                          Start Date
+                        </FormLabel>
                         <Input
                           type="date"
                           name="startDate"
@@ -867,7 +1063,9 @@ const ExpenseContent = () => {
                         />
                       </FormControl>
                       <FormControl>
-                        <FormLabel fontSize="sm" fontWeight="medium">End Date</FormLabel>
+                        <FormLabel fontSize="sm" fontWeight="medium">
+                          End Date
+                        </FormLabel>
                         <Input
                           type="date"
                           name="endDate"
@@ -879,9 +1077,13 @@ const ExpenseContent = () => {
                       </FormControl>
                     </Flex>
                     <FormControl>
-                      <FormLabel fontSize="sm" fontWeight="medium">Search by Title</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Search by Title
+                      </FormLabel>
                       <InputGroup>
-                        <InputLeftElement pointerEvents="none"><Icon as={FiSearch} color="gray.400" /></InputLeftElement>
+                        <InputLeftElement pointerEvents="none">
+                          <Icon as={FiSearch} color="gray.400" />
+                        </InputLeftElement>
                         <Input
                           type="text"
                           name="searchQuery"
@@ -895,7 +1097,9 @@ const ExpenseContent = () => {
                       </InputGroup>
                     </FormControl>
                     <FormControl>
-                      <FormLabel fontSize="sm" fontWeight="medium">Recurring</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Recurring
+                      </FormLabel>
                       <RecurringFilter
                         name="isRecurring"
                         value={filterData.isRecurring}
@@ -965,7 +1169,12 @@ const ExpenseContent = () => {
                     border="1px dashed"
                     borderColor={borderColor}
                   >
-                    <Icon as={FiTrendingDown} boxSize={8} color="gray.300" mb={3} />
+                    <Icon
+                      as={FiTrendingDown}
+                      boxSize={8}
+                      color="gray.300"
+                      mb={3}
+                    />
                     <Text fontWeight="medium" color={mutedText}>
                       No expenses found
                     </Text>
@@ -979,93 +1188,112 @@ const ExpenseContent = () => {
                   data?.data?.data?.map((item) => {
                     const isHighlighted = highlightId === item._id;
                     return (
-                    <MotionBox
-                      key={item._id}
-                      id={`record-${item._id}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      bg={isHighlighted ? "red.50" : bgCard}
-                      border="2px solid"
-                      borderColor={isHighlighted ? "red.400" : borderColor}
-                      borderRadius="xl"
-                      p={4}
-                      boxShadow={isHighlighted ? "0 0 0 4px rgba(244, 63, 94, 0.2)" : "sm"}
-                      _hover={{ boxShadow: "md", borderColor: "red.200" }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Flex justify="space-between" align="center">
-                        <Flex align="center" gap={3}>
-                          <Flex
-                            w={10}
-                            h={10}
-                            borderRadius="xl"
-                            bg="red.50"
-                            align="center"
-                            justify="center"
-                            overflow="hidden"
-                          >
-                            {item?.category?.icon ? (
-                              <Image
-                                src={item.category.icon}
-                                alt={item.category.name}
-                                width={24}
-                                height={24}
-                              />
-                            ) : (
-                              <Icon as={FiTrendingDown} color="red.500" />
-                            )}
+                      <MotionBox
+                        key={item._id}
+                        id={`record-${item._id}`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        bg={isHighlighted ? "red.50" : bgCard}
+                        border="2px solid"
+                        borderColor={isHighlighted ? "red.400" : borderColor}
+                        borderRadius="xl"
+                        p={4}
+                        boxShadow={
+                          isHighlighted
+                            ? "0 0 0 4px rgba(244, 63, 94, 0.2)"
+                            : "sm"
+                        }
+                        _hover={{ boxShadow: "md", borderColor: "red.200" }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Flex justify="space-between" align="center">
+                          <Flex align="center" gap={3}>
+                            <Flex
+                              w={10}
+                              h={10}
+                              borderRadius="xl"
+                              bg="red.50"
+                              align="center"
+                              justify="center"
+                              overflow="hidden"
+                            >
+                              {item?.category?.icon ? (
+                                <Image
+                                  src={item.category.icon}
+                                  alt={item.category.name}
+                                  width={24}
+                                  height={24}
+                                />
+                              ) : (
+                                <Icon as={FiTrendingDown} color="red.500" />
+                              )}
+                            </Flex>
+                            <Stack spacing={0}>
+                              <Text fontWeight="semibold" fontSize="sm">
+                                {item.title}
+                              </Text>
+                              <Text fontSize="xs" color={mutedText}>
+                                {item.category?.name || "Uncategorized"}
+                              </Text>
+                              {item.isRecurring && (
+                                <Badge
+                                  colorScheme="red"
+                                  variant="subtle"
+                                  fontSize="10px"
+                                  borderRadius="full"
+                                  w="fit-content"
+                                >
+                                  Recurring · {item.recurringFrequency}
+                                </Badge>
+                              )}
+                            </Stack>
                           </Flex>
-                          <Stack spacing={0}>
-                            <Text fontWeight="semibold" fontSize="sm">
-                              {item.title}
+                          <Stack spacing={0} align="end">
+                            <Text
+                              fontWeight="bold"
+                              fontSize="md"
+                              color="red.500"
+                            >
+                              -{formatMoney(item.amount, settings)}
                             </Text>
                             <Text fontSize="xs" color={mutedText}>
-                              {item.category?.name || "Uncategorized"}
+                              {dateFormat(item.expenseDate)}
                             </Text>
-                            {item.isRecurring && (
-                              <Badge colorScheme="red" variant="subtle" fontSize="10px" borderRadius="full" w="fit-content">
-                                Recurring · {item.recurringFrequency}
-                              </Badge>
-                            )}
                           </Stack>
+                          <Flex gap={2} ml={2}>
+                            <IconButton
+                              icon={<FiEdit2 />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="teal"
+                              borderRadius="lg"
+                              aria-label="Edit"
+                              onClick={() => confirmUpdateDialog(item._id)}
+                            />
+                            <IconButton
+                              icon={<FiTrash2 />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              borderRadius="lg"
+                              aria-label="Delete"
+                              onClick={() => confirmDialog(item._id)}
+                            />
+                          </Flex>
                         </Flex>
-                        <Stack spacing={0} align="end">
-                          <Text fontWeight="bold" fontSize="md" color="red.500">
-                            -{formatMoney(item.amount, settings)}
-                          </Text>
-                          <Text fontSize="xs" color={mutedText}>
-                            {dateFormat(item.expenseDate)}
-                          </Text>
-                        </Stack>
-                        <Flex gap={2} ml={2}>
-                          <IconButton
-                            icon={<FiEdit2 />}
-                            size="sm"
-                            variant="ghost"
-                            colorScheme="teal"
-                            borderRadius="lg"
-                            aria-label="Edit"
-                            onClick={() => confirmUpdateDialog(item._id)}
-                          />
-                          <IconButton
-                            icon={<FiTrash2 />}
-                            size="sm"
-                            variant="ghost"
-                            colorScheme="red"
-                            borderRadius="lg"
-                            aria-label="Delete"
-                            onClick={() => confirmDialog(item._id)}
-                          />
-                        </Flex>
-                      </Flex>
-                    </MotionBox>
-                  );})}
+                      </MotionBox>
+                    );
+                  })}
 
                 <Pagination
                   currentPage={parseInt(currentPage)}
                   totalPages={totalPages}
                   onPageChange={handlePageChange}
-                  display={data?.data?.totalExpenses <= 5 || isLoading ? "none" : "flex"}
+                  display={
+                    data?.data?.totalExpenses <= 5 || isLoading
+                      ? "none"
+                      : "flex"
+                  }
                 />
               </Stack>
             </GridItem>

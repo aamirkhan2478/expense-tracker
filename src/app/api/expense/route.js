@@ -5,6 +5,7 @@ import Expense from "@/models/expense";
 import Category from "@/models/category";
 import { requireUser } from "@/lib/auth-middleware";
 import { expenseCreateSchema } from "@/lib/validation/transactions";
+import { toObjectId } from "@/utils/mongo";
 
 export async function POST(req) {
   try {
@@ -271,9 +272,22 @@ export async function GET(req) {
     }
 
     // Aggregate the filtered total in the database rather than loading every
-    // matching document into memory.
+    // matching document into memory. aggregate() does no casting, so the user
+    // id, the date bounds and the category must be real BSON values here or the
+    // $match silently matches nothing and the total comes back as 0.
+    const aggregateMatch = { user: toObjectId(user), ...filter };
+    if (filter.expenseDate) {
+      aggregateMatch.expenseDate = {
+        $gte: new Date(filter.expenseDate.$gte),
+        $lte: new Date(filter.expenseDate.$lte),
+      };
+    }
+    if (filter.category) {
+      aggregateMatch.category = toObjectId(filter.category);
+    }
+
     const [totalAgg] = await Expense.aggregate([
-      { $match: { user, ...filter } },
+      { $match: aggregateMatch },
       { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
     ]);
     const totalAmount = totalAgg?.totalAmount || 0;
