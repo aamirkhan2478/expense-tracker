@@ -40,7 +40,7 @@ export async function POST(req) {
     if (!email || !password) {
       return res.json(
         { success: false, error: "Email and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,8 +56,11 @@ export async function POST(req) {
 
     if (rateLimitResult) {
       return res.json(
-        { success: false, error: "Too many login attempts. Please try again later." },
-        { status: 429 }
+        {
+          success: false,
+          error: "Too many login attempts. Please try again later.",
+        },
+        { status: 429 },
       );
     }
 
@@ -65,13 +68,13 @@ export async function POST(req) {
 
     // ── Find user (include password, lockout, and verification fields) ──
     const user = await User.findOne({ email: normalizedEmail }).select(
-      "+password +loginAttempts +lockUntil +refreshToken +refreshTokenExpires +emailVerificationToken +emailVerificationExpires"
+      "+password +loginAttempts +lockUntil +refreshToken +refreshTokenExpires +emailVerificationToken +emailVerificationExpires",
     );
 
     if (!user) {
       return res.json(
         { success: false, error: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -83,7 +86,7 @@ export async function POST(req) {
           success: false,
           error: `Account temporarily locked due to too many failed attempts. Please try again in ${lockTime} minute(s).`,
         },
-        { status: 423 }
+        { status: 423 },
       );
     }
 
@@ -95,7 +98,9 @@ export async function POST(req) {
 
       const headers = req.headers;
       const forwardedFor = headers.get("x-forwarded-for");
-      const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : "Unknown";
+      const ipAddress = forwardedFor
+        ? forwardedFor.split(",")[0].trim()
+        : "Unknown";
       const userAgent = headers.get("user-agent") || "Unknown";
       const timestamp = new Date().toLocaleString("en-US", {
         dateStyle: "medium",
@@ -109,12 +114,14 @@ export async function POST(req) {
         timestamp,
         ipAddress,
         userAgent,
-        user._id.toString()
-      ).catch((err) => console.error("[Auth] Failed login alert failed:", err.message));
+        user._id.toString(),
+      ).catch((err) =>
+        console.error("[Auth] Failed login alert failed:", err.message),
+      );
 
       return res.json(
         { success: false, error: "Invalid email or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -122,8 +129,11 @@ export async function POST(req) {
     // Legacy migration: users created before email verification was enforced
     // have no verification token. Auto-verify them on first login.
     if (!user.emailVerified) {
-      const hasPendingToken = user.emailVerificationToken && user.emailVerificationExpires && user.emailVerificationExpires > Date.now();
-      
+      const hasPendingToken =
+        user.emailVerificationToken &&
+        user.emailVerificationExpires &&
+        user.emailVerificationExpires > Date.now();
+
       if (!hasPendingToken) {
         // Legacy user or token expired — auto-verify to prevent lockout
         user.emailVerified = true;
@@ -135,10 +145,11 @@ export async function POST(req) {
         return res.json(
           {
             success: false,
-            error: "Please verify your email before logging in. Check your inbox for the verification link.",
+            error:
+              "Please verify your email before logging in. Check your inbox for the verification link.",
             code: "EMAIL_NOT_VERIFIED",
           },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -152,15 +163,19 @@ export async function POST(req) {
     await user.save({ validateBeforeSave: false });
 
     // ── Fire login notification for new/unknown devices (async, non-blocking) ──
-    ;(async () => {
+    (async () => {
       try {
         const headers = req.headers;
         const forwardedFor = headers.get("x-forwarded-for");
-        const ipAddress = forwardedFor ? forwardedFor.split(",")[0].trim() : "Unknown";
+        const ipAddress = forwardedFor
+          ? forwardedFor.split(",")[0].trim()
+          : "Unknown";
         const userAgentStr = headers.get("user-agent") || "Unknown";
 
         // Simple UA parsing using string patterns (no extra dependency needed)
-        let browser = "Unknown", os = "Unknown", device = "Desktop";
+        let browser = "Unknown",
+          os = "Unknown",
+          device = "Desktop";
         const ua = userAgentStr.toLowerCase();
         // Browser
         if (ua.includes("edg/")) browser = "Microsoft Edge";
@@ -168,16 +183,24 @@ export async function POST(req) {
         else if (ua.includes("chrome")) browser = "Chrome";
         else if (ua.includes("firefox")) browser = "Firefox";
         else if (ua.includes("safari")) browser = "Safari";
-        else if (ua.includes("msie") || ua.includes("trident")) browser = "Internet Explorer";
+        else if (ua.includes("msie") || ua.includes("trident"))
+          browser = "Internet Explorer";
         // OS
         if (ua.includes("windows")) os = "Windows";
-        else if (ua.includes("macintosh") || ua.includes("mac os")) os = "macOS";
+        else if (ua.includes("macintosh") || ua.includes("mac os"))
+          os = "macOS";
         else if (ua.includes("android")) os = "Android";
         else if (ua.includes("iphone") || ua.includes("ipad")) os = "iOS";
         else if (ua.includes("linux")) os = "Linux";
         // Device
-        if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) device = "Mobile";
-        else if (ua.includes("ipad") || ua.includes("tablet")) device = "Tablet";
+        if (
+          ua.includes("mobile") ||
+          ua.includes("android") ||
+          ua.includes("iphone")
+        )
+          device = "Mobile";
+        else if (ua.includes("ipad") || ua.includes("tablet"))
+          device = "Tablet";
 
         const { connectToDB } = await import("@/utils/database");
         await connectToDB();
@@ -190,13 +213,22 @@ export async function POST(req) {
         });
 
         const isNewDevice = !existingDevice;
-        const locationChanged = existingDevice && existingDevice.ipAddress !== ipAddress;
+        const locationChanged =
+          existingDevice && existingDevice.ipAddress !== ipAddress;
 
         // Update or insert the device record
         await UserDevice.findOneAndUpdate(
           { userId: user._id, browser, os },
-          { $set: { device, ipAddress, userAgent: userAgentStr, lastUsedAt: new Date(), loginMethod: "password" } },
-          { upsert: true, new: true }
+          {
+            $set: {
+              device,
+              ipAddress,
+              userAgent: userAgentStr,
+              lastUsedAt: new Date(),
+              loginMethod: "password",
+            },
+          },
+          { upsert: true, new: true },
         );
 
         // Send notification if it's a new device or the IP changed
@@ -206,7 +238,10 @@ export async function POST(req) {
             user.email,
             user.name,
             {
-              timestamp: new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
+              timestamp: new Date().toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }),
               device,
               browser,
               os,
@@ -214,11 +249,14 @@ export async function POST(req) {
               ipAddress,
               loginMethod: "Password",
             },
-            user._id.toString()
+            user._id.toString(),
           );
         }
       } catch (notifErr) {
-        console.error("[Auth Login] Login notification failed:", notifErr.message);
+        console.error(
+          "[Auth Login] Login notification failed:",
+          notifErr.message,
+        );
       }
     })();
 
@@ -229,6 +267,10 @@ export async function POST(req) {
       email: user.email,
       emailVerified: user.emailVerified,
       role: user.role,
+      preferences: {
+        dateFormat: user.preferences.dateFormat,
+        itemsPerPage: user.preferences.itemsPerPage,
+      },
     };
 
     const response = res.json(
@@ -239,7 +281,7 @@ export async function POST(req) {
         token: accessToken,
         refreshToken,
       },
-      { status: 200 }
+      { status: 200 },
     );
 
     // ── Set cookies ──
@@ -252,15 +294,18 @@ export async function POST(req) {
     // cookie serves as a reliable fallback.
     const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
     response.cookies.set("token", accessToken, getCookieOptions(maxAge));
-    response.cookies.set("_token", accessToken, getRegularCookieOptions(maxAge));
+    response.cookies.set(
+      "_token",
+      accessToken,
+      getRegularCookieOptions(maxAge),
+    );
 
     return response;
   } catch (err) {
     console.error("[Auth Login] Error:", err.message);
     return res.json(
       { success: false, error: "Server error. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

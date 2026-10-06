@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import { useSettings, CURRENCIES, formatMoney } from "@/hooks/useSettings";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { formatDate, previewDate, DATE_FORMAT_KEYS } from "@/utils/formatDate";
-import { exportToJSON, exportAllData } from "@/utils/exportData";
+import { exportAllData } from "@/utils/exportData";
 import axiosInstance from "@/utils/axiosInstance";
 import {
   Box,
@@ -42,14 +42,9 @@ import {
   FiList,
   FiRefreshCw,
   FiCheckCircle,
-  FiDownload,
   FiFileText,
   FiDatabase,
   FiBell,
-  FiToggleLeft,
-  FiToggleRight,
-  FiShield,
-  FiMail,
 } from "react-icons/fi";
 
 const MotionBox = motion(Box);

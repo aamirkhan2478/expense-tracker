@@ -74,9 +74,11 @@ const MotionBox = motion(Box);
 
 const ExpenseContent = () => {
   let id = "";
+  let preferences = {};
   if (typeof window !== "undefined") {
     const user = JSON.parse(localStorage.getItem("user"));
     id = user?.id || "";
+    preferences = user?.preferences || {};
   }
 
   const { settings } = useSettings();
@@ -99,7 +101,7 @@ const ExpenseContent = () => {
 
   const { data, isLoading } = useShowExpense(
     id || "",
-    5,
+    preferences?.itemsPerPage || 5,
     currentPage,
     startDate,
     endDate,
@@ -129,7 +131,7 @@ const ExpenseContent = () => {
 
   // On mount: read page & highlight params
   useEffect(() => {
-    const highlightParam = searchParams.get("highlight");
+    const highlightParam = searchParams.get("searchQuery");
     if (highlightParam) {
       setPendingHighlight(highlightParam);
       setHighlightId(highlightParam);
@@ -190,7 +192,9 @@ const ExpenseContent = () => {
     recurringFrequency: expense?.recurringFrequency || "monthly",
     includeInBudget: expense?.includeInBudget || false,
   };
-  const totalPages = Math.ceil(data?.data?.totalExpenses / 5);
+  const totalPages = Math.ceil(
+    data?.data?.totalExpenses / (preferences?.itemsPerPage || 5),
+  );
 
   const buildExpenseUrl = (filters, page) => {
     const params = new URLSearchParams();
@@ -1255,7 +1259,10 @@ const ExpenseContent = () => {
                               -{formatMoney(item.amount, settings)}
                             </Text>
                             <Text fontSize="xs" color={mutedText}>
-                              {dateFormat(item.expenseDate)}
+                              {dateFormat(
+                                item.expenseDate,
+                                preferences?.dateFormat || "YYYY-MM-DD",
+                              )}
                             </Text>
                           </Stack>
                           <Flex gap={2} ml={2}>
